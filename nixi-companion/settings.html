@@ -289,8 +289,9 @@
     }
 
     select:focus, input:focus {
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+      border: 2px solid #3b82f6;
+      box-shadow: 0 0 0 1px #3b82f6;
+      padding: 8px 13px;
     }
 
     /* Rainbow / Color Gradient Range Slider */
@@ -340,58 +341,39 @@
       cursor: pointer;
     }
 
-    /* Live Preview Section */
-    .preview-box {
+    /* Live Preview Section (Screenshots 4 & 5) */
+    .preview-dock-wrapper {
+      display: flex;
+      justify-content: flex-start;
+      padding: 4px 0 12px 0;
+    }
+
+    .preview-dock-card {
+      width: 140px;
+      height: 96px;
+      background: #000000;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 8px 12px 10px 12px;
       display: flex;
       flex-direction: column;
+      justify-content: space-between;
       align-items: center;
-      justify-content: center;
-      padding: 16px 0;
-      gap: 10px;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+      transition: background 0.2s ease;
     }
 
-    .preview-pill {
-      width: 104px;
-      height: 52px;
-      background: #0d1117;
-      border-radius: 26px;
+    .preview-dock-icons {
       display: flex;
+      justify-content: space-around;
       align-items: center;
-      justify-content: center;
-      position: relative;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      width: 100%;
+      padding: 0 4px;
     }
 
-    .preview-eyes {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-    }
-
-    .preview-eye {
-      width: 8px;
-      height: 18px;
-      background: #ffffff;
-      border-radius: 4px;
-    }
-
-    /* Sunglasses overlay */
-    .preview-shades {
-      display: none;
-      position: absolute;
-      width: 50px;
-      height: 18px;
-      border: 2px solid #94a3b8;
-      border-radius: 6px;
-      box-shadow: inset 0 0 4px rgba(255, 255, 255, 0.3);
-    }
-
-    .preview-icons {
-      display: flex;
-      gap: 16px;
-      color: #94a3b8;
-      font-size: 12px;
+    .preview-dock-icons .p-icon {
+      width: 16px;
+      height: 16px;
     }
 
     /* Bottom Info Card */
@@ -471,9 +453,6 @@
       <span class="title-dots">● ●</span>
       <span>heynixi Settings</span>
     </div>
-    <div class="title-center-pill" style="padding: 0; background: transparent; border: none; box-shadow: none;">
-      <canvas id="notchFace" width="144" height="68" style="width: 72px; height: 34px; border-radius: 17px; display: block; box-shadow: 0 4px 12px rgba(0,0,0,0.5);" title="Nixi notch"></canvas>
-    </div>
     <button class="title-close" id="bCloseTop" title="Close">✕</button>
   </div>
 
@@ -495,30 +474,9 @@
 
     <!-- Content Area -->
     <div class="content-area">
-      <!-- General Tab (Screenshot 4) -->
+      <!-- General Tab (Screenshots 4 & 5) -->
       <div class="tab-content active" id="tab-general">
-        <div class="tab-header">
-          <h1 class="tab-title">General</h1>
-          <p class="tab-subtitle">Choose how heynixi stays available while you work.</p>
-        </div>
-
         <div class="settings-card">
-          <div class="setting-row">
-            <span class="setting-label">Start heynixi when I sign in</span>
-            <label class="switch">
-              <input type="checkbox" id="cfgAutostart">
-              <span class="slider-toggle"></span>
-            </label>
-          </div>
-
-          <div class="setting-row">
-            <span class="setting-label">Keep heynixi visible while idle</span>
-            <label class="switch">
-              <input type="checkbox" id="cfgVisibleIdle" checked>
-              <span class="slider-toggle"></span>
-            </label>
-          </div>
-
           <div class="setting-row">
             <span class="setting-label">Hide during full-screen apps</span>
             <label class="switch">
@@ -554,11 +512,10 @@
             <span class="setting-label">Outfit</span>
             <select id="cfgOutfit">
               <option value="none">None</option>
-              <option value="shades" selected>Shades</option>
-              <option value="bowtie">Bowtie</option>
-              <option value="santa">Santa</option>
-              <option value="crown">Crown</option>
+              <option value="bow">Bow</option>
+              <option value="glasses">Glasses</option>
               <option value="headphones">Headphones</option>
+              <option value="shades">Shades</option>
             </select>
           </div>
 
@@ -572,12 +529,14 @@
 
           <div class="setting-row" style="align-items: flex-start;">
             <span class="setting-label" style="margin-top: 24px;">Live preview</span>
-            <div class="preview-box">
-              <canvas id="previewFace" width="224" height="112" style="width: 112px; height: 56px; border-radius: 28px; display: block; box-shadow: 0 8px 24px rgba(0,0,0,0.18);" title="Live Nixi preview"></canvas>
-              <div class="preview-icons">
-                <span>↖</span>
-                <span>🎤</span>
-                <span>✏️</span>
+            <div class="preview-dock-wrapper">
+              <div class="preview-dock-card" id="previewDockCard">
+                <canvas id="previewFace" width="224" height="112" style="width: 104px; height: 50px; display: block; margin: 0 auto;" title="Live Nixi preview"></canvas>
+                <div class="preview-dock-icons">
+                  <svg viewBox="0 0 24 24" class="p-icon"><path d="M5.5 3.5l11.5 11.5-5.2.8 3.5 7-2.6 1.3-3.5-7-4.2 3.6V3.5z" fill="#ffffff" stroke="#101216" stroke-width="1.2"/></svg>
+                  <svg viewBox="0 0 24 24" class="p-icon"><rect x="9" y="3" width="6" height="11" rx="3" fill="#ffffff"/><path d="M5.5 10.5a6.5 6.5 0 0 0 13 0M12 17v3.5M8.5 20.5h7" stroke="#ffffff" stroke-width="2" fill="none"/></svg>
+                  <svg viewBox="0 0 24 24" class="p-icon"><path d="m4.5 19.5 3.8-.9 10.2-10.2a2 2 0 0 0-2.8-2.8L5.5 15.8l-1 3.7Z" stroke="#ffffff" stroke-width="2" fill="none"/><path d="m13.5 7.5 2.8 2.8" stroke="#ffffff" stroke-width="1.8"/></svg>
+                </div>
               </div>
             </div>
           </div>
@@ -821,6 +780,30 @@
     outfitSelect.addEventListener('change', () => {
       currentOutfit = outfitSelect.value;
     });
+    outfitSelect.addEventListener('input', () => {
+      currentOutfit = outfitSelect.value;
+    });
+
+    const eyeRange = document.getElementById('cfgEyeColor');
+    function updateEyeColor() {
+      const val = Number(eyeRange.value) || 0;
+      let hex = '#ffffff';
+      if (val > 0) hex = `hsl(${val}, 100%, 75%)`;
+      previewFace.setPalette(hex, '#000000');
+    }
+    if (eyeRange) eyeRange.addEventListener('input', updateEyeColor);
+
+    const pillRange = document.getElementById('cfgPillColor');
+    const shadeRange = document.getElementById('cfgPillShade');
+    function updatePillBg() {
+      const card = document.getElementById('previewDockCard');
+      if (!card) return;
+      const s = Number(shadeRange.value) / 100;
+      const h = Number(pillRange.value);
+      card.style.background = `hsl(${h}, 20%, ${Math.round(s * 14)}%)`;
+    }
+    if (pillRange) pillRange.addEventListener('input', updatePillBg);
+    if (shadeRange) shadeRange.addEventListener('input', updatePillBg);
 
     let lastT = 0;
     function loop(t) {
@@ -829,27 +812,11 @@
       lastT = t;
       if (!dt || dt > 0.5) return;
 
-      if (nctx) {
-        notchFace.advance(dt, 'idle', 0, targetOv);
-        nctx.setTransform(1, 0, 0, 1, 0, 0);
-        nctx.clearRect(0, 0, 144, 68);
-        nctx.setTransform(2, 0, 0, 2, 0, 0);
-        nctx.fillStyle = '#000000';
-        nctx.beginPath();
-        nctx.roundRect(0, 0, 72, 34, 17);
-        nctx.fill();
-        notchFace.paint(nctx, 0, 0, 72, 34, { time: t / 1000 });
-      }
-
       if (pctx) {
         previewFace.advance(dt, 'idle', 0, targetOv);
         pctx.setTransform(1, 0, 0, 1, 0, 0);
         pctx.clearRect(0, 0, 224, 112);
         pctx.setTransform(2, 0, 0, 2, 0, 0);
-        pctx.fillStyle = '#000000';
-        pctx.beginPath();
-        pctx.roundRect(0, 0, 112, 56, 28);
-        pctx.fill();
         previewFace.paint(pctx, 0, 0, 112, 56, { outfit: currentOutfit, time: t / 1000 });
       }
     }
@@ -858,15 +825,15 @@
     // Load initial config
     ipcRenderer.invoke('cfg-get').then(cfg => {
       if (!cfg) return;
-      if (cfg.key) document.getElementById('cfgApiKey').value = cfg.key;
-      if (cfg.model) document.getElementById('cfgModel').value = cfg.model;
-      if (cfg.voice) document.getElementById('cfgVoice').value = cfg.voice;
-      if (cfg.speak !== undefined) document.getElementById('cfgSpeak').checked = !!cfg.speak;
+      if (cfg.key && document.getElementById('cfgApiKey')) document.getElementById('cfgApiKey').value = cfg.key;
+      if (cfg.model && document.getElementById('cfgModel')) document.getElementById('cfgModel').value = cfg.model;
+      if (cfg.voice && document.getElementById('cfgVoice')) document.getElementById('cfgVoice').value = cfg.voice;
+      if (cfg.speak !== undefined && document.getElementById('cfgSpeak')) document.getElementById('cfgSpeak').checked = !!cfg.speak;
       if (cfg.outfit) {
         outfitSelect.value = cfg.outfit;
         currentOutfit = cfg.outfit;
       }
-      if (cfg.autostart !== undefined) document.getElementById('cfgAutostart').checked = cfg.autostart;
+      if (cfg.autostart !== undefined && document.getElementById('cfgAutostart')) document.getElementById('cfgAutostart').checked = cfg.autostart;
     });
 
     // Voice test preview

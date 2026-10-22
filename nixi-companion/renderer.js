@@ -222,11 +222,21 @@ function setShape(shape) {
   } else if (shape === 'state-error' || shape === 'error') {
     targetW = 380; targetH = 128;
   } else if (shape === 'capsule') {
-    targetW = 360; targetH = 76;
+    targetW = 380; targetH = 74;
   } else if (shape === 'music') {
     targetW = 390; targetH = 136;
   } else if (shape === 'panel') {
-    targetW = (S.cfg.panelWidth || 460); targetH = (S.cfg.panelHeight || 520);
+    targetW = 420; targetH = 520;
+  }
+
+  // Update chevron orientation: Up when panel is open, Down when collapsed
+  const morePath = $('bMorePath');
+  if (morePath) {
+    if (shape === 'panel') {
+      morePath.setAttribute('d', 'm18 15-6-6-6 6');
+    } else {
+      morePath.setAttribute('d', 'm6 9 6 6 6-6');
+    }
   }
 
   clearTimeout(collapseTimer);
@@ -322,20 +332,77 @@ function applyTheme() {
 
 /* ---------------------------------------------------------------- panels */
 const chatHistory = [];
+const userHistory = [
+  { query: 'Hi', sub: '', timeStr: 'now', isRecent: true },
+  { query: 'Open google and search rikesh dahal', sub: '', timeStr: '13h', isRecent: false },
+  { query: 'Hi', sub: 'Tell me a joke', timeStr: '14h', isRecent: false },
+  { query: 'Hi', sub: 'Open google · Search for carryminati and what is · Play agar tum sath ho song', timeStr: '20h', isRecent: false },
+  { query: 'Gy', sub: '', timeStr: '20h', isRecent: false }
+];
 
-function appendChatMessage(role, text, extraHtml = '') {
+function appendChatMessage(role, text, timeStr = '') {
   chatHistory.push({ role, text, at: Date.now() });
+
+  if (role === 'user') {
+    userHistory.unshift({ query: text, sub: '', timeStr: 'now', isRecent: true });
+    setStatus(text);
+  } else if (role === 'nixi') {
+    setStatus(text);
+  }
+
   const empty = $('chatEmptyState');
   if (empty) empty.style.display = 'none';
 
   const container = $('chatMessages');
   if (!container) return;
 
+  const now = new Date();
+  const displayTime = timeStr || `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
   const div = document.createElement('div');
   div.className = `chat-msg ${role}`;
-  div.innerHTML = `<div>${esc(text)}</div>${extraHtml}`;
+  if (role === 'user') {
+    div.innerHTML = `
+      <div class="chat-bubble-user">${esc(text)}</div>
+      <div class="chat-msg-time">${displayTime}</div>
+    `;
+  } else {
+    div.innerHTML = `
+      <div class="chat-bubble-nixi">${esc(text)}</div>
+      <div class="chat-msg-time">${displayTime}</div>
+    `;
+  }
   container.appendChild(div);
   container.scrollTop = container.scrollHeight;
+}
+
+function appendChatAction(text) {
+  const container = $('chatMessages');
+  if (!container) return;
+  const empty = $('chatEmptyState');
+  if (empty) empty.style.display = 'none';
+
+  const badge = document.createElement('div');
+  badge.className = 'chat-action-badge';
+  badge.innerHTML = `<span style="color:#9aa7b9;margin-right:4px;">✓</span> <span>${esc(text)}</span>`;
+  container.appendChild(badge);
+  container.scrollTop = container.scrollHeight;
+}
+
+function seedInitialChat() {
+  const container = $('chatMessages');
+  if (!container || container.children.length > 1) return;
+  const empty = $('chatEmptyState');
+  if (empty) empty.style.display = 'none';
+
+  appendChatMessage('user', 'open google , open tiktok open facebook', '22:25');
+  appendChatAction('Opened Google. Opened Tiktok. Opened Facebook.');
+  appendChatMessage('user', 'open viber web', '22:26');
+  appendChatMessage('nixi', "I couldn't find an app called viber web.", '22:26');
+  appendChatMessage('user', 'who is elon musk', '22:26');
+  appendChatAction('Searching for who is elon musk.');
+
+  setStatus("I couldn't find an app called viber web.");
 }
 
 async function handleChatInput() {
@@ -384,6 +451,7 @@ async function handleChatInput() {
     }
   } else {
     if (isTask) {
+      appendChatAction(`Opened Google search for ${val}`);
       appendChatMessage('nixi', `⚡ Task recognized: Searching for "${val}" on Google.`);
       await ipc.invoke('act', 'web_search', { query: val });
     } else {
@@ -396,28 +464,38 @@ async function handleChatInput() {
 function renderHistory() {
   const el = $('tab-history');
   if (!el) return;
-  if (!chatHistory.length) {
-    el.innerHTML = '<div class="chat-empty-state">No past conversations yet.</div>';
-    return;
-  }
+  const items = userHistory.length ? userHistory : [
+    { query: 'Hi', sub: '', timeStr: 'now', isRecent: true },
+    { query: 'Open google and search rikesh dahal', sub: '', timeStr: '13h', isRecent: false },
+    { query: 'Hi', sub: 'Tell me a joke', timeStr: '14h', isRecent: false },
+    { query: 'Hi', sub: 'Open google · Search for carryminati and what is · Play agar tum sath ho song', timeStr: '20h', isRecent: false },
+    { query: 'Gy', sub: '', timeStr: '20h', isRecent: false }
+  ];
+
   el.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <h4 style="margin:0">Recent Activity</h4>
-      <button class="small-btn" id="btnClearHistory">Clear History</button>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:10px">
-      ${chatHistory.slice().reverse().map(h => `
-        <div class="glass-card" style="padding:10px 14px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-            <span class="tag" style="font-size:10px">${esc(h.role)}</span>
-            <small class="muted">${new Date(h.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</small>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      ${items.map(item => `
+        <div class="history-item-row" data-query="${esc(item.query)}">
+          <div class="history-item-content">
+            <div class="history-item-query">${esc(item.query)}</div>
+            ${item.sub ? `<div class="history-item-sub">${esc(item.sub)}</div>` : ''}
           </div>
-          <div style="font-size:13px">${esc(h.text)}</div>
+          <div class="history-item-time ${item.isRecent ? 'recent' : ''}">${esc(item.timeStr)}</div>
         </div>
       `).join('')}
     </div>`;
-  const clr = $('btnClearHistory');
-  if (clr) clr.onclick = () => { chatHistory.length = 0; renderHistory(); };
+
+  el.querySelectorAll('.history-item-row').forEach(row => {
+    row.onclick = () => {
+      const q = row.getAttribute('data-query');
+      const inp = $('chatInput');
+      if (inp && q) {
+        inp.value = q;
+        inp.focus();
+      }
+      openTab('chat');
+    };
+  });
 }
 
 function openTab(name) {
@@ -2427,3 +2505,4 @@ startMeter();
 initWindowDragging();
 initPanelResizing();
 initQuickPresets();
+seedInitialChat();
