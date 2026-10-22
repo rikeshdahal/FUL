@@ -1158,24 +1158,10 @@ const FN = [
 ].map(([name, description, parameters]) => ({ name, description, parameters }));
 
 async function callGeminiAudio(base64Webm, promptText) {
-  if (!S.cfg.key) return null;
+  if (!S.cfg.key || !base64Webm) return null;
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${S.cfg.model}:generateContent?key=${S.cfg.key}`;
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: promptText },
-            { inlineData: { mimeType: 'audio/webm', data: base64Webm } }
-          ]
-        }],
-        generationConfig: { thinkingConfig: { thinkingBudget: 0 } }
-      })
-    });
-    const data = await resp.json().catch(() => null);
-    return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
+    const text = await ipc.invoke('transcribe-audio', { base64Webm, promptText });
+    return text || null;
   } catch (e) {
     return null;
   }

@@ -1050,6 +1050,47 @@ ipcMain.handle('gemini-tts', async (_e, { text, voice, key } = {}) => {
     return { ok: false, error: e.message };
   }
 });
+ipcMain.handle('paste', async (_e, text) => {
+  try {
+    await pasteText(text || '');
+    return true;
+  } catch (e) {
+    return false;
+  }
+});
+ipcMain.handle('transcribe-audio', async (_e, { base64Webm, promptText } = {}) => {
+  const k = cfg.key || cfg.apiKey;
+  if (!k || !base64Webm) return null;
+  const models = [cfg.model || 'gemini-2.5-flash', 'gemini-3.8-flash'].filter(Boolean);
+  for (const m of models) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${k}`;
+      const payload = JSON.stringify({
+        contents: [{
+          parts: [
+            { text: promptText || 'Transcribe this spoken audio verbatim.' },
+            { inlineData: { mimeType: 'audio/webm', data: base64Webm } }
+          ]
+        }],
+        generationConfig: { thinkingConfig: { thinkingBudget: 0 } }
+      });
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': String(Buffer.byteLength(payload))
+        },
+        body: payload
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (text) return text;
+      }
+    } catch {}
+  }
+  return null;
+});
 ipcMain.handle('act', async (_e, name, args) => {
   try {
     const fn = ACTIONS[name];
