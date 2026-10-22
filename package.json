@@ -1,0 +1,9 @@
+{
+  "name": "nixi-clone",
+  "version": "1.0.0",
+  "description": "Nixi Desktop Companion",
+  "scripts": {
+    "start": "npm start --prefix nixi-companion",
+    "companion": "npm start --prefix nixi-companion"
+  }
+}

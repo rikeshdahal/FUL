@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>heynixi Tray</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      background: transparent;
+      overflow: hidden;
+      font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Inter", Roboto, sans-serif;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 6px;
+    }
+
+    .tray-card {
+      width: 100%;
+      height: 100%;
+      background: rgba(18, 19, 23, 0.96);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      box-shadow: 
+        0 20px 48px rgba(0, 0, 0, 0.8),
+        0 0 0 1px rgba(0, 0, 0, 0.5),
+        inset 0 1px 1px rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(36px);
+      -webkit-backdrop-filter: blur(36px);
+      padding: 8px 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      animation: menuPop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes menuPop {
+      from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.97);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .tray-item {
+      padding: 8px 14px;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 13.5px;
+      font-weight: 400;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      transition: background 0.12s ease, color 0.12s ease, transform 0.08s ease;
+    }
+
+    .tray-item:hover {
+      background: rgba(255, 255, 255, 0.085);
+      color: #ffffff;
+      transform: translateX(2px);
+    }
+
+    .tray-item:active {
+      background: rgba(255, 255, 255, 0.15);
+      transform: scale(0.99);
+    }
+
+    .divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.09);
+      margin: 6px 6px 7px 6px;
+      border: none;
+    }
+
+    .quit-btn {
+      background: #153354;
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 11px;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      text-align: center;
+      cursor: pointer;
+      margin: 1px 4px 3px 4px;
+      transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+      display: block;
+      width: calc(100% - 8px);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      outline: none;
+    }
+
+    .quit-btn:hover {
+      background: #1c436f;
+      box-shadow: 0 6px 18px rgba(21, 51, 84, 0.5);
+    }
+
+    .quit-btn:active {
+      transform: scale(0.98);
+      background: #122a46;
+    }
+  </style>
+</head>
+<body>
+  <div class="tray-card">
+    <div class="tray-item" data-action="open">Open heynixi</div>
+    <div class="tray-item" data-action="music">Now Playing</div>
+    <div class="tray-item" data-action="history">History</div>
+    <div class="tray-item" data-action="new-chat">New Conversation</div>
+    <div class="tray-item" data-action="tele">Teleprompter</div>
+    <div class="tray-item" data-action="settings">Settings</div>
+    <div class="tray-item" data-action="guide">Setup Guide</div>
+    <div class="tray-item" data-action="privacy">Privacy &amp; Data</div>
+    <div class="tray-item" data-action="system-check">System Check</div>
+    <div class="tray-item" data-action="about">About heynixi</div>
+    <div class="divider"></div>
+    <button class="quit-btn" id="bQuit" data-action="quit">Quit heynixi</button>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    document.querySelectorAll('[data-action]').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const action = el.dataset.action;
+        ipcRenderer.send('tray-menu-action', action);
+      });
+    });
+
+    // Close on Escape
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        ipcRenderer.send('tray-menu-action', 'close');
+      }
+    });
+  </script>
+</body>
+</html>

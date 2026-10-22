@@ -1,0 +1,1911 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://generativelanguage.googleapis.com">
+  <title>Nixi Companion</title>
+  <style>
+    :root {
+      --pill: #0d1117;
+      --pill-rgb: 13, 17, 23;
+      --fg: #f3f6fc;
+      --fg-muted: #9aa7b9;
+      --dim: #717d91;
+      --accent: #3b82f6;
+      --accent-glow: rgba(59, 130, 246, 0.45);
+      --aura-color: rgba(59, 130, 246, 0.3);
+      --aura-opacity: 0.6;
+      --line: rgba(255, 255, 255, 0.12);
+      --line-subtle: rgba(255, 255, 255, 0.06);
+      --card-bg: rgba(255, 255, 255, 0.05);
+      --card-hover: rgba(255, 255, 255, 0.085);
+      --panel-w: 460px;
+      --panel-h: 520px;
+      --radius-pill: 28px;
+      --radius-panel: 24px;
+      --font-stack: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Inter", Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      background: transparent;
+      overflow: hidden;
+      font-family: var(--font-stack);
+      user-select: none;
+      -webkit-user-select: none;
+      width: 100vw;
+      height: 100vh;
+      color: var(--fg);
+    }
+
+    body {
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    /* ----------------------------------------------------------- Outer Shell */
+    #shell {
+      background: var(--pill);
+      color: var(--fg);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-pill);
+      display: flex;
+      flex-direction: column;
+      width: 112px;
+      min-height: 56px;
+      position: relative;
+      overflow: hidden;
+      box-shadow:
+        inset 0 1px 1px 0 rgba(255, 255, 255, 0.22),
+        inset 0 -1px 1px 0 rgba(0, 0, 0, 0.45),
+        0 20px 48px -10px rgba(0, 0, 0, 0.75),
+        0 0 0 1px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(36px) saturate(190%) contrast(108%);
+      -webkit-backdrop-filter: blur(36px) saturate(190%) contrast(108%);
+      transition:
+        width 0.36s cubic-bezier(0.16, 1, 0.3, 1),
+        height 0.36s cubic-bezier(0.16, 1, 0.3, 1),
+        border-radius 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.3s ease,
+        transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: width, height, transform;
+    }
+
+    /* Ambient Reactive Aura */
+    .aura-glow {
+      position: absolute;
+      inset: -6px;
+      border-radius: inherit;
+      background: radial-gradient(circle at 50% 25%, var(--aura-color) 0%, transparent 72%);
+      filter: blur(14px);
+      opacity: var(--aura-opacity);
+      pointer-events: none;
+      z-index: -1;
+      transition: opacity 0.5s ease, background 0.5s ease;
+    }
+
+    /* Idle Breathing / Float Animation */
+    #shell.rest.breathe {
+      animation: nixiFloat 4s ease-in-out infinite;
+    }
+
+    @keyframes nixiFloat {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-3px);
+      }
+    }
+
+    /* Shell Mode Shapes */
+    #shell.rest {
+      width: 112px;
+      min-height: 56px;
+      border-radius: 28px;
+    }
+
+    #shell.capsule {
+      width: 360px;
+      min-height: 76px;
+      border-radius: 26px;
+    }
+
+    #shell.music {
+      width: 390px;
+      height: 136px;
+      min-height: 136px;
+      border-radius: 24px;
+      background: #000000;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(0, 0, 0, 0.5);
+      padding: 10px 18px 12px 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+    }
+
+    #shell.music #head,
+    #shell.music #mini,
+    #shell.music #body {
+      display: none !important;
+    }
+
+    .music-pill-widget {
+      display: none;
+      width: 100%;
+      height: 100%;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    #shell.music .music-pill-widget {
+      display: flex !important;
+    }
+
+    .music-top-center {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 38px;
+      margin-top: -2px;
+    }
+
+    .music-nixi-face {
+      width: 76px;
+      height: 38px;
+      display: block;
+      cursor: pointer;
+    }
+
+    .music-mid-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 0 2px;
+      margin-top: 2px;
+    }
+
+    .music-track-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .music-app-icon {
+      width: 38px;
+      height: 38px;
+      object-fit: contain;
+      flex: none;
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+    }
+
+    .music-text-meta {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .music-text-meta strong {
+      font-size: 18px;
+      font-weight: 700;
+      color: #ffffff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: -0.015em;
+      line-height: 1.25;
+    }
+
+    .music-text-meta span {
+      font-size: 13.5px;
+      font-weight: 400;
+      color: #7b8c9e;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .music-controls {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex: none;
+      margin-left: 12px;
+    }
+
+    .music-btn {
+      background: transparent;
+      border: none;
+      color: #5e6e82;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      transition: color 0.15s ease, transform 0.1s ease;
+    }
+
+    .music-btn:hover {
+      color: #ffffff;
+      transform: scale(1.1);
+    }
+
+    .music-btn:active {
+      transform: scale(0.95);
+    }
+
+    .music-btn svg {
+      width: 17px;
+      height: 17px;
+      fill: currentColor;
+      stroke: none;
+    }
+
+    .music-btn.play-pause-btn {
+      color: #ffffff;
+    }
+
+    .music-btn.play-pause-btn svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .music-bottom-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      margin-top: 6px;
+    }
+
+    .music-time {
+      font-size: 12px;
+      font-weight: 500;
+      color: #5e6e82;
+      min-width: 32px;
+      flex: none;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    #musicTimeRemaining {
+      text-align: right;
+    }
+
+    .music-progress-bar {
+      flex: 1;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.18);
+      border-radius: 3px;
+      position: relative;
+      cursor: pointer;
+      touch-action: none;
+      transition: height 0.15s ease, background 0.15s ease;
+    }
+
+    .music-progress-bar:hover,
+    .music-progress-bar.dragging {
+      height: 7px;
+      background: rgba(255, 255, 255, 0.28);
+    }
+
+    .music-progress-fill {
+      height: 100%;
+      background: #ffffff;
+      border-radius: 3px;
+      width: 0%;
+      position: relative;
+      pointer-events: none;
+      transition: width 0.15s ease;
+    }
+
+    .music-progress-bar.dragging .music-progress-fill {
+      transition: none !important;
+    }
+
+    .music-progress-thumb {
+      position: absolute;
+      right: -6px;
+      top: 50%;
+      transform: translateY(-50%) scale(0);
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+      transition: transform 0.15s ease;
+      pointer-events: none;
+    }
+
+    .music-progress-bar:hover .music-progress-thumb,
+    .music-progress-bar.dragging .music-progress-thumb {
+      transform: translateY(-50%) scale(1);
+    }
+
+    .music-collapse-btn {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      border: none;
+      color: #8892a0;
+      font-size: 11px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: background 0.15s, color 0.15s, transform 0.1s;
+      z-index: 10;
+      opacity: 0;
+    }
+
+    #shell.music:hover .music-collapse-btn {
+      opacity: 1;
+    }
+
+    .music-collapse-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      transform: scale(1.1);
+    }
+
+    #shell.panel {
+      width: var(--panel-w, 460px);
+      height: var(--panel-h, 520px);
+      max-width: calc(100vw - 40px);
+      max-height: calc(100vh - 40px);
+      border-radius: var(--radius-panel);
+    }
+
+    #shell.mini {
+      width: auto !important;
+      min-height: 48px;
+      border-radius: 24px;
+      flex-direction: row;
+      align-items: center;
+      padding-right: 8px;
+    }
+
+    /* ------------------------------------------------------------- Drag Bar */
+    .drag-bar {
+      width: 100%;
+      height: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: grab;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 40;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    #shell:hover .drag-bar {
+      opacity: 1;
+    }
+
+    .drag-bar:active {
+      cursor: grabbing;
+    }
+
+    .drag-indicator {
+      width: 28px;
+      height: 3.5px;
+      background: rgba(255, 255, 255, 0.35);
+      border-radius: 3px;
+      transition: width 0.2s, background 0.2s;
+    }
+
+    .drag-bar:hover .drag-indicator {
+      width: 38px;
+      background: rgba(255, 255, 255, 0.7);
+    }
+
+    /* Magnetic Snap Pill Indicator */
+    #snapPill {
+      position: fixed;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-30px);
+      opacity: 0;
+      pointer-events: none;
+      background: rgba(59, 130, 246, 0.95);
+      color: #fff;
+      padding: 5px 14px;
+      border-radius: 14px;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      box-shadow: 0 6px 18px rgba(59, 130, 246, 0.5);
+      backdrop-filter: blur(10px);
+      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #snapPill.visible {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    /* ---------------------------------------------------------------- Head */
+    #head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 4px;
+      height: 56px;
+      flex: none;
+      transition: height 0.3s cubic-bezier(0.16, 1, 0.3, 1), padding 0.3s;
+      position: relative;
+      z-index: 10;
+    }
+
+    #shell.rest #head {
+      width: 100%;
+      height: 56px;
+      padding: 0;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #shell.capsule #head {
+      height: 72px;
+      padding: 0 14px;
+      justify-content: space-between;
+    }
+
+    #shell.panel #head {
+      height: 58px;
+      padding: 0 16px;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    .head-menu-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s ease;
+      z-index: 25;
+      padding: 0;
+    }
+
+    #shell.panel .head-menu-btn {
+      display: flex;
+    }
+
+    .head-menu-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .menu-dots-icon {
+      display: inline-flex;
+      gap: 3px;
+      align-items: center;
+    }
+
+    .menu-dots-icon span {
+      width: 2.5px;
+      height: 10px;
+      background: #38bdf8;
+      border-radius: 2px;
+      box-shadow: 0 0 6px rgba(56, 189, 248, 0.7);
+    }
+
+    #face {
+      width: 104px;
+      height: 54px;
+      flex: none;
+      display: block;
+      cursor: pointer;
+      transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #shell.rest #face {
+      width: 104px;
+      height: 52px;
+      margin: 0 auto;
+    }
+
+    #shell.capsule #face {
+      width: 90px;
+      height: 46px;
+    }
+
+    #shell.panel #face {
+      width: 74px;
+      height: 38px;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    #shell.panel #level {
+      width: 48px;
+      height: 18px;
+      display: block;
+    }
+
+    #mid {
+      flex: 1;
+      min-width: 0;
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      justify-content: center;
+    }
+
+    #shell.capsule #mid {
+      display: flex;
+    }
+
+    #shell.panel #mid,
+    #shell.rest #mid {
+      display: none !important;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      max-width: 100%;
+    }
+
+    #status {
+      font-size: 13.5px;
+      font-weight: 500;
+      line-height: 1.35;
+      color: var(--fg);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+      min-width: 0;
+      letter-spacing: -0.01em;
+    }
+
+    #status.dim {
+      color: var(--fg-muted);
+      font-weight: 400;
+    }
+
+    .pill-badges {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex: none;
+    }
+
+    .badge-timer {
+      background: rgba(59, 130, 246, 0.22);
+      border: 1px solid rgba(59, 130, 246, 0.45);
+      color: #93c5fd;
+      font-size: 11px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      padding: 1px 7px;
+      border-radius: 9px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .badge-timer:hover {
+      background: rgba(59, 130, 246, 0.35);
+      color: #fff;
+    }
+
+    .badge-bell {
+      font-size: 11.5px;
+      cursor: pointer;
+    }
+
+    .cancel-btn {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(239, 68, 68, 0.25);
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      color: #fca5a5;
+      font-size: 11px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex: none;
+      transition: all 0.15s;
+    }
+
+    .cancel-btn:hover {
+      background: rgba(239, 68, 68, 0.5);
+      color: #fff;
+      transform: scale(1.1);
+    }
+
+    #level {
+      width: 56px;
+      height: 18px;
+      display: block;
+      opacity: 0.95;
+    }
+
+    #actions {
+      display: none;
+      gap: 6px;
+      align-items: center;
+      flex: none;
+    }
+
+    #shell.capsule #actions,
+    #shell.panel #actions {
+      display: flex;
+    }
+
+    button {
+      background: none;
+      border: 0;
+      color: inherit;
+      opacity: 0.75;
+      width: 32px;
+      height: 30px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      padding: 0;
+    }
+
+    button:hover {
+      background: rgba(255, 255, 255, 0.12);
+      opacity: 1;
+      transform: scale(1.08);
+    }
+
+    button:active {
+      transform: scale(0.95);
+    }
+
+    button.on {
+      background: rgba(59, 130, 246, 0.35);
+      border: 1px solid rgba(59, 130, 246, 0.5);
+      opacity: 1;
+      color: #fff;
+    }
+
+    button.rec {
+      background: rgba(239, 68, 68, 0.38);
+      border: 1px solid rgba(239, 68, 68, 0.6);
+      opacity: 1;
+      animation: micPulse 1.2s infinite ease-in-out;
+    }
+
+    @keyframes micPulse {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+        background: rgba(239, 68, 68, 0.38);
+      }
+      50% {
+        box-shadow: 0 0 10px 2px rgba(239, 68, 68, 0.7);
+        background: rgba(239, 68, 68, 0.6);
+      }
+    }
+
+    button:disabled {
+      opacity: 0.25;
+      cursor: default;
+      transform: none;
+    }
+
+    svg {
+      width: 17px;
+      height: 17px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* ------------------------------------------------------------- Mini Bar */
+    #mini {
+      display: none;
+      gap: 10px;
+      align-items: center;
+      padding: 8px 14px;
+    }
+
+    #shell.mini #mini {
+      display: flex;
+    }
+
+    #shell.mini #head {
+      display: none;
+    }
+
+    #micpill {
+      width: 10px;
+      height: 22px;
+      border-radius: 7px;
+      background: currentColor;
+      box-shadow: 0 0 12px 3px rgba(255, 255, 255, 0.45);
+      display: block;
+    }
+
+    /* --------------------------------------------------------- Panel / Body */
+    #body {
+      display: none;
+      border-top: 1px solid var(--line);
+      flex: 1;
+      min-height: 0;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #shell.panel #body {
+      display: flex;
+    }
+
+    .body-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px 8px;
+      gap: 8px;
+      border-bottom: 1px solid var(--line-subtle);
+      flex: none;
+      background: rgba(0, 0, 0, 0.12);
+    }
+
+    #tabs {
+      display: flex;
+      gap: 4px;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 3px;
+      border-radius: 12px;
+      border: 1px solid var(--line-subtle);
+    }
+
+    #tabs button {
+      width: auto;
+      height: 27px;
+      padding: 0 12px;
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: 9px;
+      background: transparent;
+      opacity: 0.72;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #tabs button:hover {
+      opacity: 1;
+      background: rgba(255, 255, 255, 0.08);
+      transform: none;
+    }
+
+    #tabs button.on {
+      background: rgba(255, 255, 255, 0.16);
+      opacity: 1;
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      font-weight: 600;
+    }
+
+    .panel-quick-actions {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .icon-btn-subtle {
+      width: 27px;
+      height: 27px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: transparent;
+      opacity: 0.65;
+      transition: all 0.18s;
+      color: var(--fg);
+    }
+
+    .icon-btn-subtle:hover {
+      background: rgba(255, 255, 255, 0.1);
+      opacity: 1;
+      transform: scale(1.06);
+    }
+
+    /* Dock Menu Popover */
+    #dockMenu {
+      display: none;
+      position: absolute;
+      top: 48px;
+      right: 14px;
+      background: rgba(18, 22, 31, 0.94);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 6px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(24px);
+      z-index: 100;
+      min-width: 170px;
+      flex-direction: column;
+      gap: 2px;
+      animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #dockMenu.open {
+      display: flex;
+    }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.92) translateY(-6px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 7px 10px;
+      font-size: 12.5px;
+      border-radius: 8px;
+      cursor: pointer;
+      color: var(--fg);
+      transition: background 0.15s;
+    }
+
+    .menu-item:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .menu-item.active {
+      background: rgba(59, 130, 246, 0.25);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    /* Tabs Content Area */
+    .tab {
+      display: none;
+      flex: 1;
+      min-height: 0;
+      padding: 14px 18px 22px;
+      font-size: 13.5px;
+      line-height: 1.55;
+      overflow-y: auto;
+      overflow-x: hidden;
+      user-select: text;
+      -webkit-user-select: text;
+      animation: tabSlide 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #tab-chat {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      padding: 12px 14px;
+      overflow-y: auto;
+    }
+
+    #tab-chat.on {
+      display: flex;
+    }
+
+    .chat-scroll-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+      min-height: 160px;
+      padding-bottom: 8px;
+    }
+
+    .chat-empty-state {
+      margin: auto;
+      text-align: center;
+      font-size: 14.5px;
+      color: rgba(255, 255, 255, 0.45);
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      padding: 50px 10px;
+    }
+
+    .chat-msg {
+      display: flex;
+      flex-direction: column;
+      max-width: 86%;
+      gap: 4px;
+      animation: msgPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .chat-msg.user {
+      align-self: flex-end;
+      background: rgba(59, 130, 246, 0.28);
+      border: 1px solid rgba(59, 130, 246, 0.5);
+      color: #fff;
+      padding: 9px 14px;
+      border-radius: 16px 16px 4px 16px;
+      font-size: 13.5px;
+      line-height: 1.45;
+    }
+
+    .chat-msg.nixi {
+      align-self: flex-start;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--fg);
+      padding: 10px 14px;
+      border-radius: 16px 16px 16px 4px;
+      font-size: 13.5px;
+      line-height: 1.5;
+    }
+
+    @keyframes msgPop {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Screenshot 3 Input Bar */
+    .chat-bar-container {
+      padding: 10px 14px 14px;
+      background: rgba(0, 0, 0, 0.22);
+      border-top: 1px solid var(--line-subtle);
+      flex: none;
+    }
+
+    .chat-input-pill {
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1.5px solid rgba(59, 130, 246, 0.5);
+      border-radius: 24px;
+      padding: 4px 6px 4px 16px;
+      gap: 8px;
+      transition: all 0.2s;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .chat-input-pill:focus-within {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
+    }
+
+    #chatInput {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-size: 14px;
+      font-family: inherit;
+      padding: 6px 0;
+    }
+
+    #chatInput::placeholder {
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    .send-circle-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #1d72fe;
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      flex: none;
+      transition: all 0.18s;
+      box-shadow: 0 2px 8px rgba(29, 114, 254, 0.45);
+    }
+
+    .send-circle-btn:hover {
+      background: #2563eb;
+      transform: scale(1.08);
+      box-shadow: 0 4px 12px rgba(29, 114, 254, 0.6);
+    }
+
+    .send-circle-btn:active {
+      transform: scale(0.95);
+    }
+
+    @keyframes tabSlide {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .tab.on {
+      display: block;
+    }
+
+    .tab::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .tab::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.18);
+      border-radius: 4px;
+    }
+
+    .tab h4 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--dim);
+      margin: 14px 0 8px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tab h4:first-child {
+      margin-top: 0;
+    }
+
+    /* Responsive Cards */
+    .glass-card {
+      background: var(--card-bg);
+      border: 1px solid var(--line-subtle);
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .glass-card:hover {
+      background: var(--card-hover);
+      border-color: var(--line);
+    }
+
+    /* Active Countdown Timer Card (Screenshot 1 & 4) */
+    .timer-active-card {
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.22), rgba(99, 102, 241, 0.16));
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25);
+    }
+
+    .timer-active-card .timer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .timer-digits-large {
+      font-size: 24px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: #60a5fa;
+      letter-spacing: -0.02em;
+    }
+
+    .timer-progress-track {
+      height: 5px;
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+
+    .timer-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #60a5fa);
+      border-radius: 4px;
+      transition: width 0.5s linear;
+    }
+
+    .chip-bar {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .chip-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--line-subtle);
+      border-radius: 9px;
+      padding: 4px 9px;
+      font-size: 11.5px;
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--fg);
+      transition: all 0.15s;
+    }
+
+    .chip-btn:hover {
+      background: rgba(59, 130, 246, 0.25);
+      border-color: rgba(59, 130, 246, 0.4);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    /* Responsive Grid for Lists on wider panel */
+    .lists-layout {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .lists-grid.wide {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .lists-col {
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* Form Controls & Inputs */
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+      font-size: 13px;
+    }
+
+    .row.wrap {
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      width: auto;
+      height: auto;
+      background: rgba(255, 255, 255, 0.09);
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      padding: 7px 14px;
+      font-size: 12.5px;
+      font-weight: 500;
+      opacity: 1;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+      transition: all 0.18s;
+      color: var(--fg);
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.18);
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn.primary {
+      background: #2563eb;
+      border-color: #3b82f6;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+    }
+
+    .btn.primary:hover {
+      background: #1d4ed8;
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.5);
+    }
+
+    .btn.danger {
+      background: rgba(220, 38, 38, 0.2);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+    }
+
+    .btn.danger:hover {
+      background: rgba(220, 38, 38, 0.35);
+    }
+
+    input[type=text],
+    input[type=password],
+    select,
+    textarea {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: inherit;
+      padding: 8px 12px;
+      font-size: 13px;
+      outline: none;
+      font-family: inherit;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+      line-height: 1.5;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--accent);
+      background: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+
+    select option {
+      color: #111;
+      background: #fff;
+    }
+
+    input[type=color] {
+      width: 36px;
+      height: 28px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: none;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    input[type=range] {
+      width: 100%;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    input[type=checkbox] {
+      accent-color: var(--accent);
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    label.chk {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .muted {
+      color: var(--fg-muted);
+      font-size: 12.5px;
+    }
+
+    /* Lists */
+    .list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .list li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--line-subtle);
+      transition: background 0.15s;
+    }
+
+    .list li:last-child {
+      border-bottom: 0;
+    }
+
+    .list li span {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .list li.done span {
+      color: var(--dim);
+      text-decoration: line-through;
+    }
+
+    .tick {
+      width: 18px;
+      height: 18px;
+      border-radius: 6px;
+      border: 1.5px solid rgba(255, 255, 255, 0.3);
+      flex: none;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: all 0.18s;
+    }
+
+    .tick:hover {
+      border-color: var(--accent);
+    }
+
+    .tick.on {
+      background: #2563eb;
+      border-color: #3b82f6;
+    }
+
+    .tick.on::after {
+      content: '✓';
+      font-size: 11px;
+      color: #fff;
+      font-weight: bold;
+    }
+
+    .small-btn {
+      width: auto;
+      height: 24px;
+      padding: 0 10px;
+      font-size: 11.5px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--line-subtle);
+      color: var(--fg);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .small-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* AI Answers */
+    .answer {
+      white-space: pre-wrap;
+      font-size: 13.5px;
+      line-height: 1.65;
+      max-height: 300px;
+      overflow-y: auto;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line-subtle);
+    }
+
+    .acts {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-weight: 600;
+      color: var(--accent);
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 8px;
+      padding: 3px 8px;
+    }
+
+    /* Teleprompter */
+    #tele {
+      position: relative;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(0, 0, 0, 0.45);
+      overflow: hidden;
+    }
+
+    #teleText {
+      height: 260px;
+      overflow-y: hidden;
+      padding: 20px 18px;
+      font-size: 20px;
+      line-height: 1.75;
+      text-align: center;
+      user-select: text;
+      -webkit-user-select: text;
+      font-weight: 500;
+    }
+
+    #teleBar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-top: 1px solid var(--line);
+      font-size: 12px;
+      color: var(--fg-muted);
+      background: rgba(0, 0, 0, 0.25);
+    }
+
+    /* Media Player */
+    .media {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .cover {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      flex: none;
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35);
+    }
+
+    .meta {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .meta strong {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .meta em {
+      display: block;
+      color: var(--fg-muted);
+      font-style: normal;
+      font-size: 12.5px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+
+    .bar {
+      height: 5px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.12);
+      overflow: hidden;
+      margin-top: 12px;
+      position: relative;
+    }
+
+    .bar i {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #60a5fa);
+      width: 0;
+      border-radius: 4px;
+      transition: width 0.2s ease;
+    }
+
+    .transport {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      justify-content: center;
+    }
+
+    .transport button {
+      width: 36px;
+      height: 34px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+    }
+
+    /* --------------------------------- Toast Notification Card (Screenshot 4) */
+    #toast {
+      display: none;
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      left: 12px;
+      background: rgba(18, 22, 32, 0.96);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 18px;
+      padding: 12px 14px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(28px);
+      z-index: 1000;
+      align-items: center;
+      gap: 12px;
+      animation: toastRise 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #toast.on {
+      display: flex;
+    }
+
+    @keyframes toastRise {
+      from { opacity: 0; transform: translateY(18px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .toast-icon {
+      width: 42px;
+      height: 28px;
+      background: #000;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      flex: none;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    .nixi-eyes-icon {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .nixi-eyes-icon::before,
+    .nixi-eyes-icon::after {
+      content: '';
+      width: 4px;
+      height: 7px;
+      background: #fff;
+      border-radius: 2px;
+      display: block;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+    }
+
+    .toast-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .toast-info strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .toast-info small {
+      display: block;
+      font-size: 12px;
+      color: var(--fg-muted);
+      margin-top: 2px;
+    }
+
+    .toast-close-btn {
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--fg);
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      cursor: pointer;
+      border: 0;
+    }
+
+    .toast-close-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Interactive Resize Handles */
+    .resize-handle {
+      position: absolute;
+      z-index: 50;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    #shell.panel:hover .resize-handle {
+      opacity: 0.6;
+    }
+
+    .resize-handle:hover {
+      opacity: 1 !important;
+    }
+
+    .resize-handle.edge-r {
+      top: 0;
+      bottom: 0;
+      right: 0;
+      width: 8px;
+      cursor: ew-resize;
+    }
+
+    .resize-handle.edge-b {
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 8px;
+      cursor: ns-resize;
+    }
+
+    .resize-handle.corner-se {
+      bottom: 3px;
+      right: 3px;
+      width: 20px;
+      height: 20px;
+      cursor: nwse-resize;
+      display: grid;
+      place-items: center;
+      color: rgba(255, 255, 255, 0.4);
+    }
+
+    .resize-handle.corner-se svg {
+      width: 11px;
+      height: 11px;
+      stroke-width: 2.2;
+    }
+
+    kbd {
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: 11px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      padding: 2px 6px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+
+    .hintrow {
+      font-size: 12px;
+      color: var(--fg-muted);
+      line-height: 1.8;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="snapPill">
+    <svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 2v20M2 12h20"/></svg>
+    Snap to Top Notch
+  </div>
+
+  <div id="shell" class="rest breathe">
+    <!-- Ambient Reactive Aura Backdrop -->
+    <div class="aura-glow" id="auraGlow"></div>
+
+    <!-- Drag Handle Grip -->
+    <div class="drag-bar" id="dragBar" title="Drag to reposition Nixi">
+      <div class="drag-indicator"></div>
+    </div>
+
+    <!-- Header Section -->
+    <div id="head">
+      <button id="btnHeadMenu" class="head-menu-btn" title="heynixi Controls">
+        <span class="menu-dots-icon">
+          <span></span><span></span><span></span><span></span>
+        </span>
+      </button>
+      <canvas id="face" width="224" height="112" title="Click to poke Nixi"></canvas>
+      <div id="mid">
+        <div class="status-row">
+          <div id="status">Hi! I'm Nixi.</div>
+          <div class="pill-badges" id="pillBadges">
+            <span id="bellBadge" class="badge-bell" style="display:none" title="Reminders active">🔔</span>
+            <span id="timerPillBadge" class="badge-timer" style="display:none" title="Active timer">⏱ <span id="timerPillDigits">00:00</span></span>
+          </div>
+          <button id="bCancelAction" class="cancel-btn" style="display:none" title="Cancel">✕</button>
+        </div>
+        <canvas id="level" width="120" height="40"></canvas>
+      </div>
+      <div id="actions">
+        <button id="bScreen" title="Ask about my screen">
+          <svg viewBox="0 0 24 24">
+            <path d="M6 3.5v15.2l4-4.2 2.8 5.6 2.4-1.1-2.7-5.5 5.8-.4L6 3.5Z" />
+          </svg>
+        </button>
+        <button id="bMic" title="Talk / Dictate (Ctrl+Alt+Space)">
+          <svg viewBox="0 0 24 24">
+            <rect x="9" y="3" width="6" height="11" rx="3" />
+            <path d="M6 11a6 6 0 0 0 12 0M12 17v3" />
+          </svg>
+        </button>
+        <button id="bPen" title="Write / Quick Command (Ctrl+Alt+W)">
+          <svg viewBox="0 0 24 24">
+            <path d="m5 19 3.8-.9 9.4-9.4a2 2 0 0 0-2.9-2.9L5.9 15.2 5 19Z" />
+          </svg>
+        </button>
+        <button id="bMore" title="Expand panel">
+          <svg viewBox="0 0 24 24">
+            <path d="m7 10 5 5 5-5" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Music Player Card (Exact match to screenshot & Dynamic Island) -->
+    <div id="musicPlayer" class="music-pill-widget">
+      <button id="mBtnCollapse" class="music-collapse-btn" title="Back to Pill">✕</button>
+      <!-- Top Center: Nixi with Headphones -->
+      <div class="music-top-center">
+        <canvas id="musicFace" width="160" height="80" class="music-nixi-face" title="Nixi listening to music · Click to collapse"></canvas>
+      </div>
+
+      <!-- Mid Row: App Icon + Track Info & Transport Buttons -->
+      <div class="music-mid-row">
+        <div class="music-track-info">
+          <img id="musicAppIcon" src="icons/brave.png" alt="App" class="music-app-icon" />
+          <div class="music-text-meta">
+            <strong id="musicTitle">Music</strong>
+            <span id="musicApp">Playing</span>
+          </div>
+        </div>
+
+        <div class="music-controls">
+          <button class="music-btn" id="mBtnPrev" title="Previous track">
+            <svg viewBox="0 0 24 24"><path d="m11 19-9-7 9-7v14zm11 0-9-7 9-7v14z" fill="currentColor"/></svg>
+          </button>
+          <button class="music-btn play-pause-btn" id="mBtnPlayPause" title="Play / Pause">
+            <svg viewBox="0 0 24 24" id="mIconPause"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" fill="currentColor"/></svg>
+            <svg viewBox="0 0 24 24" id="mIconPlay" style="display:none"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+          </button>
+          <button class="music-btn" id="mBtnNext" title="Next track">
+            <svg viewBox="0 0 24 24"><path d="m4 5 9 7-9 7V5zm11 0 9 7-9 7V5z" fill="currentColor"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Bottom Row: Timestamps & Draggable Scrubber -->
+      <div class="music-bottom-row">
+        <span class="music-time" id="musicTimeElapsed">0:00</span>
+        <div class="music-progress-bar" id="musicProgressBar" title="Drag to seek">
+          <div class="music-progress-fill" id="musicProgressFill" style="width: 0%;">
+            <div class="music-progress-thumb"></div>
+          </div>
+        </div>
+        <span class="music-time" id="musicTimeRemaining">0:00</span>
+      </div>
+    </div>
+
+    <!-- Mini Bar Section -->
+    <div id="mini">
+      <button id="mUp" title="Expand">
+        <svg viewBox="0 0 24 24">
+          <path d="m7 15 5-5 5 5" />
+        </svg>
+      </button>
+      <button id="mMic" title="Talk">
+        <span id="micpill"></span>
+      </button>
+      <button id="mScan" title="Ask about my screen">
+        <svg viewBox="0 0 24 24">
+          <path d="M4 9V5h4M16 5h4v4M20 15v4h-4M8 19H4v-4" />
+          <circle cx="12" cy="12" r="1.2" fill="currentColor" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Panel Body Section -->
+    <div id="body">
+      <div class="body-header">
+        <div id="tabs">
+          <button data-tab="chat" class="on">Chat</button>
+          <button data-tab="history">History</button>
+        </div>
+        <div class="panel-quick-actions">
+          <button id="btnSizePreset" class="icon-btn-subtle" title="Toggle size: Compact / Standard / Wide">
+            <svg viewBox="0 0 24 24">
+              <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+            </svg>
+          </button>
+          <button id="btnDockPreset" class="icon-btn-subtle" title="Dock & Placement">
+            <svg viewBox="0 0 24 24">
+              <rect x="3" y="3" width="18" height="18" rx="4" />
+              <path d="M3 9h18" />
+            </svg>
+          </button>
+          <button id="btnCollapse" class="icon-btn-subtle" title="Collapse (Esc)">
+            <svg viewBox="0 0 24 24">
+              <path d="m18 15-6-6-6 6" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Dock Placement Picker Popover -->
+      <div id="dockMenu">
+        <div class="menu-item" data-dock="top-center">🏝 Top Center (Notch)</div>
+        <div class="menu-item" data-dock="top-right">↗ Top Right Corner</div>
+        <div class="menu-item" data-dock="top-left">↖ Top Left Corner</div>
+        <div class="menu-item" data-dock="bottom-right">↘ Bottom Right</div>
+        <div class="menu-item" data-dock="custom">🪟 Free Floating</div>
+      </div>
+
+      <!-- Tab Views -->
+      <div class="tab on" id="tab-chat">
+        <div id="chatMessages" class="chat-scroll-area">
+          <div class="chat-empty-state" id="chatEmptyState">
+            Say something, or type below
+          </div>
+        </div>
+      </div>
+      <div class="tab" id="tab-history"></div>
+      <div class="tab" id="tab-lists"></div>
+      <div class="tab" id="tab-settings"></div>
+      <div class="tab" id="tab-custom"></div>
+
+      <!-- Bottom Chat Input Bar (Screenshot 3) -->
+      <div class="chat-bar-container">
+        <div class="chat-input-pill">
+          <input type="text" id="chatInput" placeholder="Ask Nixi..." autocomplete="off">
+          <button id="btnChatSend" class="send-circle-btn" title="Send (Enter)">↑</button>
+        </div>
+      </div>
+
+      <!-- Interactive Edge & Corner Resize Handles -->
+      <div id="resizeEdgeR" class="resize-handle edge-r"></div>
+      <div id="resizeEdgeB" class="resize-handle edge-b"></div>
+      <div id="resizeGrip" class="resize-handle corner-se" title="Drag to resize panel">
+        <svg viewBox="0 0 10 10">
+          <path d="M9 1v8H1" />
+        </svg>
+      </div>
+    </div>
+
+    <!-- Notification Toast Banner (Screenshot 4) -->
+    <div id="toast" class="toast-card">
+      <div class="toast-icon">
+        <span class="nixi-eyes-icon"></span>
+      </div>
+      <div class="toast-info">
+        <strong id="toastTitle">Stretch</strong>
+        <small id="toastSub">Reminder · in 20 minutes</small>
+      </div>
+      <button id="tDismiss" class="toast-close-btn" title="Dismiss">✕</button>
+    </div>
+  </div>
+
+  <script src="face.js"></script>
+  <script src="renderer.js"></script>
+</body>
+
+</html>

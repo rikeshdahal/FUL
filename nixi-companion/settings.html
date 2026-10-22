@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>heynixi Settings</title>
+  <style>
+    :root {
+      --bg: #f5f6f8;
+      --card-bg: #ffffff;
+      --card-border: rgba(0, 0, 0, 0.08);
+      --text: #111827;
+      --text-muted: #6b7280;
+      --accent: #22c55e;
+      --font-stack: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Inter", Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-stack);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Top Custom Titlebar */
+    .titlebar {
+      height: 48px;
+      background: #111216;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      -webkit-app-region: drag;
+      position: relative;
+      flex: none;
+    }
+
+    .title-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #e5e7eb;
+      font-size: 13.5px;
+      font-weight: 500;
+    }
+
+    .title-dots {
+      color: #94a3b8;
+      letter-spacing: 2px;
+      font-size: 14px;
+    }
+
+    .title-center-pill {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 72px;
+      height: 34px;
+      background: #000000;
+      border-radius: 17px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    }
+
+    .nixi-eye {
+      width: 7px;
+      height: 15px;
+      background: #ffffff;
+      border-radius: 4px;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+      animation: eyeBlink 4s infinite;
+    }
+
+    @keyframes eyeBlink {
+      0%, 95%, 100% { transform: scaleY(1); }
+      97% { transform: scaleY(0.1); }
+    }
+
+    .title-close {
+      -webkit-app-region: no-drag;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: transparent;
+      border: none;
+      color: #9ca3af;
+      font-size: 16px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .title-close:hover {
+      background: #ef4444;
+      color: #ffffff;
+    }
+
+    /* Subtitle Banner */
+    .sub-banner {
+      padding: 10px 24px;
+      font-size: 12.5px;
+      color: var(--text-muted);
+      background: var(--bg);
+      flex: none;
+    }
+
+    /* Main Layout */
+    .main-body {
+      flex: 1;
+      display: flex;
+      padding: 4px 24px 16px 24px;
+      gap: 32px;
+      overflow: hidden;
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      width: 190px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: none;
+    }
+
+    .nav-btn {
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: transparent;
+      border: none;
+      text-align: left;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: #4b5563;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .nav-btn:hover {
+      background: rgba(0, 0, 0, 0.04);
+      color: #111827;
+    }
+
+    .nav-btn.active {
+      background: #ffffff;
+      color: #111827;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    }
+
+    /* Content Area */
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 8px;
+    }
+
+    .content-area::-webkit-scrollbar {
+      width: 6px;
+    }
+    .content-area::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .tab-header {
+      margin-bottom: 16px;
+    }
+
+    .tab-title {
+      font-size: 26px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 6px;
+    }
+
+    .tab-subtitle {
+      font-size: 13.5px;
+      color: var(--text-muted);
+    }
+
+    /* Section Card */
+    .settings-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 20px 24px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .setting-label {
+      font-size: 13.5px;
+      font-weight: 500;
+      color: #1f2937;
+    }
+
+    /* Green Toggle Switch (Screenshot 4) */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+      flex: none;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider-toggle {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: #e5e7eb;
+      transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      border-radius: 24px;
+    }
+
+    .slider-toggle:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    input:checked + .slider-toggle {
+      background-color: #22c55e;
+    }
+
+    input:checked + .slider-toggle:before {
+      transform: translateX(20px);
+    }
+
+    /* Controls: Select, Inputs, Range Sliders */
+    select, input[type="text"], input[type="number"], input[type="password"] {
+      width: 100%;
+      max-width: 320px;
+      padding: 9px 14px;
+      border-radius: 10px;
+      border: 1px solid #d1d5db;
+      font-size: 13.5px;
+      font-family: inherit;
+      color: #111827;
+      background: #ffffff;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    select:focus, input:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+    }
+
+    /* Rainbow / Color Gradient Range Slider */
+    .range-rainbow {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      max-width: 320px;
+      height: 10px;
+      border-radius: 6px;
+      background: linear-gradient(90deg, #111827, #ef4444, #f59e0b, #10b981, #06b6d4, #3b82f6, #8b5cf6, #ec4899);
+      outline: none;
+    }
+
+    .range-rainbow::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2px solid #111827;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+    }
+
+    .range-shade {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      max-width: 320px;
+      height: 8px;
+      border-radius: 4px;
+      background: #111827;
+      outline: none;
+    }
+
+    .range-shade::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2px solid #111827;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+    }
+
+    /* Live Preview Section */
+    .preview-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px 0;
+      gap: 10px;
+    }
+
+    .preview-pill {
+      width: 104px;
+      height: 52px;
+      background: #0d1117;
+      border-radius: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .preview-eyes {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .preview-eye {
+      width: 8px;
+      height: 18px;
+      background: #ffffff;
+      border-radius: 4px;
+    }
+
+    /* Sunglasses overlay */
+    .preview-shades {
+      display: none;
+      position: absolute;
+      width: 50px;
+      height: 18px;
+      border: 2px solid #94a3b8;
+      border-radius: 6px;
+      box-shadow: inset 0 0 4px rgba(255, 255, 255, 0.3);
+    }
+
+    .preview-icons {
+      display: flex;
+      gap: 16px;
+      color: #94a3b8;
+      font-size: 12px;
+    }
+
+    /* Bottom Info Card */
+    .info-card {
+      background: #ffffff;
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 14px 20px;
+      margin-bottom: 20px;
+    }
+
+    .info-card strong {
+      font-size: 13px;
+      color: #111827;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .info-card p {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Bottom Footer Buttons */
+    .footer-bar {
+      height: 60px;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      background: var(--bg);
+      flex: none;
+      border-top: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .btn-save {
+      background: #111827;
+      color: #ffffff;
+      border: none;
+      border-radius: 20px;
+      padding: 8px 22px;
+      font-size: 13.5px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .btn-save:hover {
+      background: #1f2937;
+    }
+
+    .btn-save:active {
+      transform: scale(0.98);
+    }
+
+    .btn-cancel {
+      background: transparent;
+      color: #4b5563;
+      border: none;
+      padding: 8px 16px;
+      font-size: 13.5px;
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+
+    .btn-cancel:hover {
+      color: #111827;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header Bar -->
+  <div class="titlebar">
+    <div class="title-left">
+      <span class="title-dots">● ●</span>
+      <span>heynixi Settings</span>
+    </div>
+    <div class="title-center-pill" style="padding: 0; background: transparent; border: none; box-shadow: none;">
+      <canvas id="notchFace" width="144" height="68" style="width: 72px; height: 34px; border-radius: 17px; display: block; box-shadow: 0 4px 12px rgba(0,0,0,0.5);" title="Nixi notch"></canvas>
+    </div>
+    <button class="title-close" id="bCloseTop" title="Close">✕</button>
+  </div>
+
+  <div class="sub-banner">
+    Changes to how Nixi looks apply when you save. Others apply the next time heynixi starts.
+  </div>
+
+  <!-- Main Body -->
+  <div class="main-body">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <button class="nav-btn active" data-tab="general">General</button>
+      <button class="nav-btn" data-tab="voice">Voice &amp; microphone</button>
+      <button class="nav-btn" data-tab="dictation">Dictation style</button>
+      <button class="nav-btn" data-tab="hotkeys">Command &amp; hotkeys</button>
+      <button class="nav-btn" data-tab="privacy">Privacy &amp; history</button>
+      <button class="nav-btn" data-tab="model">AI model</button>
+    </div>
+
+    <!-- Content Area -->
+    <div class="content-area">
+      <!-- General Tab (Screenshot 4) -->
+      <div class="tab-content active" id="tab-general">
+        <div class="tab-header">
+          <h1 class="tab-title">General</h1>
+          <p class="tab-subtitle">Choose how heynixi stays available while you work.</p>
+        </div>
+
+        <div class="settings-card">
+          <div class="setting-row">
+            <span class="setting-label">Start heynixi when I sign in</span>
+            <label class="switch">
+              <input type="checkbox" id="cfgAutostart">
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <span class="setting-label">Keep heynixi visible while idle</span>
+            <label class="switch">
+              <input type="checkbox" id="cfgVisibleIdle" checked>
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <span class="setting-label">Hide during full-screen apps</span>
+            <label class="switch">
+              <input type="checkbox" id="cfgHideFullscreen" checked>
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <span class="setting-label">Show what's playing</span>
+            <label class="switch">
+              <input type="checkbox" id="cfgShowPlaying" checked>
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <span class="setting-label">Pill colour</span>
+            <input type="range" class="range-rainbow" id="cfgPillColor" min="0" max="360" value="220">
+          </div>
+
+          <div class="setting-row">
+            <span class="setting-label">Pill shade</span>
+            <input type="range" class="range-shade" id="cfgPillShade" min="0" max="100" value="50">
+          </div>
+
+          <div class="setting-row">
+            <span class="setting-label">Eye colour</span>
+            <input type="range" class="range-rainbow" id="cfgEyeColor" min="0" max="360" value="0">
+          </div>
+
+          <div class="setting-row">
+            <span class="setting-label">Outfit</span>
+            <select id="cfgOutfit">
+              <option value="none">None</option>
+              <option value="shades" selected>Shades</option>
+              <option value="bowtie">Bowtie</option>
+              <option value="santa">Santa</option>
+              <option value="crown">Crown</option>
+              <option value="headphones">Headphones</option>
+            </select>
+          </div>
+
+          <div class="setting-row">
+            <span class="setting-label">Seasonal looks</span>
+            <label class="switch">
+              <input type="checkbox" id="cfgSeasonal" checked>
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+
+          <div class="setting-row" style="align-items: flex-start;">
+            <span class="setting-label" style="margin-top: 24px;">Live preview</span>
+            <div class="preview-box">
+              <canvas id="previewFace" width="224" height="112" style="width: 112px; height: 56px; border-radius: 28px; display: block; box-shadow: 0 8px 24px rgba(0,0,0,0.18);" title="Live Nixi preview"></canvas>
+              <div class="preview-icons">
+                <span>↖</span>
+                <span>🎤</span>
+                <span>✏️</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <strong>Three modes. One floating dock.</strong>
+          <p>Command, Dictate, and Write stay together above your work. The same capsule grows to show the active conversation.</p>
+        </div>
+      </div>
+
+      <!-- Voice Tab (Screenshot 5) -->
+      <div class="tab-content" id="tab-voice">
+        <div class="tab-header">
+          <h1 class="tab-title">Voice &amp; microphone</h1>
+          <p class="tab-subtitle">Select your input and local speech experience.</p>
+        </div>
+
+        <div class="settings-card">
+          <div class="setting-row">
+            <span class="setting-label">Microphone</span>
+            <select id="cfgMic">
+              <option value="default" selected>Windows default microphone</option>
+            </select>
+          </div>
+
+          <div class="setting-row">
+            <span class="setting-label">Speech recognition</span>
+            <select id="cfgEngine">
+              <option value="whisper" selected>Whisper — Better recognition</option>
+              <option value="parakeet">Parakeet — Fast default</option>
+              <option value="gemini">Gemini Cloud STT — Ultra accurate</option>
+            </select>
+          </div>
+
+          <div style="font-size: 12.5px; color: var(--text-muted); line-height: 1.6; padding: 4px 0 10px 0;">
+            Parakeet is the fast, efficient default. Whisper can provide better recognition performance, especially on difficult speech, but uses more CPU/GPU resources and may respond more slowly. Both run locally on this PC.
+          </div>
+
+          <div class="setting-row">
+            <span class="setting-label">End after silence</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <input type="number" id="cfgSilence" value="2.00" step="0.25" min="0.5" max="10.0" style="max-width: 140px;">
+              <span style="font-size: 13px; color: var(--text-muted);">seconds</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dictation Style Tab -->
+      <div class="tab-content" id="tab-dictation">
+        <div class="tab-header">
+          <h1 class="tab-title">Dictation style</h1>
+          <p class="tab-subtitle">Format and clean up your transcribed speech.</p>
+        </div>
+        <div class="settings-card">
+          <div class="setting-row">
+            <span class="setting-label">Auto-capitalize &amp; punctuate sentences</span>
+            <label class="switch">
+              <input type="checkbox" id="cfgPunctuate" checked>
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <span class="setting-label">Remove ums, uhs, and filler words</span>
+            <label class="switch">
+              <input type="checkbox" id="cfgRemoveFillers" checked>
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <span class="setting-label">Apply smart self-corrections</span>
+            <label class="switch">
+              <input type="checkbox" id="cfgSelfCorrect" checked>
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hotkeys Tab -->
+      <div class="tab-content" id="tab-hotkeys">
+        <div class="tab-header">
+          <h1 class="tab-title">Command &amp; hotkeys</h1>
+          <p class="tab-subtitle">Global keyboard shortcuts to summon Nixi instantly.</p>
+        </div>
+        <div class="settings-card">
+          <div class="setting-row">
+            <span class="setting-label">Talk to Nixi (Voice Command)</span>
+            <strong style="font-size:13px;padding:4px 10px;background:#e2e8f0;border-radius:6px;">Right Ctrl &nbsp;/&nbsp; Ctrl+Alt+Space</strong>
+          </div>
+          <div class="setting-row">
+            <span class="setting-label">Direct Text Dictation</span>
+            <strong style="font-size:13px;padding:4px 10px;background:#e2e8f0;border-radius:6px;">Right Alt</strong>
+          </div>
+          <div class="setting-row">
+            <span class="setting-label">Write Prompt / Quick Ask</span>
+            <strong style="font-size:13px;padding:4px 10px;background:#e2e8f0;border-radius:6px;">Ctrl+Alt+W</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Privacy & History Tab -->
+      <div class="tab-content" id="tab-privacy">
+        <div class="tab-header">
+          <h1 class="tab-title">Privacy &amp; history</h1>
+          <p class="tab-subtitle">Control conversation retention and security.</p>
+        </div>
+        <div class="settings-card">
+          <div class="setting-row">
+            <span class="setting-label">Save chat history locally</span>
+            <label class="switch">
+              <input type="checkbox" id="cfgSaveHistory" checked>
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <span class="setting-label">Allow offline instant intent execution</span>
+            <label class="switch">
+              <input type="checkbox" id="cfgOfflineIntents" checked>
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Model Tab -->
+      <div class="tab-content" id="tab-model">
+        <div class="tab-header">
+          <h1 class="tab-title">AI model</h1>
+          <p class="tab-subtitle">Configure your Gemini Cloud intelligence API key.</p>
+        </div>
+        <div class="settings-card">
+          <div class="setting-row" style="flex-direction: column; align-items: flex-start;">
+            <span class="setting-label" style="margin-bottom: 6px;">Google Gemini API Key</span>
+            <input type="password" id="cfgApiKey" placeholder="AIzaSy..." style="max-width: 100%;">
+            <small style="color: var(--text-muted); margin-top: 6px; font-size: 12px;">Get a free API key at <a href="#" id="linkStudio" style="color: #3b82f6;">aistudio.google.com</a></small>
+          </div>
+          <div class="setting-row">
+            <span class="setting-label">Model Selection</span>
+            <select id="cfgModel">
+              <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash (Ultra Fast)</option>
+              <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+              <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Actions -->
+  <div class="footer-bar">
+    <button class="btn-save" id="bSave">Save</button>
+    <button class="btn-cancel" id="bCancel">Cancel</button>
+  </div>
+
+  <script src="face.js"></script>
+  <script>
+    const { ipcRenderer, shell } = require('electron');
+
+    // Tab switching
+    const navBtns = document.querySelectorAll('.nav-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    navBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        navBtns.forEach(b => b.classList.remove('active'));
+        tabContents.forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        const tabId = 'tab-' + btn.dataset.tab;
+        const target = document.getElementById(tabId);
+        if (target) target.classList.add('active');
+      });
+    });
+
+    // Close buttons
+    const closeWin = () => ipcRenderer.send('close-settings');
+    document.getElementById('bCloseTop').onclick = closeWin;
+    document.getElementById('bCancel').onclick = closeWin;
+
+    // External link
+    document.getElementById('linkStudio').onclick = (e) => {
+      e.preventDefault();
+      shell.openExternal('https://aistudio.google.com');
+    };
+
+    const outfitSelect = document.getElementById('cfgOutfit');
+
+    // Dual Canvas Eye-Tracking with Face engine
+    const notchCanvas = document.getElementById('notchFace');
+    const previewCanvas = document.getElementById('previewFace');
+    const nctx = notchCanvas ? notchCanvas.getContext('2d') : null;
+    const pctx = previewCanvas ? previewCanvas.getContext('2d') : null;
+
+    const notchFace = new Face();
+    const previewFace = new Face();
+    notchFace.setPalette('#ffffff', '#000000');
+    previewFace.setPalette('#ffffff', '#000000');
+
+    let currentOutfit = 'none';
+    let targetOv = [0, 0];
+
+    window.addEventListener('mousemove', (e) => {
+      const cx = window.innerWidth / 2;
+      const cy = window.innerHeight / 2;
+      const dx = (e.clientX - cx) / cx;
+      const dy = (e.clientY - cy) / cy;
+      targetOv = [Math.max(-1, Math.min(1, dx * 1.4)), Math.max(-1, Math.min(1, dy * 1.4))];
+    });
+
+    outfitSelect.addEventListener('change', () => {
+      currentOutfit = outfitSelect.value;
+    });
+
+    let lastT = 0;
+    function loop(t) {
+      requestAnimationFrame(loop);
+      const dt = (t - lastT) / 1000;
+      lastT = t;
+      if (!dt || dt > 0.5) return;
+
+      if (nctx) {
+        notchFace.advance(dt, 'idle', 0, targetOv);
+        nctx.setTransform(1, 0, 0, 1, 0, 0);
+        nctx.clearRect(0, 0, 144, 68);
+        nctx.setTransform(2, 0, 0, 2, 0, 0);
+        nctx.fillStyle = '#000000';
+        nctx.beginPath();
+        nctx.roundRect(0, 0, 72, 34, 17);
+        nctx.fill();
+        notchFace.paint(nctx, 0, 0, 72, 34, { time: t / 1000 });
+      }
+
+      if (pctx) {
+        previewFace.advance(dt, 'idle', 0, targetOv);
+        pctx.setTransform(1, 0, 0, 1, 0, 0);
+        pctx.clearRect(0, 0, 224, 112);
+        pctx.setTransform(2, 0, 0, 2, 0, 0);
+        pctx.fillStyle = '#000000';
+        pctx.beginPath();
+        pctx.roundRect(0, 0, 112, 56, 28);
+        pctx.fill();
+        previewFace.paint(pctx, 0, 0, 112, 56, { outfit: currentOutfit, time: t / 1000 });
+      }
+    }
+    requestAnimationFrame(loop);
+
+    // Load initial config
+    ipcRenderer.invoke('cfg-get').then(cfg => {
+      if (!cfg) return;
+      if (cfg.key) document.getElementById('cfgApiKey').value = cfg.key;
+      if (cfg.model) document.getElementById('cfgModel').value = cfg.model;
+      if (cfg.outfit) {
+        outfitSelect.value = cfg.outfit;
+        currentOutfit = cfg.outfit;
+      }
+      if (cfg.autostart !== undefined) document.getElementById('cfgAutostart').checked = cfg.autostart;
+    });
+
+    // Save
+    document.getElementById('bSave').onclick = async () => {
+      const key = document.getElementById('cfgApiKey').value.trim();
+      const model = document.getElementById('cfgModel').value;
+      const outfit = outfitSelect.value;
+      const autostart = document.getElementById('cfgAutostart').checked;
+
+      await ipcRenderer.invoke('cfg-set', { key, model, outfit, autostart });
+      closeWin();
+    };
+  </script>
+</body>
+</html>
