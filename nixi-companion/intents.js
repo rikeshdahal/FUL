@@ -98,6 +98,88 @@ const THANK = /\b(thank you|thanks|thx|ta|cheers|great job|nice job|good job|awe
 
 const INTENTS = [
   {
+    id: 'conversation',
+    test: /\b(?:how are you|how'?s it going|how are you doing|how do you do|what'?s up|sup\b|who are you|what is your name|what can you do|what are you|help me|tell me a joke|tell a joke|give me a joke|joke\b|are you real|who made you|who created you|good (?:morning|afternoon|evening|night)|hello|hi\b|hey\b|greetings)\b/i,
+    run: t => {
+      if (/\b(?:how are you|how'?s it going|how are you doing|how do you do)\b/i.test(t)) {
+        return {
+          id: 'conversation',
+          args: { text: "I'm doing great, thank you! Ready to help you with your PC. What would you like to do?" },
+          say: "I'm doing great, thank you! What would you like to do?"
+        };
+      }
+      if (/\b(?:what'?s up|sup)\b/i.test(t)) {
+        return {
+          id: 'conversation',
+          args: { text: "Not much, just chilling here on your screen! Tell me what you need." },
+          say: "Not much, just chilling here on your screen! Tell me what you need."
+        };
+      }
+      if (/\b(?:who are you|what is your name|what are you)\b/i.test(t)) {
+        return {
+          id: 'conversation',
+          args: { text: "I'm Nixi, your personal desktop companion and voice assistant. I live right here on your screen to help you launch apps, search, manage timers, play music, and answer questions." },
+          say: "I'm Nixi, your desktop voice assistant."
+        };
+      }
+      if (/\b(?:what can you do|help me|help\b)\b/i.test(t)) {
+        return {
+          id: 'conversation',
+          args: { text: "I can open apps and websites (like Google, TikTok, YouTube), run web searches, execute multiple tasks at once, set timers and reminders, control your music and volume, take screenshots, and answer your questions!" },
+          say: "I can open apps, search the web, manage timers, play music, and answer your questions!"
+        };
+      }
+      if (/\b(?:tell me a joke|tell a joke|give me a joke|joke)\b/i.test(t)) {
+        const jokes = [
+          "Why did the computer catch a cold? Because it left its Windows open!",
+          "There are 10 types of people in the world: those who understand binary, and those who don't.",
+          "Why do programmers prefer dark mode? Because light attracts bugs!",
+          "I asked my computer for a joke, and it showed me my internet history."
+        ];
+        const j = jokes[Math.floor(Math.random() * jokes.length)];
+        return { id: 'conversation', args: { text: j }, say: j };
+      }
+      if (/\b(?:good morning)\b/i.test(t)) {
+        return { id: 'conversation', args: { text: "Good morning! Ready to tackle the day together. What can I do for you?" }, say: "Good morning! How can I help you today?" };
+      }
+      if (/\b(?:good evening|good afternoon)\b/i.test(t)) {
+        return { id: 'conversation', args: { text: "Good evening! Hope you had a productive day. What can I do for you?" }, say: "Good evening! How can I help you?" };
+      }
+      if (/\b(?:good night)\b/i.test(t)) {
+        return { id: 'conversation', args: { text: "Good night! Rest well and see you tomorrow." }, say: "Good night! Sleep well." };
+      }
+      if (/\b(?:hello|hi|hey|greetings)\b/i.test(t)) {
+        return { id: 'conversation', args: { text: "Hey there! How can I help you today?" }, say: "Hey there! What can I do for you?" };
+      }
+      if (/\b(?:who made you|who created you)\b/i.test(t)) {
+        return { id: 'conversation', args: { text: "I was created by Rikesh to be your smart, fast, and friendly desktop companion." }, say: "I was created by Rikesh to be your desktop companion." };
+      }
+      return null;
+    }
+  },
+  {
+    id: 'search_on_combined',
+    test: /\b(?:open|launch|go to)\s+([a-z0-9_ -]+?)\s+and\s+(?:then\s+)?search(?:\s+for)?\s+(.+)$/i,
+    run: t => {
+      const m = t.match(/\b(?:open|launch|go to)\s+([a-z0-9_ -]+?)\s+and\s+(?:then\s+)?search(?:\s+for)?\s+(.+)$/i);
+      if (!m) return null;
+      const platform = m[1].trim();
+      const query = m[2].replace(/[.!?]+$/, '').trim();
+      return { id: 'search_on', args: { platform, query }, say: `Searching ${platform} for “${query}”.` };
+    }
+  },
+  {
+    id: 'search_on_direct',
+    test: /\bsearch(?:\s+for)?\s+(.+?)\s+on\s+([a-z0-9_ -]+)$/i,
+    run: t => {
+      const m = t.match(/\bsearch(?:\s+for)?\s+(.+?)\s+on\s+([a-z0-9_ -]+)$/i);
+      if (!m) return null;
+      const query = m[1].replace(/^(for|about)\s+/i, '').replace(/[.!?]+$/, '').trim();
+      const platform = m[2].trim();
+      return { id: 'search_on', args: { platform, query }, say: `Searching ${platform} for “${query}”.` };
+    }
+  },
+  {
     id: 'thanks',
     test: THANK,
     run: () => ({ id: 'thanks', args: {}, say: null })
@@ -408,11 +490,7 @@ function humanDuration(secs) {
   return r ? `${h} hour${h === 1 ? '' : 's'} ${r} min` : `${h} hour${h === 1 ? '' : 's'}`;
 }
 
-/**
- * @param {string} text raw utterance
- * @returns {null|{id:string,args:object,say:?string,risky:boolean}}
- */
-function match(text) {
+function matchSingle(text) {
   const raw = String(text || '').trim();
   const t = clean(text);
   if (!t) return null;
@@ -422,16 +500,87 @@ function match(text) {
   if (urlM && /\b(?:open|go to|visit|browse|launch|start|navigate to)\b/i.test(raw)) {
     const u = urlM[1];
     if (!/\.(?:pdf|doc|docx|xls|xlsx|ppt|pptx|txt|csv|zip|rar|png|jpe?g|gif|mp4|mp3|exe|msi)$/i.test(u)) {
-      return { id: 'open_url', args: { url: u }, say: `Opening ${u}.`, risky: false };
+      return { id: 'open_url', args: { url: u }, say: `Opening ${u}.`, category: 'task', risky: false };
     }
   }
 
   for (const intent of INTENTS) {
     if (!intent.test.test(t)) continue;
     const out = intent.run(t);
-    if (out) return { ...out, risky: !!intent.risky };
+    if (out) {
+      const isQ = ['conversation', 'time_date', 'list_timers', 'list_notes', 'calculate', 'system_info', 'todo_list', 'thanks'].includes(out.id);
+      return { ...out, category: isQ ? 'question' : 'task', risky: !!intent.risky };
+    }
   }
   return null;
 }
 
-module.exports = { match, parseDuration, parseClockTime, splitItems, humanDuration, clean };
+function match(text) {
+  const raw = String(text || '').trim();
+  if (!raw) return null;
+
+  // 1) First check compound commands separated by "and then", "then", or ";"
+  if (/\s+(?:and then|then|;)\s+/i.test(raw)) {
+    const parts = raw.split(/\s+(?:and then|then|;)\s+/i).map(s => s.trim()).filter(Boolean);
+    if (parts.length > 1) {
+      const sub = [];
+      for (const p of parts) {
+        const item = matchSingle(p);
+        if (item) sub.push(item);
+      }
+      if (sub.length === parts.length) {
+        return {
+          id: 'compound',
+          args: { actions: sub },
+          category: 'task',
+          say: sub.map(s => s.say).filter(Boolean).join(' ') || 'Done.'
+        };
+      }
+    }
+  }
+
+  // 2) Check if connected by " and " where both parts are distinct actions (e.g. "open tiktok and open youtube" or "open google and mute")
+  if (/\s+\band\b\s+/i.test(raw) && !/\bsearch\b/i.test(raw)) {
+    const parts = raw.split(/\s+\band\b\s+/i).map(s => s.trim()).filter(Boolean);
+    if (parts.length > 1 && parts.every(p => /\b(open|launch|start|run|close|mute|volume|set|remind|turn|dark mode|light mode)\b/i.test(p))) {
+      const sub = [];
+      for (const p of parts) {
+        const item = matchSingle(p);
+        if (item) sub.push(item);
+      }
+      if (sub.length === parts.length) {
+        return {
+          id: 'compound',
+          args: { actions: sub },
+          category: 'task',
+          say: sub.map(s => s.say).filter(Boolean).join(' ') || 'Done.'
+        };
+      }
+    }
+  }
+
+  return matchSingle(raw);
+}
+
+function classify(text) {
+  const m = match(text);
+  if (m) {
+    const isQ = m.category === 'question' || ['conversation', 'time_date', 'list_timers', 'list_notes', 'calculate', 'system_info', 'todo_list', 'thanks'].includes(m.id);
+    return {
+      category: isQ ? 'question' : 'task',
+      intent: { ...m, category: isQ ? 'question' : 'task' },
+      thought: isQ ? 'Categorized: Question / Conversation' : `Categorized: Task (${m.id.replace(/_/g, ' ')})`
+    };
+  }
+  const raw = String(text || '').trim();
+  const isQ = /\?$/.test(raw) || /^(who|what|where|when|why|how|is|are|can|could|would|should|do|does|did|will|tell me|explain|define)\b/i.test(raw);
+  const isT = /^(open|launch|start|run|close|kill|search|play|pause|stop|skip|mute|unmute|set|remind|turn|switch|create|delete|type|volume)\b/i.test(raw);
+  return {
+    category: isT ? 'task' : (isQ ? 'question' : 'question'),
+    intent: null,
+    thought: isT ? 'Categorized: Task' : 'Categorized: Question / Inquiry'
+  };
+}
+
+module.exports = { match, classify, parseDuration, parseClockTime, splitItems, humanDuration, clean };
+

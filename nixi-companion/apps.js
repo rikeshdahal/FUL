@@ -6,18 +6,34 @@
   almost every installed program works even if it is not listed here.
 */
 const { execFile } = require('child_process');
-const { shell } = require('electron');
+const electron = require('electron');
+const shell = (electron && typeof electron === 'object' && electron.shell) ? electron.shell : (typeof electron === 'object' ? electron : null);
 const path = require('path');
 
+async function openSafe(target) {
+  if (shell && typeof shell.openExternal === 'function') {
+    try {
+      await shell.openExternal(target);
+      return true;
+    } catch {}
+  }
+  await ps(`Start-Process '${String(target).replace(/'/g, "''")}'`);
+  return true;
+}
+
 const WEB = {
+  google: 'https://google.com',
+  facebook: 'https://facebook.com',
+  instagram: 'https://instagram.com',
+  tiktok: 'https://tiktok.com',
+  youtube: 'https://youtube.com',
+  'youtube music': 'https://music.youtube.com',
   gmail: 'https://mail.google.com',
   'google mail': 'https://mail.google.com',
   'google docs': 'https://docs.google.com',
   'google drive': 'https://drive.google.com',
   'google calendar': 'https://calendar.google.com',
   'google meet': 'https://meet.google.com',
-  youtube: 'https://youtube.com',
-  'youtube music': 'https://music.youtube.com',
   github: 'https://github.com',
   figma: 'https://figma.com',
   reddit: 'https://reddit.com',
@@ -25,7 +41,7 @@ const WEB = {
   twitter: 'https://x.com',
   linear: 'https://linear.app',
   claude: 'https://claude.ai',
-  chatgpt: 'https://chat.openai.com',
+  chatgpt: 'https://chatgpt.com',
   perplexity: 'https://perplexity.ai',
   trello: 'https://trello.com',
   notion: 'https://notion.so',
@@ -45,7 +61,7 @@ const WEB = {
   maps: 'https://maps.google.com',
   news: 'https://news.google.com',
   weather: 'https://weather.com',
-  'chatgpt.com': 'https://chat.openai.com',
+  'chatgpt.com': 'https://chatgpt.com',
   'gemini.google.com': 'https://gemini.google.com',
   'github.com': 'https://github.com',
   'youtube.com': 'https://youtube.com',
@@ -53,7 +69,6 @@ const WEB = {
   'figma.com': 'https://figma.com',
   linkedin: 'https://linkedin.com',
   pinterest: 'https://pinterest.com',
-  tiktok: 'https://tiktok.com',
   twitch: 'https://twitch.tv',
   zoomus: 'https://zoom.us',
   'google photos': 'https://photos.google.com',
@@ -256,21 +271,21 @@ async function launch(name) {
   if (!k) return { ok: false, message: 'Tell me what to open.' };
 
   if (WEB[k]) {
-    await shell.openExternal(WEB[k]);
+    await openSafe(WEB[k]);
     return { ok: true, message: `Opened ${k}.` };
   }
   if (URI[k]) {
-    await shell.openExternal(URI[k]);
+    await openSafe(URI[k]);
     return { ok: true, message: `Opened ${k}.` };
   }
   if (/^https?:\/\//i.test(k) || /^[\w-]+\.[a-z]{2,}(\/\S*)?$/i.test(k)) {
-    await shell.openExternal(/^https?:/i.test(k) ? k : 'https://' + k);
+    await openSafe(/^https?:/i.test(k) ? k : 'https://' + k);
     return { ok: true, message: `Opened ${k}.` };
   }
 
   const exe = EXE[k] || k;
   if (EXE[k] && /^[a-z]+:/i.test(exe)) {
-    await shell.openExternal(exe);
+    await openSafe(exe);
     return { ok: true, message: `Opened ${k}.` };
   }
 
@@ -286,9 +301,37 @@ async function launch(name) {
   return { ok: true, message: `Opened ${k}.` };
 }
 
+const SEARCH_URLS = {
+  tiktok: q => `https://www.tiktok.com/search?q=${encodeURIComponent(q)}`,
+  youtube: q => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`,
+  google: q => `https://www.google.com/search?q=${encodeURIComponent(q)}`,
+  github: q => `https://github.com/search?q=${encodeURIComponent(q)}`,
+  spotify: q => `https://open.spotify.com/search/${encodeURIComponent(q)}`,
+  reddit: q => `https://www.reddit.com/search/?q=${encodeURIComponent(q)}`,
+  x: q => `https://x.com/search?q=${encodeURIComponent(q)}`,
+  twitter: q => `https://x.com/search?q=${encodeURIComponent(q)}`,
+  amazon: q => `https://www.amazon.com/s?k=${encodeURIComponent(q)}`,
+  wikipedia: q => `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(q)}`,
+  chatgpt: q => `https://chatgpt.com/?q=${encodeURIComponent(q)}`,
+  netflix: q => `https://www.netflix.com/search?q=${encodeURIComponent(q)}`,
+  instagram: q => `https://www.instagram.com/explore/search/keyword/?q=${encodeURIComponent(q)}`,
+  facebook: q => `https://www.facebook.com/search/top/?q=${encodeURIComponent(q)}`
+};
+
+async function searchOn(platform, query) {
+  const p = resolve(platform);
+  const q = String(query || '').trim();
+  if (SEARCH_URLS[p]) {
+    await openSafe(SEARCH_URLS[p](q));
+    return { ok: true, message: `Searching ${p} for “${q}”.` };
+  }
+  await openSafe(`https://www.google.com/search?q=${encodeURIComponent(q + ' ' + platform)}`);
+  return { ok: true, message: `Searching for “${q}” on ${platform}.` };
+}
+
 function quickList() {
   const names = new Set([...Object.keys(WEB), ...Object.keys(URI), ...Object.keys(EXE)]);
   return [...names].sort();
 }
 
-module.exports = { launch, quickList, resolve, WEB, URI, EXE, ALIAS, ps, findStartMenuApp, clean, key, isHttpUrl };
+module.exports = { launch, searchOn, SEARCH_URLS, quickList, resolve, WEB, URI, EXE, ALIAS, ps, findStartMenuApp, clean, key, isHttpUrl };

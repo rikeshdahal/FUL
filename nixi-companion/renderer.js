@@ -290,29 +290,49 @@ async function handleChatInput() {
 
   appendChatMessage('user', val);
   wake();
-  setStatus('Thinking…');
 
-  // 1) Match instant offline intent first (0ms)
-  const intent = await ipc.invoke('intent', val);
-  if (intent) {
-    const res = await ipc.invoke('act', intent.id, intent.args || {});
-    const reply = typeof res === 'string' ? res : 'Done.';
-    appendChatMessage('nixi', reply);
-    setStatus(reply);
-    feel('happy', 1400);
-    updateTimers();
+  // Think first: Classify whether this is a Task or a Question/Conversation
+  setStatus('Thinking… Analyzing intent…');
+  feel('thinking', 600);
+
+  const classified = await ipc.invoke('classify', val);
+  const isTask = classified?.category === 'task';
+
+  if (isTask) {
+    setStatus(`⚡ Task detected: Thinking…`);
+    feel('wink', 700);
+  } else {
+    setStatus(`💬 Question detected: Thinking answer…`);
+    feel('talking', 700);
+  }
+
+  // Brief pause so visual thinking transition is noticeable
+  await new Promise(r => setTimeout(r, 180));
+
+  if (classified?.intent) {
+    await runIntent(classified.intent, false, { fromChat: true });
     return;
   }
 
-  // 2) Fall back to online model
-  try {
-    S.busy = 'think';
-    await askModel(val, { fromChat: true });
-  } catch (e) {
-    appendChatMessage('nixi', `Could not complete: ${e.message}`);
-    feel('sad', 1800);
-  } finally {
-    S.busy = false;
+  // 2) Fall back to online model if key is present
+  if (S.cfg.key) {
+    try {
+      S.busy = 'think';
+      await askModel(val, { fromChat: true });
+    } catch (e) {
+      appendChatMessage('nixi', `Could not complete: ${e.message}`);
+      feel('sad', 1800);
+    } finally {
+      S.busy = false;
+    }
+  } else {
+    if (isTask) {
+      appendChatMessage('nixi', `⚡ Task recognized: Searching for "${val}" on Google.`);
+      await ipc.invoke('act', 'web_search', { query: val });
+    } else {
+      appendChatMessage('nixi', "I'm ready! You can give me tasks like 'open google', 'open tiktok and search rikesh dahal', 'open tiktok and youtube', 'volume up', 'set timer 5m', or add a free Gemini API key in settings for unlimited general answers.");
+    }
+    feel('happy', 1500);
   }
 }
 
@@ -909,10 +929,30 @@ function askConfirm(question, intent) {
   $('cNo').onclick = () => { S.confirm = null; closePanel(); setStatus('Okay.'); };
 }
 
-/* -------------------------------------------------------------- intents */
-async function runIntent(intent, confirmed) {
+async function runIntent(intent, confirmed, opts = {}) {
   const id = intent.id, args = intent.args || {};
-  if (id === 'thanks') { celebrate(); setStatus('Any time!'); setShape('capsule'); return; }
+  const isVoice = !!opts.voice;
+  const fromChat = !!opts.fromChat || S.panel === 'chat';
+
+  if (id === 'thanks') {
+    celebrate();
+    setStatus('Any time!');
+    setShape('capsule');
+    if (isVoice || S.cfg.speak) speak('Any time!');
+    return;
+  }
+  if (id === 'conversation') {
+    const text = args.text || intent.say || "I'm doing well, thank you!";
+    if (fromChat) {
+      appendChatMessage('nixi', text);
+      setStatus(text.slice(0, 50));
+    } else {
+      say(text, 'Nixi');
+    }
+    if (isVoice || S.cfg.speak) speak(text);
+    feel('happy', 2000);
+    return;
+  }
   if (id === 'write') { openPrompt(args.request || ''); return; }
   if (id === 'screen') { await askAboutScreen(''); return; }
   if (id === 'now_playing' || id === 'open_music_ui') {
@@ -930,11 +970,26 @@ async function runIntent(intent, confirmed) {
     askConfirm(`Nixi wants to ${id.replace(/_/g, ' ')}. Do it?`, intent);
     return;
   }
-  setStatus('Working…');
+
+  const taskLabel = id === 'open_app' ? `Opening ${(args.names || []).join(', ')}` :
+                    id === 'search_on' ? `Searching ${args.platform} for "${args.query}"` :
+                    id === 'compound' ? `Executing ${args.actions?.length || 2} tasks` :
+                    `Executing ${id.replace(/_/g, ' ')}`;
+  setStatus(`⚡ Task: ${taskLabel}…`);
+  feel('thinking', 600);
+
   const res = await ipc.invoke('act', id, args);
   if (res && typeof res === 'object' && res.tele) { openTeleprompter(res.tele); return; }
-  say(typeof res === 'string' ? res : 'Done.', 'status');
-  feel('happy', 1600);
+  const reply = (typeof res === 'string' && res) ? res : (intent.say || 'Done.');
+
+  if (fromChat) {
+    appendChatMessage('nixi', `⚡ Task Completed:\n${reply}`);
+    setStatus(reply.slice(0, 50));
+  } else {
+    say(reply, 'status');
+  }
+  if (isVoice || S.cfg.speak) speak(reply.replace(/\n/g, '. '));
+  feel('happy', 1800);
   updateTimers();
 }
 
@@ -1238,16 +1293,45 @@ async function handleUtterance(text, kind) {
     feel('wink', 900);
     return;
   }
-  // Try offline intent match first (instant, 0ms)
-  const intent = await ipc.invoke('intent', raw);
-  if (intent) {
-    setStatus(raw);
-    await runIntent(intent);
+  setShape('capsule');
+  setStatus('Thinking… Analyzing voice command…');
+  feel('thinking', 700);
+
+  // Think first: Classify whether this is a Task or a Question/Conversation
+  const classified = await ipc.invoke('classify', raw);
+  const isTask = classified?.category === 'task';
+
+  if (isTask) {
+    setStatus(`⚡ Task: ${classified?.thought?.replace('Categorized: ', '') || 'Executing…'}`);
+    feel('wink', 800);
+  } else {
+    setStatus(`💬 Question: Thinking answer…`);
+    feel('talking', 800);
+  }
+
+  // Small delay so thinking transition is visible and responsive
+  await new Promise(r => setTimeout(r, 200));
+
+  if (classified?.intent) {
+    await runIntent(classified.intent, false, { voice: true });
     return;
   }
-  // Fall back to cloud model
-  setStatus(raw);
-  await askModel(raw);
+
+  // 2) Fall back to cloud model if configured
+  if (S.cfg.key) {
+    await askModel(raw, { fromChat: S.panel === 'chat' });
+  } else {
+    if (isTask) {
+      say(`Task: Searching Google for “${raw}”.`, 'status');
+      await ipc.invoke('act', 'web_search', { query: raw });
+      speak(`Searching Google for ${raw}.`);
+    } else {
+      const qReply = "I'm ready! You can say 'how are you', 'open google', 'open tiktok and search rikesh dahal', 'open tiktok and youtube', or configure your Gemini API key in settings for general questions.";
+      say(qReply, 'Nixi');
+      speak("I'm ready! You can say 'how are you', 'open google', 'open tiktok and search rikesh dahal', or 'open tiktok and youtube'.");
+      feel('happy', 1800);
+    }
+  }
 }
 
 async function polish(text) {
@@ -1497,6 +1581,9 @@ function showToast(t) {
 }
 
 /* --------------------------------------------------- Robust Audio Capture */
+let speechRecognizer = null;
+const SpeechRec = typeof window !== 'undefined' ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null;
+
 async function beginCapture(mode) {
   wake();
   clearTimeout(captureTimeout);
@@ -1507,6 +1594,25 @@ async function beginCapture(mode) {
   $('bCancelAction').style.display = 'inline-flex';
   startMeter();
   feel(mode === 'dict' ? 'talking' : 'listening', 12000);
+
+  // Web Speech API fallback if available
+  if (SpeechRec) {
+    try {
+      if (speechRecognizer) { try { speechRecognizer.abort(); } catch {} }
+      speechRecognizer = new SpeechRec();
+      speechRecognizer.continuous = false;
+      speechRecognizer.interimResults = false;
+      speechRecognizer.lang = 'en-US';
+      speechRecognizer.onresult = async (ev) => {
+        const transcript = ev?.results?.[0]?.[0]?.transcript?.trim();
+        if (transcript) {
+          await handleUtterance(transcript, mode);
+        }
+      };
+      speechRecognizer.onerror = () => {};
+      speechRecognizer.start();
+    } catch {}
+  }
 
   // Start MediaRecorder if available
   if (S.micStream) {
@@ -1533,6 +1639,14 @@ async function endCapture(cancelled) {
   S.capture = null;
   $('bMic').classList.remove('rec');
   $('bCancelAction').style.display = 'none';
+
+  if (speechRecognizer) {
+    try {
+      if (cancelled) speechRecognizer.abort();
+      else speechRecognizer.stop();
+    } catch {}
+    speechRecognizer = null;
+  }
 
   if (was === 'dict') ipc.send('speech-mode', 'wake');
   else ipc.send('speech-stop');
@@ -1590,7 +1704,12 @@ async function endCapture(cancelled) {
     try { mediaRecorder.stop(); } catch {}
   }
 
-  setTimeout(collapse, 1200);
+  setStatus('Processing…');
+  feel('thinking', 800);
+  clearTimeout(endCapture.collapseTimer);
+  endCapture.collapseTimer = setTimeout(() => {
+    if (!S.busy && !S.capture && !S.panel) collapse();
+  }, 4000);
 }
 
 function cancelActiveAction() {

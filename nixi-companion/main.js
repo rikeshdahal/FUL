@@ -759,6 +759,22 @@ const ACTIONS = {
     }
     return out.join('\n');
   },
+  async search_on({ platform, query }) {
+    const res = await apps.searchOn(platform, query);
+    return res.message;
+  },
+  async compound({ actions = [] }) {
+    const results = [];
+    for (const a of actions) {
+      if (!a || !a.id) continue;
+      const fn = ACTIONS[a.id];
+      if (fn) {
+        const r = await fn(a.args || {});
+        if (r && typeof r === 'string') results.push(r);
+      }
+    }
+    return results.join('\n') || 'Done.';
+  },
   async open_url({ url }) {
     const u = String(url || '').trim();
     if (!u) return 'No address given.';
@@ -992,6 +1008,7 @@ ipcMain.handle('cfg-set', (_e, c) => { cfg = { ...cfg, ...c }; saveCfg(); applyC
 ipcMain.handle('cfg-get', () => cfg);
 ipcMain.handle('data-get', () => data);
 ipcMain.handle('intent', (_e, text) => intents.match(text));
+ipcMain.handle('classify', (_e, text) => intents.classify(text));
 ipcMain.handle('act', async (_e, name, args) => {
   try {
     const fn = ACTIONS[name];
