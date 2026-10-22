@@ -6,6 +6,8 @@
   with the network unplugged.
 */
 
+const apps = require('./apps');
+
 const NUM_WORDS = {
   a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
   eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18,
@@ -84,10 +86,24 @@ function parseClockTime(text) {
 }
 
 function splitItems(text) {
-  return String(text || '')
+  let parts = String(text || '')
     .split(/\s*(?:,|\band\b|&|\bplus\b)\s*/i)
     .map(s => s.replace(/^(the |my |an? |app |program |website |site )/i, '').trim())
     .filter(Boolean);
+
+  if (parts.length === 1) {
+    const words = parts[0].split(/\s+/);
+    if (words.length > 1) {
+      let count = 0;
+      for (const w of words) {
+        if (apps.resolve(w) || (apps.WEB && apps.WEB[w.toLowerCase()]) || (apps.EXE && apps.EXE[w.toLowerCase()])) count++;
+      }
+      if (count >= 2) {
+        return words.map(w => w.trim()).filter(Boolean);
+      }
+    }
+  }
+  return parts;
 }
 
 function stripLead(text, re) {
@@ -519,43 +535,54 @@ function match(text) {
   const raw = String(text || '').trim();
   if (!raw) return null;
 
-  // 1) First check compound commands separated by "and then", "then", or ";"
+  // Check if multiple action triggers are present (e.g. "open tiktok open youtube open google", or "open tiktok and open youtube")
+  const hasMultipleVerbs = (raw.match(/\b(?:open|launch|start|run|go to)\b/gi) || []).length > 1;
+
+  // If there are not multiple action verbs, see if it matches a single intent directly
+  if (!hasMultipleVerbs) {
+    const direct = matchSingle(raw);
+    if (direct) return direct;
+  }
+
+  let parts = [];
   if (/\s+(?:and then|then|;)\s+/i.test(raw)) {
-    const parts = raw.split(/\s+(?:and then|then|;)\s+/i).map(s => s.trim()).filter(Boolean);
-    if (parts.length > 1) {
-      const sub = [];
-      for (const p of parts) {
-        const item = matchSingle(p);
-        if (item) sub.push(item);
-      }
-      if (sub.length === parts.length) {
-        return {
-          id: 'compound',
-          args: { actions: sub },
-          category: 'task',
-          say: sub.map(s => s.say).filter(Boolean).join(' ') || 'Done.'
-        };
-      }
+    parts = raw.split(/\s+(?:and then|then|;)\s+/i);
+  } else if (hasMultipleVerbs) {
+    // Splits repeated commands like "open tiktok open youtube open google" or "open tiktok and open youtube and open google"
+    const cleaned = raw.replace(/\s+\band\s+(?=(?:open|launch|start|run|go to|close)\b)/gi, ' ');
+    parts = cleaned.split(/(?<=\S)\s*[,;]?\s+(?=(?:open|launch|start|run|go to|close)\b)/i);
+  } else if (/\s+\band\s+(?=(?:open|launch|start|run|close|mute|volume|set|remind|turn|dark mode|light mode)\b)/i.test(raw)) {
+    parts = raw.split(/\s+\band\s+(?=(?:open|launch|start|run|close|mute|volume|set|remind|turn|dark mode|light mode)\b)/i);
+  } else if (/\s+\band\b\s+/i.test(raw) && !/\bsearch\b/i.test(raw)) {
+    const p = raw.split(/\s+\band\b\s+/i).map(s => s.trim()).filter(Boolean);
+    if (p.length > 1 && p.every(x => /\b(open|launch|start|run|close|mute|volume|set|remind|turn|dark mode|light mode)\b/i.test(x))) {
+      parts = p;
     }
   }
 
-  // 2) Check if connected by " and " where both parts are distinct actions (e.g. "open tiktok and open youtube" or "open google and mute")
-  if (/\s+\band\b\s+/i.test(raw) && !/\bsearch\b/i.test(raw)) {
-    const parts = raw.split(/\s+\band\b\s+/i).map(s => s.trim()).filter(Boolean);
-    if (parts.length > 1 && parts.every(p => /\b(open|launch|start|run|close|mute|volume|set|remind|turn|dark mode|light mode)\b/i.test(p))) {
-      const sub = [];
-      for (const p of parts) {
-        const item = matchSingle(p);
-        if (item) sub.push(item);
+  if (parts.length > 1) {
+    const sub = [];
+    for (const p of parts) {
+      const item = matchSingle(p.trim());
+      if (item) sub.push(item);
+    }
+    if (sub.length === parts.length) {
+      const appNames = [];
+      for (const it of sub) {
+        if (it.id === 'open_app' && it.args?.names) appNames.push(...it.args.names);
       }
-      if (sub.length === parts.length) {
-        return {
-          id: 'compound',
-          args: { actions: sub },
-          category: 'task',
-          say: sub.map(s => s.say).filter(Boolean).join(' ') || 'Done.'
-        };
+      let compoundSay = '';
+      if (appNames.length === sub.length && appNames.length > 0) {
+        compoundSay = 'Opening ' + (appNames.length > 2 ? appNames.slice(0, -1).join(', ') + ', and ' + appNames[appNames.length - 1] : appNames.join(' and ')) + '.';
+      } else {
+        compoundSay = sub.map(s => s.say).filter(Boolean).join(' ') || 'Done.';
       }
+      return {
+        id: 'compound',
+        args: { actions: sub },
+        category: 'task',
+        say: compoundSay
+      };
     }
   }
 

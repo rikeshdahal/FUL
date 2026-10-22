@@ -906,15 +906,58 @@ function say(text, kind) {
   }
 }
 
-function speak(text) {
+let currentTtsAudio = null;
+
+async function speak(text) {
+  if (!text) return;
+  const cleanStr = String(text).replace(/[#*`_~]/g, '').trim();
+  if (!cleanStr) return;
+
+  // Cancel any running speech
+  if (currentTtsAudio) {
+    try { currentTtsAudio.pause(); currentTtsAudio.currentTime = 0; } catch {}
+    currentTtsAudio = null;
+  }
+  try { window.speechSynthesis.cancel(); } catch {}
+
+  // 1) Try Gemini TTS if API key is present
+  if (S.cfg.key) {
+    try {
+      const voice = S.cfg.voice || 'Aoede';
+      const res = await ipc.invoke('gemini-tts', { text: cleanStr, voice });
+      if (res && res.ok && res.audioData) {
+        const audio = new Audio(`data:${res.mimeType || 'audio/wav'};base64,${res.audioData}`);
+        currentTtsAudio = audio;
+        feel('talking', 4000);
+        audio.onended = () => {
+          if (currentTtsAudio === audio) currentTtsAudio = null;
+          feel('idle', 500);
+        };
+        audio.onerror = () => {
+          speakBrowser(cleanStr);
+        };
+        await audio.play();
+        return;
+      }
+    } catch {}
+  }
+
+  // 2) Fallback to local browser speech synthesis
+  speakBrowser(cleanStr);
+}
+
+function speakBrowser(text) {
   try {
     const s = new SpeechSynthesisUtterance(String(text).slice(0, 400));
     s.rate = 1.03;
     s.pitch = 1.08;
+    feel('talking', 2500);
+    s.onend = () => feel('idle', 500);
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(s);
-  } catch { }
+  } catch {}
 }
+
 
 /* --------------------------------------------------------- confirmation */
 function askConfirm(question, intent) {
@@ -973,7 +1016,11 @@ async function runIntent(intent, confirmed, opts = {}) {
 
   const taskLabel = id === 'open_app' ? `Opening ${(args.names || []).join(', ')}` :
                     id === 'search_on' ? `Searching ${args.platform} for "${args.query}"` :
-                    id === 'compound' ? `Executing ${args.actions?.length || 2} tasks` :
+                    id === 'compound' ? (
+                      args.actions && args.actions.length ?
+                        `Executing ${args.actions.map(a => a.id === 'open_app' ? (a.args?.names || []).join(', ') : (a.id === 'search_on' ? `${a.args?.platform} search` : a.id.replace(/_/g, ' '))).filter(Boolean).join(', ')}` :
+                        'Executing tasks'
+                    ) :
                     `Executing ${id.replace(/_/g, ' ')}`;
   setStatus(`⚡ Task: ${taskLabel}…`);
   feel('thinking', 600);
@@ -988,7 +1035,8 @@ async function runIntent(intent, confirmed, opts = {}) {
   } else {
     say(reply, 'status');
   }
-  if (isVoice || S.cfg.speak) speak(reply.replace(/\n/g, '. '));
+  const speechText = (intent.say && id === 'compound') ? intent.say : reply.replace(/\n/g, '. ');
+  if (isVoice || S.cfg.speak) speak(speechText);
   feel('happy', 1800);
   updateTimers();
 }

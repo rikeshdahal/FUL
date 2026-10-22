@@ -625,6 +625,35 @@
             </div>
           </div>
         </div>
+
+        <div class="settings-card" style="margin-top: 16px;">
+          <div style="font-weight: 600; font-size: 14px; margin-bottom: 12px; color: var(--text);">Gemini AI Voice Output (TTS)</div>
+          
+          <div class="setting-row">
+            <span class="setting-label">Gemini Voice Personality</span>
+            <select id="cfgVoice" style="max-width: 250px;">
+              <option value="Aoede" selected>Aoede — Warm &amp; Expressive Female</option>
+              <option value="Kore">Kore — Confident &amp; Natural Female</option>
+              <option value="Puck">Puck — Energetic &amp; Upbeat Male</option>
+              <option value="Charon">Charon — Deep &amp; Calm Male</option>
+              <option value="Fenrir">Fenrir — Bold &amp; Authoritative Male</option>
+            </select>
+          </div>
+
+          <div class="setting-row">
+            <span class="setting-label">Speak responses out loud (TTS)</span>
+            <label class="switch">
+              <input type="checkbox" id="cfgSpeak" checked>
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+
+          <div class="setting-row" style="margin-top: 4px;">
+            <span class="setting-label">Preview Voice</span>
+            <button type="button" class="small-btn" id="bTestVoice" style="padding: 7px 16px; font-weight: 600; cursor: pointer; border-radius: 8px; background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; transition: all 0.2s;">🔊 Play Voice Sample</button>
+          </div>
+          <div id="testVoiceStatus" style="font-size: 12px; color: var(--text-muted); padding-top: 4px; display: none;">Generating sample with Gemini API…</div>
+        </div>
       </div>
 
       <!-- Dictation Style Tab -->
@@ -831,6 +860,8 @@
       if (!cfg) return;
       if (cfg.key) document.getElementById('cfgApiKey').value = cfg.key;
       if (cfg.model) document.getElementById('cfgModel').value = cfg.model;
+      if (cfg.voice) document.getElementById('cfgVoice').value = cfg.voice;
+      if (cfg.speak !== undefined) document.getElementById('cfgSpeak').checked = !!cfg.speak;
       if (cfg.outfit) {
         outfitSelect.value = cfg.outfit;
         currentOutfit = cfg.outfit;
@@ -838,14 +869,60 @@
       if (cfg.autostart !== undefined) document.getElementById('cfgAutostart').checked = cfg.autostart;
     });
 
+    // Voice test preview
+    let testAudio = null;
+    const bTestVoice = document.getElementById('bTestVoice');
+    if (bTestVoice) {
+      bTestVoice.onclick = async () => {
+        const statusEl = document.getElementById('testVoiceStatus');
+        const voice = document.getElementById('cfgVoice').value;
+        const key = document.getElementById('cfgApiKey')?.value?.trim();
+
+        if (testAudio) {
+          try { testAudio.pause(); } catch {}
+          testAudio = null;
+        }
+
+        statusEl.style.display = 'block';
+        statusEl.textContent = `Generating "${voice}" voice sample with Gemini…`;
+        bTestVoice.disabled = true;
+
+        try {
+          const sampleText = `Hello! I am Nixi, your personal desktop assistant speaking with the ${voice} voice.`;
+          const res = await ipcRenderer.invoke('gemini-tts', { text: sampleText, voice, key });
+          if (res && res.ok && res.audioData) {
+            statusEl.textContent = `🔊 Playing "${voice}" sample…`;
+            testAudio = new Audio(`data:${res.mimeType || 'audio/wav'};base64,${res.audioData}`);
+            testAudio.onended = () => {
+              statusEl.textContent = `Sample finished.`;
+              setTimeout(() => { statusEl.style.display = 'none'; }, 2000);
+            };
+            await testAudio.play();
+          } else {
+            statusEl.textContent = `Note: ${res?.error || 'Could not generate Gemini audio. Check API key.'}`;
+            // Local fallback test
+            const s = new SpeechSynthesisUtterance("Hello! This is Nixi speaking.");
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(s);
+          }
+        } catch (e) {
+          statusEl.textContent = `Error: ${e.message}`;
+        } finally {
+          bTestVoice.disabled = false;
+        }
+      };
+    }
+
     // Save
     document.getElementById('bSave').onclick = async () => {
       const key = document.getElementById('cfgApiKey').value.trim();
       const model = document.getElementById('cfgModel').value;
       const outfit = outfitSelect.value;
       const autostart = document.getElementById('cfgAutostart').checked;
+      const voice = document.getElementById('cfgVoice').value;
+      const speak = document.getElementById('cfgSpeak').checked;
 
-      await ipcRenderer.invoke('cfg-set', { key, model, outfit, autostart });
+      await ipcRenderer.invoke('cfg-set', { key, model, outfit, autostart, voice, speak });
       closeWin();
     };
   </script>

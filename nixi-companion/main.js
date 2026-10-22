@@ -35,7 +35,8 @@ const DEFAULT_CFG = {
   wake: true,
   wakePhrase: 'hey nixi',
   polished: true,
-  speak: false,
+  speak: true,
+  voice: 'Aoede',
   hotkeys: true,
   autostart: false,
   alwaysOnTop: true,
@@ -1009,6 +1010,46 @@ ipcMain.handle('cfg-get', () => cfg);
 ipcMain.handle('data-get', () => data);
 ipcMain.handle('intent', (_e, text) => intents.match(text));
 ipcMain.handle('classify', (_e, text) => intents.classify(text));
+ipcMain.handle('gemini-tts', async (_e, { text, voice, key } = {}) => {
+  try {
+    const k = key || cfg.key || cfg.apiKey;
+    if (!k) throw new Error('No Gemini API key configured.');
+    const v = voice || cfg.voice || 'Aoede';
+    const cleanText = String(text || '').replace(/\s+/g, ' ').slice(0, 600);
+    if (!cleanText.trim()) throw new Error('Empty text.');
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash-tts:generateContent?key=${k}`;
+    const payload = {
+      contents: [{ parts: [{ text: cleanText }] }],
+      generationConfig: {
+        responseModalities: ['AUDIO'],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: {
+              voiceName: v
+            }
+          }
+        }
+      }
+    };
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => null);
+      throw new Error(errData?.error?.message || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    const part = data?.candidates?.[0]?.content?.parts?.[0];
+    const audioData = part?.inlineData?.data;
+    const mimeType = part?.inlineData?.mimeType || 'audio/wav';
+    if (!audioData) throw new Error('No audio returned by Gemini.');
+    return { ok: true, audioData, mimeType };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+});
 ipcMain.handle('act', async (_e, name, args) => {
   try {
     const fn = ACTIONS[name];
