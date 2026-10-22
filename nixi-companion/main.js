@@ -1010,6 +1010,29 @@ ipcMain.handle('cfg-get', () => cfg);
 ipcMain.handle('data-get', () => data);
 ipcMain.handle('intent', (_e, text) => intents.match(text));
 ipcMain.handle('classify', (_e, text) => intents.classify(text));
+function pcmToWavBuffer(pcmBuffer, sampleRate = 24000, numChannels = 1, bitsPerSample = 16) {
+  const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+  const blockAlign = numChannels * (bitsPerSample / 8);
+  const dataSize = pcmBuffer.length;
+  const header = Buffer.alloc(44);
+
+  header.write('RIFF', 0);
+  header.writeUInt32LE(36 + dataSize, 4);
+  header.write('WAVE', 8);
+  header.write('fmt ', 12);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(numChannels, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(byteRate, 28);
+  header.writeUInt16LE(blockAlign, 32);
+  header.writeUInt16LE(bitsPerSample, 34);
+  header.write('data', 36);
+  header.writeUInt32LE(dataSize, 40);
+
+  return Buffer.concat([header, pcmBuffer]);
+}
+
 ipcMain.handle('gemini-tts', async (_e, { text, voice, key } = {}) => {
   try {
     const k = key || cfg.key || cfg.apiKey;
@@ -1017,35 +1040,60 @@ ipcMain.handle('gemini-tts', async (_e, { text, voice, key } = {}) => {
     const v = voice || cfg.voice || 'Aoede';
     const cleanText = String(text || '').replace(/\s+/g, ' ').slice(0, 600);
     if (!cleanText.trim()) throw new Error('Empty text.');
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash-tts:generateContent?key=${k}`;
-    const payload = {
-      contents: [{ parts: [{ text: cleanText }] }],
-      generationConfig: {
-        responseModalities: ['AUDIO'],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: {
-              voiceName: v
+
+    // Use gemini-2.5-flash-preview-tts as requested
+    const models = ['gemini-2.5-flash-preview-tts', 'gemini-3.8-flash-tts'];
+    let lastErr = null;
+
+    for (const model of models) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${k}`;
+        const payload = {
+          contents: [{ parts: [{ text: cleanText }] }],
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: {
+                  voiceName: v
+                }
+              }
             }
           }
+        };
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => null);
+          throw new Error(errData?.error?.message || `HTTP ${res.status}`);
         }
+        const data = await res.json();
+        const part = data?.candidates?.[0]?.content?.parts?.[0];
+        const audioData = part?.inlineData?.data;
+        const mimeType = part?.inlineData?.mimeType || 'audio/wav';
+        if (!audioData) throw new Error('No audio returned by Gemini.');
+
+        // Convert raw PCM to WAV container so HTML5 Audio plays smoothly
+        let finalAudioData = audioData;
+        let finalMimeType = mimeType;
+        if (mimeType.includes('pcm') || mimeType.includes('L16')) {
+          const rateMatch = mimeType.match(/rate=(\d+)/i);
+          const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
+          const pcmBuf = Buffer.from(audioData, 'base64');
+          const wavBuf = pcmToWavBuffer(pcmBuf, sampleRate, 1, 16);
+          finalAudioData = wavBuf.toString('base64');
+          finalMimeType = 'audio/wav';
+        }
+
+        return { ok: true, audioData: finalAudioData, mimeType: finalMimeType };
+      } catch (e) {
+        lastErr = e;
       }
-    };
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    if (!res.ok) {
-      const errData = await res.json().catch(() => null);
-      throw new Error(errData?.error?.message || `HTTP ${res.status}`);
     }
-    const data = await res.json();
-    const part = data?.candidates?.[0]?.content?.parts?.[0];
-    const audioData = part?.inlineData?.data;
-    const mimeType = part?.inlineData?.mimeType || 'audio/wav';
-    if (!audioData) throw new Error('No audio returned by Gemini.');
-    return { ok: true, audioData, mimeType };
+    throw lastErr || new Error('TTS generation failed.');
   } catch (e) {
     return { ok: false, error: e.message };
   }
