@@ -187,37 +187,91 @@ function drawLevel(time) {
     lctx.fill();
   }
   lctx.restore();
+
+  if (currentShape === 'state-dictate' || currentShape === 'state-write') {
+    const bars = document.querySelectorAll('.w-bar');
+    if (bars && bars.length === 4 && S.level > 0.03) {
+      bars.forEach((b, idx) => {
+        const sc = Math.min(2.2, 0.6 + S.level * 3.5 + Math.sin(time * 10 + idx) * 0.3);
+        b.style.transform = `scaleY(${sc.toFixed(2)})`;
+      });
+    }
+  }
 }
 
 /* ---------------------------------------------------------------- shapes */
 let currentShape = 'rest';
 let collapseTimer = null;
+let fallbackTimer = null;
 
 function setShape(shape) {
   if (currentShape === shape) return;
   currentShape = shape;
 
-  const targetW = shape === 'rest' ? 112 : shape === 'capsule' ? 360 : shape === 'music' ? 390 : (S.cfg.panelWidth || 460);
-  const targetH = shape === 'rest' ? 56 : shape === 'capsule' ? 76 : shape === 'music' ? 136 : (S.cfg.panelHeight || 520);
+  let targetW = 112, targetH = 56;
+  if (shape === 'rest') {
+    targetW = 112; targetH = 56;
+  } else if (shape === 'dock' || shape === 'hover-dock') {
+    targetW = 140; targetH = 112;
+  } else if (shape === 'state-cursor' || shape === 'cursor') {
+    targetW = 184; targetH = 112;
+  } else if (shape === 'state-write' || shape === 'write') {
+    targetW = 140; targetH = 112;
+  } else if (shape === 'state-dictate' || shape === 'dictate') {
+    targetW = 140; targetH = 112;
+  } else if (shape === 'state-error' || shape === 'error') {
+    targetW = 380; targetH = 128;
+  } else if (shape === 'capsule') {
+    targetW = 360; targetH = 76;
+  } else if (shape === 'music') {
+    targetW = 390; targetH = 136;
+  } else if (shape === 'panel') {
+    targetW = (S.cfg.panelWidth || 460); targetH = (S.cfg.panelHeight || 520);
+  }
 
-  if (shape === 'panel' || shape === 'capsule' || shape === 'music') {
-    clearTimeout(collapseTimer);
-    ipc.send('prepare-size', { w: targetW, h: targetH, shape });
-    shell.classList.toggle('rest', shape === 'rest');
-    shell.classList.toggle('capsule', shape === 'capsule');
-    shell.classList.toggle('music', shape === 'music');
-    shell.classList.toggle('panel', shape === 'panel');
-  } else {
-    shell.classList.toggle('rest', shape === 'rest');
-    shell.classList.toggle('capsule', shape === 'capsule');
-    shell.classList.toggle('music', shape === 'music');
-    shell.classList.toggle('panel', shape === 'panel');
-    clearTimeout(collapseTimer);
+  clearTimeout(collapseTimer);
+  ipc.send('prepare-size', { w: targetW, h: targetH, shape });
+
+  shell.classList.toggle('rest', shape === 'rest');
+  shell.classList.toggle('dock', shape === 'dock' || shape === 'hover-dock');
+  shell.classList.toggle('state-cursor', shape === 'state-cursor' || shape === 'cursor');
+  shell.classList.toggle('state-write', shape === 'state-write' || shape === 'write');
+  shell.classList.toggle('state-dictate', shape === 'state-dictate' || shape === 'dictate');
+  shell.classList.toggle('state-error', shape === 'state-error' || shape === 'error');
+  shell.classList.toggle('capsule', shape === 'capsule');
+  shell.classList.toggle('music', shape === 'music');
+  shell.classList.toggle('panel', shape === 'panel');
+
+  if (shape === 'rest') {
     collapseTimer = setTimeout(() => {
       if (currentShape === 'rest') {
         ipc.send('prepare-size', { w: 112, h: 56, shape: 'rest' });
       }
     }, 360);
+  }
+}
+
+function showFallbackError(title = "Couldn't write", msg = "Writing is temporarily unavailable. Check System Check and try again.", duration = 5000) {
+  clearTimeout(fallbackTimer);
+  const titleEl = $('fallbackErrorTitle');
+  const bodyEl = $('fallbackErrorBody');
+  if (titleEl) titleEl.textContent = title;
+  if (bodyEl) bodyEl.textContent = msg;
+
+  feel('sad', duration);
+  setShape('state-error');
+
+  fallbackTimer = setTimeout(() => {
+    if (currentShape === 'state-error') {
+      setShape(S.hovering ? 'dock' : 'rest');
+    }
+  }, duration);
+}
+
+function hideFallbackError() {
+  clearTimeout(fallbackTimer);
+  if (currentShape === 'state-error') {
+    setShape(S.hovering ? 'dock' : 'rest');
   }
 }
 
@@ -240,7 +294,10 @@ function collapse() {
     if (!isMusicHovered && !isDraggingScrubber) setShape('rest');
     return;
   }
-  setShape(S.hovering ? 'capsule' : 'rest');
+  if (currentShape === 'state-error' || currentShape === 'state-cursor' || currentShape === 'state-write' || currentShape === 'state-dictate') {
+    return;
+  }
+  setShape(S.hovering ? 'dock' : 'rest');
 }
 
 /* --------------------------------------------------------------- theming */
@@ -1622,7 +1679,7 @@ async function beginCapture(mode) {
   wake();
   clearTimeout(captureTimeout);
   S.capture = mode;
-  setShape('capsule');
+  setShape('state-dictate');
   setStatus(mode === 'dict' ? 'Dictating… (click mic or ✕ to finish)' : 'Listening… (click mic or ✕ to finish)');
   $('bMic').classList.add('rec');
   $('bCancelAction').style.display = 'inline-flex';
@@ -2025,16 +2082,63 @@ if (mBtnCollapse) {
 }
 
 /* --------------------------------------------------------------- events */
-$('bMic').onclick = async () => {
+$('bMic').onclick = async (e) => {
+  e?.stopPropagation?.();
   if (S.capture) { endCapture(); return; }
   beginCapture('cmd');
 };
-$('bPen').onclick = () => { S.panel = 'chat'; setShape('panel'); openTab('chat'); };
-$('bScreen').onclick = () => askAboutScreen('');
-$('bMore').onclick = () => {
+
+const aiSparkBadge = $('aiSparkBadge');
+if (aiSparkBadge) {
+  aiSparkBadge.onclick = (e) => {
+    e?.stopPropagation?.();
+    if (S.capture) endCapture();
+    else setShape(S.hovering ? 'dock' : 'rest');
+  };
+}
+
+$('bPen').onclick = (e) => {
+  e?.stopPropagation?.();
+  if (currentShape === 'state-write') {
+    showFallbackError();
+  } else {
+    setShape('state-write');
+  }
+};
+$('bPen').ondblclick = (e) => {
+  e?.stopPropagation?.();
+  S.panel = 'chat';
+  setShape('panel');
+  openTab('chat');
+};
+
+$('bScreen').onclick = (e) => {
+  e?.stopPropagation?.();
+  if (currentShape === 'state-cursor') {
+    setShape(S.hovering ? 'dock' : 'rest');
+  } else {
+    setShape('state-cursor');
+  }
+};
+
+$('bMore').onclick = (e) => {
+  e?.stopPropagation?.();
   if (S.panel) closePanel();
   else { S.panel = 'chat'; setShape('panel'); openTab('chat'); }
 };
+
+const fallbackCard = $('fallbackErrorCard');
+if (fallbackCard) {
+  fallbackCard.onclick = () => hideFallbackError();
+}
+const btnFallbackClose = $('btnFallbackClose');
+if (btnFallbackClose) {
+  btnFallbackClose.onclick = (e) => {
+    e?.stopPropagation?.();
+    hideFallbackError();
+  };
+}
+
 $('mUp').onclick = () => { shell.classList.remove('mini'); collapse(); };
 $('mMic').onclick = () => beginCapture('cmd');
 $('mScan').onclick = () => askAboutScreen('');
@@ -2078,11 +2182,17 @@ if (bellBadge) {
 shell.addEventListener('mouseenter', () => {
   S.hovering = true;
   wake();
-  if (!S.panel && !S.capture && !S.busy) { setShape('capsule'); setStatus('What can I do?', true); }
+  if (!S.panel && !S.capture && !S.busy && currentShape !== 'music' && currentShape !== 'state-cursor' && currentShape !== 'state-write' && currentShape !== 'state-dictate' && currentShape !== 'state-error') {
+    setShape('dock');
+  }
 });
 shell.addEventListener('mouseleave', () => {
   S.hovering = false;
-  setTimeout(() => { if (!S.panel && !S.capture && !S.busy) collapse(); }, 450);
+  setTimeout(() => {
+    if (!S.panel && !S.capture && !S.busy && currentShape === 'dock') {
+      collapse();
+    }
+  }, 450);
 });
 faceCanvas.addEventListener('mousedown', () => { wake(); face.poke(); });
 document.addEventListener('keydown', wake);
@@ -2090,6 +2200,9 @@ shell.addEventListener('contextmenu', e => { e.preventDefault(); openSettings();
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     if (S.capture || S.busy) cancelActiveAction();
+    else if (currentShape === 'state-error' || currentShape === 'state-cursor' || currentShape === 'state-write' || currentShape === 'state-dictate') {
+      setShape(S.hovering ? 'dock' : 'rest');
+    }
     else if (S.panel) closePanel();
   }
 });
