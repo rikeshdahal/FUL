@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>About heynixi</title>
+  <title>About FUL</title>
   <style>
     * {
       box-sizing: border-box;
@@ -87,7 +87,7 @@
       margin-bottom: 22px;
     }
 
-    .nixi-capsule {
+    .ful-capsule {
       width: 72px;
       height: 40px;
       background: #000000;
@@ -184,7 +184,7 @@
   <div class="titlebar">
     <div class="title-left">
       <span class="title-dots">● ●</span>
-      <span>About heynixi</span>
+      <span>About FUL</span>
     </div>
     <button class="title-close" id="bCloseTop" title="Close">✕</button>
   </div>
@@ -192,9 +192,9 @@
   <div class="content">
     <div>
       <div class="brand-row">
-        <canvas id="aboutFace" width="144" height="80" style="width: 72px; height: 40px; border-radius: 20px; box-shadow: 0 6px 18px rgba(0,0,0,0.4); display: block;" title="Nixi looking at you"></canvas>
+        <canvas id="aboutFace" width="144" height="80" style="width: 72px; height: 40px; border-radius: 20px; box-shadow: 0 6px 18px rgba(0,0,0,0.4); display: block;" title="FUL looking at you"></canvas>
         <div class="brand-text">
-          <h1>heynixi</h1>
+          <h1>FUL</h1>
           <p>Your voice, in control.</p>
         </div>
       </div>
@@ -211,7 +211,7 @@
       </div>
 
       <div class="data-path">
-        Local data: C:\Users\ACER\AppData\Local\heynixi
+        Local data: %APPDATA%\ful-companion
       </div>
     </div>
 
@@ -220,7 +220,7 @@
 
   <script src="face.js"></script>
   <script>
-    const { ipcRenderer } = require('electron');
+    const { ipcRenderer } = window.fulBridge;
 
     const closeWin = () => ipcRenderer.send('close-about');
     document.getElementById('bCloseTop').onclick = closeWin;

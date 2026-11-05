@@ -1,4 +1,4 @@
-# Nixi - desktop companion (Windows)
+# FUL - desktop companion (Windows)
 
 The little pill that lives at the top of your screen, hears you, and does things
 on your PC. Offline speech, an offline command parser, and Gemini for the fuzzy
@@ -28,11 +28,11 @@ Right-click the pill for Settings. Left-click it to wake it up.
 
 ## What it can do
 
-- **Command** - wake phrase ("hey nixi"), a hotkey, or the mic button.
-- **Dictate** - hold Right Alt anywhere and talk; Nixi cleans up fillers and
+- **Command** - wake phrase ("hey ful"), a hotkey, or the mic button.
+- **Dictate** - hold Right Alt anywhere and talk; FUL cleans up fillers and
   self-corrections and types the result into the focused window.
 - **Write** - ask for a draft (email, reply, note, post) and insert it.
-- **Read my screen** - Nixi screenshots the display and explains what is on it.
+- **Read my screen** - FUL screenshots the display and explains what is on it.
 - **Teleprompter** - a scrolling script that speeds up while you speak.
 - **Timers, reminders, to-dos and notes** - spoken, listed in the panel, and
   fired with a toast.
@@ -49,13 +49,13 @@ Say things like "open Chrome and Spotify", "timer for 10 minutes",
 "remind me at 6 to call Mom", "add milk to my list", "what time is it",
 "a little louder", "turn on dark mode", "find my resume", "next song",
 "start teleprompter", "what's on my screen", "write a reply to Sam",
-"thank you Nixi".
+"thank you FUL".
 
 ## How it is put together
 
 | File | Job |
 | --- | --- |
-| `main.js` | window, tray, speech/hotkey workers, every action Nixi can take |
+| `main.js` | window, tray, speech/hotkey workers, every action FUL can take |
 | `renderer.js` | the pill UI, face loop, mic meter, Gemini calls |
 | `face.js` | spring-driven character renderer (eyes, moods, outfits) |
 | `intents.js` | offline spoken-command parser |
@@ -65,5 +65,5 @@ Say things like "open Chrome and Spotify", "timer for 10 minutes",
 | `media.ps1` | SMTC now-playing reader |
 | `volume.ps1` | Core Audio volume and mute |
 
-State lives in `%APPDATA%/nixi-companion/`: `nixi.json` (settings),
-`nixi-data.json` (lists, notes, timers) and `speech-state.json`.
+State lives in `%APPDATA%/ful-companion/`: `ful.json` (settings),
+`ful-data.json` (lists, notes, timers) and `speech-state.json`.

@@ -1,5 +1,5 @@
 /*
-  Nixi app launcher.
+  FUL app launcher.
 
   Maps friendly names to websites, protocol handlers and executables, then
   launches them. Anything unknown is looked up in the Windows Start Menu, so
@@ -101,7 +101,6 @@ const WEB = {
   'apple music': 'https://music.apple.com',
   'soundcloud': 'https://soundcloud.com',
   bandcamp: 'https://bandcamp.com',
-  'nixi site': 'https://nixi.app',
 };
 
 const URI = {
@@ -232,6 +231,34 @@ const ALIAS = {
   'control panel': 'control panel',
   'settings app': 'settings',
   'windows settings': 'settings',
+  'insta': 'instagram',
+  'instagram': 'instagram',
+  'ig': 'instagram',
+  'gh': 'github',
+  'git': 'github',
+  'github': 'github',
+  'tt': 'tiktok',
+  'tik tok': 'tiktok',
+  'tiktok': 'tiktok',
+  'fb': 'facebook',
+  'face book': 'facebook',
+  'yt': 'youtube',
+  'ytm': 'youtube music',
+  'sc': 'soundcloud',
+  'sound cloud': 'soundcloud',
+  'wp': 'whatsapp',
+  'wa': 'whatsapp',
+  'whats app': 'whatsapp',
+  'tg': 'telegram',
+  'tele gram': 'telegram',
+  'dc': 'discord',
+  'tw': 'twitter',
+  'x': 'twitter',
+  'gpt': 'chatgpt',
+  'gem': 'gemini',
+  'gdocs': 'google docs',
+  'gdrive': 'google drive',
+  'gmeet': 'google meet',
 };
 
 const clean = s => String(s || '').toLowerCase().replace(/[.,!?;:]+$/g, '').replace(/\s+/g, ' ').trim();
@@ -241,6 +268,29 @@ function resolve(name) {
   let k = key(name);
   if (ALIAS[k]) k = ALIAS[k];
   return k;
+}
+
+function splitComposite(input) {
+  const raw = String(input || '').trim();
+  if (!raw) return [];
+  // First clean punctuation like "github tiktok." or "github, tiktok"
+  const cleaned = raw.replace(/[.,!?;:]+$/g, '').trim();
+  // Split on "and", ",", "&", "plus" or multiple spaces
+  const parts = cleaned.split(/\s*(?:,|\band\b|&|\bplus\b)\s*|\s+/i)
+    .map(s => s.trim())
+    .filter(Boolean);
+  if (parts.length <= 1) return [raw];
+
+  // If every part is resolvable to an app/site/URL, return them split!
+  const isResolvable = t => {
+    const k = resolve(t);
+    return !!(WEB[k] || URI[k] || EXE[k] || ALIAS[k] || isHttpUrl(k));
+  };
+
+  if (parts.length > 1 && parts.some(isResolvable)) {
+    return parts;
+  }
+  return [raw];
 }
 
 function ps(command, timeout = 15000) {
@@ -266,7 +316,27 @@ async function isHttpUrl(value) {
   return /^https?:\/\//i.test(value) || /^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(value) && /\.[a-z]{2,}/i.test(value);
 }
 
-async function launch(name) {
+async function openSafe(target) {
+  const s = String(target || '').trim();
+  if (!s) return false;
+  let opened = false;
+  if (shell && typeof shell.openExternal === 'function') {
+    try {
+      await shell.openExternal(s);
+      opened = true;
+    } catch {}
+  }
+  if (!opened) {
+    if (/^https?:\/\//i.test(s)) {
+      await ps(`Start-Process -FilePath '${s.replace(/'/g, "''")}'`);
+    } else {
+      await ps(`Start-Process '${s.replace(/'/g, "''")}'`);
+    }
+  }
+  return true;
+}
+
+async function launchSingle(name) {
   const k = resolve(name);
   if (!k) return { ok: false, message: 'Tell me what to open.' };
 
@@ -279,7 +349,8 @@ async function launch(name) {
     return { ok: true, message: `Opened ${k}.` };
   }
   if (/^https?:\/\//i.test(k) || /^[\w-]+\.[a-z]{2,}(\/\S*)?$/i.test(k)) {
-    await openSafe(/^https?:/i.test(k) ? k : 'https://' + k);
+    const url = /^https?:/i.test(k) ? k : 'https://' + k;
+    await openSafe(url);
     return { ok: true, message: `Opened ${k}.` };
   }
 
@@ -297,8 +368,32 @@ async function launch(name) {
   }
 
   // 2) Executable on PATH / registered app
-  await ps(`Start-Process '${exe.replace(/'/g, '')}' -ErrorAction SilentlyContinue`);
-  return { ok: true, message: `Opened ${k}.` };
+  const testProc = await ps(`try { $p = Start-Process '${exe.replace(/'/g, '')}' -PassThru -ErrorAction Stop; $p.Id } catch { '' }`);
+  if (testProc && testProc.trim()) {
+    return { ok: true, message: `Opened ${k}.` };
+  }
+
+  // 3) Fallback: if not an executable on PC, search it or open web version
+  await openSafe(`https://www.google.com/search?q=${encodeURIComponent(k)}`);
+  return { ok: true, message: `Opened web search for ${k}.` };
+}
+
+async function launch(name) {
+  const raw = String(name || '').trim();
+  if (!raw) return { ok: false, message: 'Tell me what to open.' };
+
+  const parts = splitComposite(raw);
+  if (parts.length > 1) {
+    const out = [];
+    let anyOk = false;
+    for (const p of parts) {
+      const res = await launchSingle(p);
+      if (res.ok) anyOk = true;
+      out.push(res.message);
+    }
+    return { ok: anyOk, message: out.join(' ') };
+  }
+  return await launchSingle(raw);
 }
 
 const SEARCH_URLS = {
@@ -329,9 +424,57 @@ async function searchOn(platform, query) {
   return { ok: true, message: `Searching for “${q}” on ${platform}.` };
 }
 
+async function getYouTubeDirectUrl(query) {
+  const cleanQ = String(query || '').replace(/\b(?:play|song|track|music|on youtube|youtube)\b/gi, '').trim() || query;
+  const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(cleanQ)}`;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3500);
+    const res = await fetch(searchUrl, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9'
+      }
+    });
+    clearTimeout(timeout);
+    if (res.ok) {
+      const html = await res.text();
+      // Match first videoId from watch?v= or "videoId":"..."
+      const m1 = html.match(/\/watch\?v=([a-zA-Z0-9_-]{11})/);
+      const m2 = html.match(/"videoId":"([a-zA-Z0-9_-]{11})"/);
+      const videoId = (m1 && m1[1]) || (m2 && m2[1]);
+      if (videoId) {
+        return { ok: true, videoId, url: `https://www.youtube.com/watch?v=${videoId}&autoplay=1` };
+      }
+    }
+  } catch {}
+  return { ok: false, url: `${searchUrl}&autoplay=1` };
+}
+
+async function playMusic(song, platform = 'youtube') {
+  const query = String(song || '').trim();
+  if (!query) return { ok: false, message: 'No song specified.' };
+  const p = resolve(platform) || 'youtube';
+
+  if (p === 'spotify') {
+    const spotifyUri = `spotify:search:${encodeURIComponent(query)}`;
+    const ok = await openSafe(spotifyUri);
+    if (!ok) {
+      await openSafe(`https://open.spotify.com/search/${encodeURIComponent(query)}`);
+    }
+    return { ok: true, message: `Playing “${query}” on Spotify.` };
+  }
+
+  // YouTube / YouTube Music: Resolve direct video URL for immediate autoplay
+  const direct = await getYouTubeDirectUrl(query);
+  await openSafe(direct.url);
+  return { ok: true, url: direct.url, message: `Playing “${query}” on YouTube.` };
+}
+
 function quickList() {
   const names = new Set([...Object.keys(WEB), ...Object.keys(URI), ...Object.keys(EXE)]);
   return [...names].sort();
 }
 
-module.exports = { launch, searchOn, SEARCH_URLS, quickList, resolve, WEB, URI, EXE, ALIAS, ps, findStartMenuApp, clean, key, isHttpUrl };
+module.exports = { launch, searchOn, playMusic, getYouTubeDirectUrl, SEARCH_URLS, quickList, resolve, WEB, URI, EXE, ALIAS, ps, findStartMenuApp, clean, key, isHttpUrl };

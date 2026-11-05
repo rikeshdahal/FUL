@@ -1,5 +1,5 @@
 <#
-  Nixi "now playing" reader.
+  FUL "now playing" reader.
 
   Uses the Windows SMTC (GlobalSystemMediaTransportControlsSessionManager) API to
   read the title, artist, album, app and playback position of whatever music
@@ -33,15 +33,16 @@ function Await-Operation {
 $statusNames = @{ 0 = 'none'; 1 = 'changing'; 2 = 'stopped'; 3 = 'playing'; 4 = 'paused' }
 
 $result = [ordered]@{
-  playing = $false
-  title   = ''
-  artist  = ''
-  album   = ''
-  app     = ''
-  status  = 'none'
-  position = 0
-  duration = 0
-  source  = 'none'
+  playing   = $false
+  title     = ''
+  artist    = ''
+  album     = ''
+  app       = ''
+  status    = 'none'
+  position  = 0
+  duration  = 0
+  thumbnail = ''
+  source    = 'none'
 }
 
 try {
@@ -78,6 +79,22 @@ try {
         $result.title = [string]$mediaProps.Title
         $result.artist = [string]$mediaProps.Artist
         $result.album = [string]$mediaProps.AlbumTitle
+        if ($mediaProps.Thumbnail) {
+          try {
+            $streamType = [Windows.Storage.Streams.IRandomAccessStreamWithContentType, Windows.Storage.Streams, ContentType = WindowsRuntime]
+            $stream = Await-Operation ($mediaProps.Thumbnail.OpenReadAsync()) $streamType
+            if ($stream -and $stream.Size -gt 0) {
+              $netStream = [System.IO.WindowsRuntimeStreamExtensions]::AsStreamForRead($stream)
+              $ms = New-Object System.IO.MemoryStream
+              $netStream.CopyTo($ms)
+              $bytes = $ms.ToArray()
+              if ($bytes.Length -gt 0) {
+                $b64 = [Convert]::ToBase64String($bytes)
+                $result.thumbnail = "data:image/jpeg;base64,$b64"
+              }
+            }
+          } catch { }
+        }
       }
     } catch { }
 
@@ -85,7 +102,8 @@ try {
 
     try {
       $appId = [string]$session.SourceAppUserModelId
-      if ($appId -match 'Brave') { $result.app = 'Brave' }
+      if ($appId -match 'Instagram') { $result.app = 'Instagram' }
+      elseif ($appId -match 'Brave') { $result.app = 'Brave' }
       elseif ($appId -match 'Spotify') { $result.app = 'Spotify' }
       elseif ($appId -match 'Chrome') { $result.app = 'Chrome' }
       elseif ($appId -match 'Edge') { $result.app = 'Edge' }
@@ -108,6 +126,18 @@ try {
   }
 } catch {
   # SMTC unavailable - fall back to reading media window titles below.
+}
+
+if ($Action -and $Action.ToLower() -ne 'get' -and (-not $session)) {
+  # Hardware media key fallback
+  try {
+    $ws = New-Object -ComObject WScript.Shell
+    switch ($Action.ToLower()) {
+      'playpause' { $ws.SendKeys([char]179) }
+      'next'      { $ws.SendKeys([char]176) }
+      'prev'      { $ws.SendKeys([char]177) }
+    }
+  } catch { }
 }
 
 if (-not $result.playing -and -not $result.title) {

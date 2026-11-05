@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FUL Workspace</title>
+  <link rel="stylesheet" href="ui/border-beam.css" />
+  <link rel="stylesheet" href="workspace.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="titlebar">
+      <div class="brand">
+        <span class="brand-mark"><i></i><i></i></span>
+        <span class="brand-name">FUL</span>
+        <span class="brand-tag">Workspace</span>
+      </div>
+      <div class="title-path" id="workspacePath">No folder open</div>
+      <div class="title-actions">
+        <button class="title-button" id="btnPick" type="button">Open Folder</button>
+        <button class="title-button quiet" id="btnSettings" type="button">Settings</button>
+        <div class="win-controls">
+          <button type="button" id="btnMin" aria-label="Minimize"></button>
+          <button type="button" id="btnMax" aria-label="Maximize"></button>
+          <button type="button" id="btnClose" class="close" aria-label="Close"></button>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <aside class="left">
+        <div id="agentCard" class="agent-card"></div>
+
+        <div class="panel-head">
+          <div class="panel-tabs">
+            <button type="button" class="panel-tab active" data-view="files">Explorer</button>
+            <button type="button" class="panel-tab" data-view="search">Search</button>
+          </div>
+          <div class="panel-tools">
+            <button type="button" class="icon-button" id="btnRefresh" title="Refresh">&#8635;</button>
+            <button type="button" class="icon-button" id="btnNewFile" title="New file">+</button>
+          </div>
+        </div>
+
+        <div class="side-view active" id="viewFiles">
+          <div class="root-row" id="rootRow">
+            <span class="root-dot"></span>
+            <span id="rootName">Choose a workspace folder</span>
+          </div>
+          <div class="tree" id="tree"></div>
+        </div>
+
+        <div class="side-view" id="viewSearch">
+          <div class="search-row">
+            <input id="searchInput" type="text" placeholder="Search files or contents" spellcheck="false" />
+            <label class="content-toggle"><input id="searchContent" type="checkbox" checked /> contents</label>
+          </div>
+          <div class="search-meta" id="searchMeta"></div>
+          <div class="tree search-results" id="searchResults"></div>
+        </div>
+      </aside>
+
+      <section class="center">
+        <div class="editor-head">
+          <div class="file-title">
+            <span id="fileName">No file open</span>
+            <span id="dirtyDot" class="dirty-dot" hidden></span>
+          </div>
+          <div class="editor-tools">
+            <button type="button" class="tool-button" id="btnSave" disabled>Save</button>
+            <button type="button" class="tool-button quiet" id="btnRename" disabled>Rename</button>
+            <button type="button" class="tool-button quiet" id="btnDelete" disabled>Delete</button>
+          </div>
+        </div>
+
+        <div class="editor-stage">
+          <div class="editor-empty" id="editorEmpty">
+            <div class="empty-glyph"><span></span><span></span></div>
+            <h1>Your workspace, with FUL beside you.</h1>
+            <p>Open a project, inspect files, edit safely, and let FUL plan and run the work with real approval controls.</p>
+            <button type="button" class="primary-button" id="btnPickHero">Open a folder</button>
+          </div>
+          <div class="editor-body" id="editorBody" hidden>
+            <div class="line-numbers" id="lineNumbers">1</div>
+            <textarea id="editor" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off"></textarea>
+          </div>
+        </div>
+
+        <div class="editor-foot">
+          <span id="fileMeta">Ready</span>
+          <span id="cursorMeta">Ln 1, Col 1</span>
+          <span id="saveMeta"></span>
+        </div>
+      </section>
+
+      <aside class="right">
+        <section class="task-panel">
+          <div class="right-head">
+            <div>
+              <h2>Agent task</h2>
+              <p>Describe the outcome. FUL plans the steps.</p>
+            </div>
+            <span class="agent-badge" id="agentBadge">OFFLINE</span>
+          </div>
+          <textarea id="taskInput" class="task-input" placeholder="Fix the failing tests and show me exactly what changed..." spellcheck="false"></textarea>
+          <div class="task-actions">
+            <button type="button" class="primary-button" id="btnRun">Run task</button>
+            <button type="button" class="tool-button quiet" id="btnStop" disabled>Stop</button>
+            <span class="task-hint">Ctrl + Enter</span>
+          </div>
+          <div class="task-log" id="taskLog"></div>
+        </section>
+
+        <section class="terminal-panel">
+          <div class="terminal-head">
+            <span>Terminal</span>
+            <div class="terminal-tools">
+              <label class="content-toggle"><input id="bgProcess" type="checkbox" /> background</label>
+              <button type="button" class="icon-button" id="btnClearTerm" title="Clear">&#9003;</button>
+              <button type="button" class="icon-button" id="btnKillProcess" title="Stop background process">&#9632;</button>
+            </div>
+          </div>
+          <pre class="terminal-output" id="terminalOutput"></pre>
+          <form class="terminal-form" id="terminalForm">
+            <span class="prompt-mark">&gt;</span>
+            <input id="terminalInput" type="text" placeholder="npm test" spellcheck="false" autocomplete="off" />
+          </form>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="confirmBackdrop" hidden>
+    <section class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <div class="confirm-kicker">Approval required</div>
+      <h2 id="confirmTitle">FUL wants to make a change</h2>
+      <p id="confirmSummary"></p>
+      <p class="confirm-consequence" id="confirmConsequence"></p>
+      <pre class="confirm-preview" id="confirmPreview" hidden></pre>
+      <div class="confirm-actions">
+        <button type="button" class="tool-button quiet" id="btnDeny">Deny</button>
+        <button type="button" class="primary-button" id="btnApprove">Approve</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="promptBackdrop" hidden>
+    <section class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="promptTitle">
+      <div class="confirm-kicker">Workspace</div>
+      <h2 id="promptTitle">Name</h2>
+      <input class="prompt-input" id="promptInput" type="text" spellcheck="false" autocomplete="off" />
+      <div class="confirm-actions">
+        <button type="button" class="tool-button quiet" id="btnPromptCancel">Cancel</button>
+        <button type="button" class="primary-button" id="btnPromptOk">Continue</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="ui/border-card.js"></script>
+  <script src="workspace.js"></script>
+</body>
+</html>

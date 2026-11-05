@@ -1,5 +1,5 @@
 <#
-  Nixi system volume control via the Core Audio API.
+  FUL system volume control via the Core Audio API.
 
     -File volume.ps1 -Get          -> prints the current percentage (0-100)
     -File volume.ps1 -Set 60       -> sets the master volume to 60%

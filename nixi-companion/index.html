@@ -5,8 +5,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://generativelanguage.googleapis.com">
-  <title>Nixi Companion</title>
+    content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob: data:; connect-src 'self' https://generativelanguage.googleapis.com">
+  <title>FUL Companion</title>
+  <script>
+    window.onerror = function(msg, url, lineNo, columnNo, error) {
+      console.error('[WINDOW ERROR]', msg, url, lineNo, columnNo, error ? error.stack : '');
+    };
+    window.onunhandledrejection = function(event) {
+      console.error('[UNHANDLED REJECTION]', event.reason);
+    };
+  </script>
   <style>
     :root {
       --pill: #0d1117;
@@ -26,13 +34,15 @@
       --panel-h: 520px;
       --radius-pill: 28px;
       --radius-panel: 24px;
-      --font-stack: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Inter", Roboto, sans-serif;
+      --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", "Inter", Roboto, system-ui, sans-serif;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
     html,
@@ -71,8 +81,6 @@
         inset 0 -1px 1px 0 rgba(0, 0, 0, 0.45),
         0 20px 48px -10px rgba(0, 0, 0, 0.75),
         0 0 0 1px rgba(0, 0, 0, 0.35);
-      backdrop-filter: blur(36px) saturate(190%) contrast(108%);
-      -webkit-backdrop-filter: blur(36px) saturate(190%) contrast(108%);
       transition:
         width 0.36s cubic-bezier(0.16, 1, 0.3, 1),
         height 0.36s cubic-bezier(0.16, 1, 0.3, 1),
@@ -97,10 +105,10 @@
 
     /* Idle Breathing / Float Animation */
     #shell.rest.breathe {
-      animation: nixiFloat 4s ease-in-out infinite;
+      animation: fulFloat 4s ease-in-out infinite;
     }
 
-    @keyframes nixiFloat {
+    @keyframes fulFloat {
       0%, 100% {
         transform: translateY(0);
       }
@@ -112,6 +120,7 @@
     /* Shell Mode Shapes */
     #shell.rest {
       width: 112px;
+      height: 56px;
       min-height: 56px;
       border-radius: 28px;
     }
@@ -234,7 +243,7 @@
       margin-top: -2px;
     }
 
-    .music-nixi-face {
+    .music-ful-face {
       width: 76px;
       height: 38px;
       display: block;
@@ -259,11 +268,13 @@
     }
 
     .music-app-icon {
-      width: 38px;
-      height: 38px;
-      object-fit: contain;
+      width: 44px;
+      height: 44px;
+      object-fit: cover;
+      border-radius: 8px;
       flex: none;
-      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+      background: rgba(255, 255, 255, 0.04);
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
     }
 
     .music-text-meta {
@@ -274,7 +285,7 @@
     }
 
     .music-text-meta strong {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 700;
       color: #ffffff;
       white-space: nowrap;
@@ -297,7 +308,7 @@
     .music-controls {
       display: flex;
       align-items: center;
-      gap: 18px;
+      gap: 16px;
       flex: none;
       margin-left: 12px;
     }
@@ -305,7 +316,7 @@
     .music-btn {
       background: transparent;
       border: none;
-      color: #5e6e82;
+      color: #9aa7b9;
       cursor: pointer;
       display: grid;
       place-items: center;
@@ -323,8 +334,8 @@
     }
 
     .music-btn svg {
-      width: 17px;
-      height: 17px;
+      width: 20px;
+      height: 20px;
       fill: currentColor;
       stroke: none;
     }
@@ -334,8 +345,8 @@
     }
 
     .music-btn.play-pause-btn svg {
-      width: 22px;
-      height: 22px;
+      width: 24px;
+      height: 24px;
     }
 
     .music-bottom-row {
@@ -593,6 +604,10 @@
       padding: 0 18px;
     }
 
+    #shell.rest .head-lower-row {
+      display: none !important;
+    }
+
     .head-menu-btn {
       display: none !important;
     }
@@ -603,6 +618,9 @@
       flex: none;
       display: block;
       cursor: pointer;
+      position: relative;
+      z-index: 25;
+      pointer-events: auto;
       transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
@@ -768,7 +786,7 @@
 
     #actions {
       display: none;
-      gap: 6px;
+      gap: 5px;
       align-items: center;
       flex: none;
     }
@@ -782,14 +800,64 @@
       display: flex;
     }
 
+    #actions button {
+      width: 28px !important;
+      height: 28px !important;
+      min-width: 28px !important;
+      min-height: 28px !important;
+      max-width: 28px !important;
+      max-height: 28px !important;
+      flex: none !important;
+      flex-shrink: 0 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      border-radius: 8px !important;
+      background: transparent;
+      border: 0;
+      opacity: 0.75;
+      padding: 0;
+      margin: 0;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+
+    #actions button:hover {
+      background: rgba(255, 255, 255, 0.12) !important;
+      opacity: 1 !important;
+      transform: scale(1.08);
+    }
+
+    #actions button svg {
+      width: 16px !important;
+      height: 16px !important;
+      min-width: 16px !important;
+      min-height: 16px !important;
+      max-width: 16px !important;
+      max-height: 16px !important;
+      flex: none !important;
+      display: block;
+    }
+
+    .cursor-svg {
+      width: 16px !important;
+      height: 16px !important;
+    }
+
     #shell.dock #actions {
       width: 100%;
-      justify-content: space-around;
+      justify-content: space-evenly;
       padding: 0 4px;
       margin: 0;
     }
 
-    #shell.dock #bMore,
+    #shell.dock #bScreen,
+    #shell.dock #bMic,
+    #shell.dock #bPen,
+    #shell.dock #bMore {
+      display: inline-flex !important;
+    }
+
     #shell.dock .cursor-dots,
     #shell.dock .ai-spark-badge,
     #shell.dock .wave-bars {
@@ -799,27 +867,40 @@
     #shell.state-cursor #actions {
       width: 100%;
       justify-content: space-between;
-      padding: 0 4px;
+      padding: 0 8px;
       margin: 0;
     }
 
     #shell.state-cursor .cursor-dots {
       display: flex !important;
+      flex: none;
     }
 
     #shell.state-cursor #bScreen {
       background: #2b2b2f !important;
+      border: 1px solid rgba(255, 255, 255, 0.16) !important;
       border-radius: 50% !important;
-      width: 34px !important;
-      height: 34px !important;
+      width: 30px !important;
+      height: 30px !important;
+      min-width: 30px !important;
+      min-height: 30px !important;
+      max-width: 30px !important;
+      max-height: 30px !important;
+      aspect-ratio: 1 / 1 !important;
+      flex: none !important;
+      flex-shrink: 0 !important;
       opacity: 1 !important;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+      display: inline-flex !important;
     }
 
     #shell.state-cursor #bMore {
-      display: grid !important;
+      display: inline-flex !important;
+      flex: none;
     }
 
+    #shell.state-cursor #bMic,
+    #shell.state-cursor #bPen,
     #shell.state-cursor .ai-spark-badge,
     #shell.state-cursor .wave-bars {
       display: none !important;
@@ -919,6 +1000,15 @@
     .ai-spark-svg {
       width: 22px;
       height: 22px;
+    }
+
+    .dictate-app-img {
+      width: 22px;
+      height: 22px;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
+      border-radius: 4px;
+      display: block;
     }
 
     /* 3rd & 5th Images: Equalizer Wave Bars */
@@ -1299,10 +1389,38 @@
     .chat-empty-state {
       margin: auto;
       text-align: center;
-      font-size: 14px;
-      color: #555d6b;
-      font-weight: 400;
-      padding: 50px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 9px;
+      padding: 36px 16px;
+      user-select: none;
+    }
+
+    .chat-empty-pill {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 3px 12px;
+      border-radius: 12px;
+      background: rgba(59, 130, 246, 0.16);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      color: #60a5fa;
+    }
+
+    .chat-empty-headline {
+      font-size: 16px;
+      font-weight: 600;
+      color: #f8fafc;
+      letter-spacing: -0.02em;
+    }
+
+    .chat-empty-hint {
+      font-size: 12.5px;
+      color: #94a3b8;
+      max-width: 320px;
+      line-height: 1.45;
     }
 
     .chat-msg {
@@ -1319,21 +1437,31 @@
     }
 
     .chat-bubble-user {
-      background: #1d72f2;
+      background: #2563eb;
       color: #ffffff;
-      padding: 8px 16px;
+      padding: 9px 16px;
       border-radius: 18px 18px 4px 18px;
-      font-size: 13.5px;
-      line-height: 1.4;
+      font-size: 14px;
+      line-height: 1.45;
       word-break: break-word;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
     }
 
-    .chat-msg.nixi {
+    .chat-msg.ful {
       align-self: flex-start;
       align-items: flex-start;
     }
 
-    .chat-bubble-nixi {
+    .chat-bubble-ful {
+      background: #1c202a;
+      color: #f8fafc;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 10px 16px;
+      border-radius: 18px 18px 18px 4px;
+      font-size: 14px;
+      line-height: 1.45;
+      word-break: break-word;
+    }
       background: #1c1d22;
       color: #f1f5f9;
       padding: 9px 16px;
@@ -1347,6 +1475,12 @@
       font-size: 11px;
       color: #555a64;
       padding: 0 4px;
+    }
+
+    .chat-msg.action {
+      align-self: center;
+      align-items: center;
+      max-width: 92%;
     }
 
     .chat-action-badge {
@@ -1452,21 +1586,28 @@
       border-radius: 26px;
       padding: 4px 6px 4px 18px;
       gap: 8px;
-      transition: all 0.2s;
+      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
     }
 
     .chat-input-pill:focus-within {
       background: #191b22;
-      border-color: rgba(59, 130, 246, 0.4);
+      border-color: rgba(59, 130, 246, 0.45);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
     }
 
-    #chatInput {
+    #chatInput,
+    #chatInput:focus {
       flex: 1;
+      width: auto;
+      min-width: 0;
       background: transparent;
       border: none;
+      border-radius: 0;
+      box-shadow: none;
       outline: none;
       color: #ffffff;
       font-size: 13.5px;
+      line-height: 1.4;
       font-family: inherit;
       padding: 7px 0;
     }
@@ -2034,14 +2175,14 @@
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     }
 
-    .nixi-eyes-icon {
+    .ful-eyes-icon {
       display: flex;
       align-items: center;
       gap: 5px;
     }
 
-    .nixi-eyes-icon::before,
-    .nixi-eyes-icon::after {
+    .ful-eyes-icon::before,
+    .ful-eyes-icon::after {
       content: '';
       width: 4px;
       height: 7px;
@@ -2168,13 +2309,13 @@
     <div class="aura-glow" id="auraGlow"></div>
 
     <!-- Drag Handle Grip -->
-    <div class="drag-bar" id="dragBar" title="Drag to reposition Nixi">
+    <div class="drag-bar" id="dragBar" title="Drag to reposition FUL">
       <div class="drag-indicator"></div>
     </div>
 
     <!-- Header Section -->
     <div id="head">
-      <canvas id="face" width="224" height="112" title="Click to poke Nixi"></canvas>
+      <canvas id="face" width="224" height="112" title="Click to poke FUL"></canvas>
       <div class="head-lower-row" id="headLowerRow">
         <div id="mid">
           <div class="status-row">
@@ -2184,7 +2325,7 @@
               <span class="c-dot"></span>
               <span class="c-dot"></span>
             </div>
-            <div id="status">Ready — say Hey Nixi</div>
+            <div id="status">Ready — say Hey FUL</div>
             <div class="pill-badges" id="pillBadges">
               <span id="bellBadge" class="badge-bell" style="display:none" title="Reminders active">🔔</span>
               <span id="timerPillBadge" class="badge-timer" style="display:none" title="Active timer">⏱ <span id="timerPillDigits">00:00</span></span>
@@ -2202,20 +2343,9 @@
             <span class="cursor-dot"></span>
           </div>
 
-          <!-- 5th Image: Gemini AI Spark Ribbon Badge on Left -->
-          <div class="ai-spark-badge" id="aiSparkBadge" title="Gemini AI">
-            <svg viewBox="0 0 24 24" class="ai-spark-svg">
-              <defs>
-                <linearGradient id="aiSparkGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stop-color="#ff3b30"/>
-                  <stop offset="28%" stop-color="#ff9500"/>
-                  <stop offset="52%" stop-color="#ffcc00"/>
-                  <stop offset="76%" stop-color="#00c7be"/>
-                  <stop offset="100%" stop-color="#30b0c7"/>
-                </linearGradient>
-              </defs>
-              <path d="M12 4 C10.6 8.5 7.2 13.8 4.2 18.2 C3.8 18.8 4.2 19.6 5 19.6 C6 19.6 7.4 18.2 8.6 16.4 C10 14.2 11.1 11.8 12 9.5 C12.9 11.8 14 14.2 15.4 16.4 C16.6 18.2 18 19.6 19 19.6 C19.8 19.6 20.2 18.8 19.8 18.2 C16.8 13.8 13.4 8.5 12 4 Z" fill="url(#aiSparkGrad)"/>
-            </svg>
+          <!-- 5th Image: Dynamic Active App Badge on Left for Dictate -->
+          <div class="ai-spark-badge" id="aiSparkBadge" title="Active App">
+            <img id="dictateAppIcon" src="icons/antigravity.png" class="dictate-app-img" alt="App" />
           </div>
 
           <!-- Cursor Button -->
@@ -2277,9 +2407,9 @@
     <!-- Music Player Card (Exact match to screenshot & Dynamic Island) -->
     <div id="musicPlayer" class="music-pill-widget">
       <button id="mBtnCollapse" class="music-collapse-btn" title="Back to Pill">✕</button>
-      <!-- Top Center: Nixi with Headphones -->
+      <!-- Top Center: FUL with Headphones -->
       <div class="music-top-center">
-        <canvas id="musicFace" width="160" height="80" class="music-nixi-face" title="Nixi listening to music · Click to collapse"></canvas>
+        <canvas id="musicFace" width="160" height="80" class="music-ful-face" title="FUL listening to music · Click to collapse"></canvas>
       </div>
 
       <!-- Mid Row: App Icon + Track Info & Transport Buttons -->
@@ -2376,7 +2506,9 @@
       <div class="tab on" id="tab-chat">
         <div id="chatMessages" class="chat-scroll-area">
           <div class="chat-empty-state" id="chatEmptyState">
-            Say something, or type below
+            <div class="chat-empty-pill">⚡ FUL Assistant</div>
+            <div class="chat-empty-headline">How can I help you today?</div>
+            <div class="chat-empty-hint">Ask me anything, or give me a task like "open github tiktok", "browser search latest AI news", or "volume 50".</div>
           </div>
         </div>
       </div>
@@ -2388,7 +2520,7 @@
       <!-- Bottom Chat Input Bar (Screenshot 3) -->
       <div class="chat-bar-container">
         <div class="chat-input-pill">
-          <input type="text" id="chatInput" placeholder="Ask Nixi..." autocomplete="off">
+          <input type="text" id="chatInput" placeholder="Ask FUL..." autocomplete="off">
           <button id="btnChatSend" class="send-circle-btn" title="Send (Enter)">↑</button>
         </div>
       </div>
@@ -2406,7 +2538,7 @@
     <!-- Notification Toast Banner (Screenshot 4) -->
     <div id="toast" class="toast-card">
       <div class="toast-icon">
-        <span class="nixi-eyes-icon"></span>
+        <span class="ful-eyes-icon"></span>
       </div>
       <div class="toast-info">
         <strong id="toastTitle">Stretch</strong>

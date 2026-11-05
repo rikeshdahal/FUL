@@ -1,0 +1,212 @@
+.ful-beam-wrap {
+  width: 100%;
+  border-radius: 18px;
+}
+
+.ful-status-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 210px;
+  padding: 18px 18px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  background:
+    radial-gradient(120% 130% at 8% 0%, rgba(107, 93, 255, 0.16), transparent 52%),
+    linear-gradient(160deg, rgba(24, 25, 34, 0.98), rgba(13, 14, 20, 0.99));
+  color: #f7f8ff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 18px 48px rgba(0, 0, 0, 0.38);
+  overflow: hidden;
+}
+
+.ful-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ful-card-title {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.ful-card-title strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.ful-card-title span:not(.ful-status-dot) {
+  display: block;
+  margin-top: 2px;
+  color: rgba(230, 232, 245, 0.55);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.ful-status-dot {
+  position: relative;
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #8a8fa8;
+  box-shadow: 0 0 0 4px rgba(138, 143, 168, 0.12);
+}
+
+.ful-status-dot.planning,
+.ful-status-dot.running,
+.ful-status-dot.replanning,
+.ful-status-dot.verifying,
+.ful-status-dot.cancelling {
+  background: #8f7bff;
+  box-shadow: 0 0 0 4px rgba(143, 123, 255, 0.14), 0 0 16px rgba(143, 123, 255, 0.75);
+  animation: ful-status-pulse 1.5s ease-in-out infinite;
+}
+
+.ful-status-dot.done {
+  background: #4de3a2;
+  box-shadow: 0 0 0 4px rgba(77, 227, 162, 0.12), 0 0 14px rgba(77, 227, 162, 0.55);
+}
+
+.ful-status-dot.failed {
+  background: #ff727d;
+  box-shadow: 0 0 0 4px rgba(255, 114, 125, 0.12), 0 0 14px rgba(255, 114, 125, 0.5);
+}
+
+@keyframes ful-status-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.72); opacity: 0.62; }
+}
+
+.ful-card-button {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f7f8ff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+
+.ful-card-button:hover {
+  border-color: rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.14);
+  transform: translateY(-1px);
+}
+
+.ful-card-button.ghost {
+  background: rgba(255, 114, 125, 0.1);
+  border-color: rgba(255, 114, 125, 0.3);
+  color: #ffb2b8;
+}
+
+.ful-card-copy p {
+  margin: 0;
+  color: rgba(238, 240, 252, 0.78);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.ful-card-copy small {
+  display: block;
+  margin-top: 5px;
+  color: rgba(190, 195, 220, 0.55);
+  font-size: 10.5px;
+}
+
+.ful-step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  background: rgba(4, 5, 10, 0.32);
+}
+
+.ful-step {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 16px;
+  color: rgba(225, 228, 244, 0.65);
+  font-size: 10.5px;
+}
+
+.ful-step-mark {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(158, 164, 190, 0.45);
+}
+
+.ful-step.ok .ful-step-mark { background: #4de3a2; box-shadow: 0 0 8px rgba(77, 227, 162, 0.55); }
+.ful-step.failed .ful-step-mark { background: #ff727d; }
+.ful-step.denied .ful-step-mark { background: #ffcf72; }
+.ful-step.running .ful-step-mark { background: #8f7bff; animation: ful-status-pulse 1.2s ease-in-out infinite; }
+
+.ful-step-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ful-step-state {
+  color: rgba(158, 164, 190, 0.5);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ful-card-foot {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.ful-metric {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.ful-metric span {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.ful-metric small {
+  color: rgba(190, 195, 220, 0.5);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ful-status-dot,
+  .ful-step-mark {
+    animation: none !important;
+  }
+}

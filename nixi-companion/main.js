@@ -1,22 +1,30 @@
 /*
-  Nixi desktop companion - main process.
+  FUL desktop companion - main process.
 
   Owns the always-on-top pill window, the offline speech worker, the global
-  hotkey watcher, the media reader and every action Nixi can take on the PC.
+  hotkey watcher, the media reader and every action FUL can take on the PC.
 */
 'use strict';
 
-const { app, BrowserWindow, screen, ipcMain, desktopCapturer, globalShortcut, clipboard, shell, Tray, Menu, nativeImage } = require('electron');
+const { app, BrowserWindow, screen, ipcMain, desktopCapturer, globalShortcut, clipboard, shell, Tray, Menu, nativeImage, dialog, powerMonitor } = require('electron');
 const { execFile, spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const apps = require('./apps');
 const intents = require('./intents');
+const browserRunner = require('./scripts/browser_runner');
+const { MsEdgeTTS, OUTPUT_FORMAT } = require('msedge-tts');
+
+if (app && app.commandLine) {
+  app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
+}
 
 const ROOT = __dirname;
 let win = null;
 let tray = null;
+let agent = null;
+let workspaceWin = null;
 let speechProc = null;
 let hotkeyProc = null;
 let speechMode = 'wake';
@@ -33,10 +41,12 @@ const DEFAULT_CFG = {
   eye: '#ffffff',
   outfit: 'none',
   wake: true,
-  wakePhrase: 'hey nixi',
+  wakePhrase: 'hey ful',
   polished: true,
   speak: true,
-  voice: 'Aoede',
+  voice: 'Kore',
+  sttEngine: 'parakeet',
+  sttModel: 'parakeet-unified-en-0.6b',
   hotkeys: true,
   autostart: false,
   alwaysOnTop: true,
@@ -46,6 +56,41 @@ const DEFAULT_CFG = {
   panelHeight: 520,
   glow: true,
   breathe: true,
+  sounds: true,
+  userName: 'Rikesh',
+  language: 'mixed',
+  timezone: 'Asia/Kathmandu',
+  agentProvider: 'gemini',
+  agentApiKey: '',
+  agentModel: 'gemini-2.5-flash',
+  agentBaseUrl: '',
+  agentSpeakResults: true,
+  agentModelVerification: false,
+  agentWorkspaceRoots: [],
+  activeWorkspace: null,
+  agentRequireApprovalForWrites: false,
+  agentAutoApproveCommands: false,
+  agentAllowReadOutside: false,
+  agentConfirmationTtlMs: 120000,
+  proactive: true,
+  proactiveUseAI: true,
+  quietMode: false,
+  quietHoursStart: '22:00',
+  quietHoursEnd: '07:00',
+  proactiveMinGapSec: 120,
+  proactiveBudgetPerHour: 6,
+  idleAvailableSec: 300,
+  dailyBriefing: false,
+  dailyBriefingTime: '08:00',
+  batteryMonitor: true,
+  batteryPollMs: 30000,
+  batteryLow: 20,
+  batteryCritical: 10,
+  batteryHigh: 80,
+  batteryNotifyCharging: true,
+  batteryNotifyUnplug: true,
+  chargeLimitEnabled: false,
+  diskLowPercent: 10,
 };
 
 let cfg = { ...DEFAULT_CFG };
@@ -53,8 +98,8 @@ let data = { todo: [], notes: [], timers: [], reminders: [] };
 
 /* ------------------------------------------------------------- utilities */
 const ud = () => app.getPath('userData');
-const cfgPath = () => path.join(ud(), 'nixi.json');
-const dataPath = () => path.join(ud(), 'nixi-data.json');
+const cfgPath = () => path.join(ud(), 'ful.json');
+const dataPath = () => path.join(ud(), 'ful-data.json');
 const statePath = () => path.join(ud(), 'speech-state.json');
 
 function readJson(file, fallback) {
@@ -63,9 +108,63 @@ function readJson(file, fallback) {
 function writeJson(file, value) {
   try { fs.writeFileSync(file, JSON.stringify(value, null, 2)); } catch { }
 }
+
+const LEGACY_DIRS = ['nixi-companion', 'heynixi'];
+const LEGACY_FILES = {
+  'nixi.json': 'ful.json',
+  'nixi-data.json': 'ful-data.json',
+  'nixi-memory.json': 'ful-memory.json',
+  'nixi-reminders.json': 'ful-reminders.json',
+  'nixi-battery-state.json': 'ful-battery-state.json',
+  'nixi-agent-changes.json': 'ful-agent-changes.json',
+  'speech-state.json': 'speech-state.json'
+};
+const LEGACY_DIR_MAP = {
+  'nixi-agent-backups': 'ful-agent-backups',
+  'nixi-agent-trash': 'ful-agent-trash',
+  'nixi-agent-checkpoints': 'ful-agent-checkpoints'
+};
+
+function migrateLegacyData() {
+  const current = ud();
+  try { fs.mkdirSync(current, { recursive: true }); } catch { }
+  const bases = [path.dirname(current)];
+  if (process.env.LOCALAPPDATA) bases.push(process.env.LOCALAPPDATA);
+  const oldDirs = [];
+  for (const base of bases) {
+    for (const name of LEGACY_DIRS) {
+      const dir = path.join(base, name);
+      if (dir !== current && !oldDirs.includes(dir)) oldDirs.push(dir);
+    }
+  }
+  for (const oldDir of oldDirs) {
+    let exists = false;
+    try { exists = fs.statSync(oldDir).isDirectory(); } catch { }
+    if (!exists) continue;
+    for (const [from, to] of Object.entries(LEGACY_FILES)) {
+      const src = path.join(oldDir, from);
+      const dest = path.join(current, to);
+      try {
+        if (fs.existsSync(src) && !fs.existsSync(dest)) fs.copyFileSync(src, dest);
+      } catch { }
+    }
+    for (const [from, to] of Object.entries(LEGACY_DIR_MAP)) {
+      const src = path.join(oldDir, from);
+      const dest = path.join(current, to);
+      try {
+        if (fs.existsSync(src) && !fs.existsSync(dest)) fs.cpSync(src, dest, { recursive: true, errorOnExist: false, force: false });
+      } catch { }
+    }
+  }
+}
+
 function loadAll() {
   cfg = { ...DEFAULT_CFG, ...readJson(cfgPath(), {}) };
   data = { ...data, ...readJson(dataPath(), {}) };
+  if (typeof cfg.wakePhrase === 'string' && /^hey[\s._-]*nixi$/i.test(cfg.wakePhrase)) {
+    cfg.wakePhrase = 'hey ful';
+    saveCfg();
+  }
   for (const k of ['todo', 'notes', 'timers', 'reminders']) {
     if (!Array.isArray(data[k])) {
       if (Array.isArray(data.todos) && k === 'todo') data.todo = data.todos;
@@ -89,6 +188,12 @@ async function psJson(script, args = []) {
       (err, stdout) => resolve((stdout || '').trim()));
   });
   try { return JSON.parse(out); } catch { return null; }
+}
+function psFile(script, args = [], timeout = 20000) {
+  return new Promise(resolve => {
+    execFile('powershell', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', script, ...args], { timeout, windowsHide: true, maxBuffer: 4 * 1024 * 1024 },
+      (err, stdout, stderr) => resolve(((stdout || '') + (stderr ? '\n' + stderr : '')).trim()));
+  });
 }
 const sendKeys = (keys, times = 1) => ps(`$s=New-Object -ComObject WScript.Shell;1..${times}|%{$s.SendKeys('${keys}')}`);
 const mediaKey = code => ps(`$s=New-Object -ComObject WScript.Shell;$s.SendKeys([char]${code})`);
@@ -230,6 +335,16 @@ function handleDragEnd() {
   send('placement-snapped', 'custom');
 }
 
+function securePrefs(extra = {}) {
+  return {
+    preload: path.join(ROOT, 'preload', 'bridge.js'),
+    nodeIntegration: false,
+    contextIsolation: true,
+    sandbox: false,
+    ...extra
+  };
+}
+
 function createWindow() {
   const initBounds = calculateWindowBounds(112, 56);
   win = new BrowserWindow({
@@ -248,12 +363,10 @@ function createWindow() {
     maximizable: false,
     minimizable: false,
     fullscreenable: false,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
+    webPreferences: securePrefs({
       backgroundThrottling: false,
       spellcheck: false
-    }
+    })
   });
   win.setAlwaysOnTop(true, 'screen-saver');
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
@@ -262,6 +375,11 @@ function createWindow() {
       callback(['media', 'clipboard-read', 'clipboard-sanitized-write', 'pointerLock'].includes(permission));
     });
   } catch { }
+  win.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+    const lineStr = `[Renderer ${level}] (${sourceId}:${line}) ${message}\n`;
+    try { fs.appendFileSync(path.join(ROOT, 'renderer.log'), lineStr); } catch {}
+    console.log(lineStr.trim());
+  });
   win.loadFile('index.html');
   win.once('ready-to-show', () => win.showInactive());
   win.on('closed', () => { win = null; });
@@ -288,10 +406,7 @@ function createNotificationWindow() {
     hasShadow: false,
     resizable: false,
     show: false,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false
-    }
+    webPreferences: securePrefs()
   });
 
   toastWin.loadFile(path.join(ROOT, 'toast.html'));
@@ -324,7 +439,7 @@ function createTrayMenuWindow() {
   if (trayMenuWin && !trayMenuWin.isDestroyed()) return trayMenuWin;
 
   const width = 216;
-  const height = 446;
+  const height = 480;
 
   trayMenuWin = new BrowserWindow({
     width,
@@ -337,10 +452,7 @@ function createTrayMenuWindow() {
     hasShadow: false,
     resizable: false,
     show: false,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false
-    }
+    webPreferences: securePrefs()
   });
 
   trayMenuWin.loadFile(path.join(ROOT, 'tray-menu.html'));
@@ -363,7 +475,7 @@ function showTrayMenu(bounds) {
 
     const area = screen.getPrimaryDisplay().workArea;
     const width = 216;
-    const height = 446;
+    const height = 480;
     let x, y;
 
     if (bounds && typeof bounds.x === 'number' && bounds.x > 0) {
@@ -406,10 +518,7 @@ function openSettingsWindow() {
     alwaysOnTop: false,
     resizable: true,
     show: false,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false
-    }
+    webPreferences: securePrefs()
   });
 
   settingsWin.loadFile(path.join(ROOT, 'settings.html'));
@@ -441,10 +550,7 @@ function openAboutWindow() {
     alwaysOnTop: false,
     resizable: false,
     show: false,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false
-    }
+    webPreferences: securePrefs()
   });
 
   aboutWin.loadFile(path.join(ROOT, 'about.html'));
@@ -473,10 +579,7 @@ function openGuideWindow() {
     alwaysOnTop: false,
     resizable: false,
     show: false,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false
-    }
+    webPreferences: securePrefs()
   });
 
   guideWin.loadFile(path.join(ROOT, 'guide.html'));
@@ -518,8 +621,10 @@ function makeTrayIcon() {
 
 function createTray() {
   try {
-    tray = new Tray(makeTrayIcon());
-    tray.setToolTip('heynixi - your voice assistant');
+    const trayPath = path.join(ROOT, 'icons', 'tray.png');
+    const trayImg = fs.existsSync(trayPath) ? nativeImage.createFromPath(trayPath) : makeTrayIcon();
+    tray = new Tray(trayImg);
+    tray.setToolTip('FUL - your voice assistant');
     // Custom popup matching Screenshot 2 on both click and right-click
     tray.on('click', (_event, bounds) => showTrayMenu(bounds));
     tray.on('right-click', (_event, bounds) => showTrayMenu(bounds));
@@ -528,6 +633,45 @@ function createTray() {
 
 function send(channel, payload) {
   if (win && !win.isDestroyed()) win.webContents.send(channel, payload);
+}
+
+function broadcast(channel, payload) {
+  const windows = [win, workspaceWin, settingsWin];
+  const seen = new Set();
+  for (const w of windows) {
+    if (!w || w.isDestroyed() || seen.has(w.id)) continue;
+    seen.add(w.id);
+    try { w.webContents.send(channel, payload); } catch { }
+  }
+}
+
+function openWorkspaceWindow() {
+  if (workspaceWin && !workspaceWin.isDestroyed()) {
+    workspaceWin.show();
+    workspaceWin.focus();
+    return workspaceWin;
+  }
+  const area = screen.getPrimaryDisplay().workArea;
+  const width = Math.min(1220, area.width - 48);
+  const height = Math.min(820, area.height - 48);
+  const x = Math.round(area.x + (area.width - width) / 2);
+  const y = Math.round(area.y + (area.height - height) / 2);
+  workspaceWin = new BrowserWindow({
+    x, y, width, height,
+    minWidth: 920,
+    minHeight: 620,
+    frame: false,
+    transparent: false,
+    backgroundColor: '#08090d',
+    alwaysOnTop: false,
+    resizable: true,
+    show: false,
+    webPreferences: securePrefs({ backgroundThrottling: false })
+  });
+  workspaceWin.loadFile(path.join(ROOT, 'workspace.html'));
+  workspaceWin.once('ready-to-show', () => workspaceWin.show());
+  workspaceWin.on('closed', () => { workspaceWin = null; });
+  return workspaceWin;
 }
 
 /* --------------------------------------------------------------- cursor */
@@ -544,7 +688,7 @@ function trackCursor() {
 
 /* -------------------------------------------------------- speech worker */
 function speechState(patch) {
-  writeJson(statePath(), { mode: speechMode, wake: cfg.wakePhrase || 'hey nixi', listen: !!cfg.wake, capturing: false, gen: captureGen, ...patch });
+  writeJson(statePath(), { mode: speechMode, wake: cfg.wakePhrase || 'hey ful', listen: !!cfg.wake, capturing: false, gen: captureGen, ...patch });
 }
 
 function stopSpeech() {
@@ -562,7 +706,7 @@ function startSpeech() {
     '-File', path.join(ROOT, 'speech.ps1'),
     '-Mode', speechMode,
     '-StateFile', statePath(),
-    '-WakePhrase', cfg.wakePhrase || 'hey nixi'
+    '-WakePhrase', cfg.wakePhrase || 'hey ful'
   ];
   try {
     speechProc = spawn('powershell', args, { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -752,25 +896,111 @@ const ACTIONS = {
   },
   async open_app({ names = [] }) {
     const list = Array.isArray(names) ? names : [names];
+    const expanded = [];
+    for (const item of list) {
+      if (!item) continue;
+      const parts = String(item).split(/[\s,]+and[\s,]+|[\s,]+&[\s,]+|[,;]+|\s+/i)
+        .map(s => s.trim())
+        .filter(Boolean);
+      if (parts.length > 1 && parts.some(p => apps.resolve(p) || (apps.WEB && apps.WEB[p.toLowerCase()]) || (apps.EXE && apps.EXE[p.toLowerCase()]) || (apps.ALIAS && apps.ALIAS[p.toLowerCase()]))) {
+        expanded.push(...parts);
+      } else {
+        expanded.push(item);
+      }
+    }
     const out = [];
-    for (const n of list) {
+    for (const n of expanded) {
       if (!n) continue;
       const r = await apps.launch(n);
       out.push(r.message || `Opened ${n}.`);
     }
     return out.join('\n');
   },
+  async browser_script({ script, description, headless = false }) {
+    try {
+      const res = await browserRunner.runBrowserScript(script, {
+        headless: !!headless,
+        description: description || 'Browser automation task'
+      });
+      return res.message;
+    } catch (e) {
+      return `Browser script failed: ${e.message}`;
+    }
+  },
+  async browser_task({ action = 'open', url, query, selector, platform, headless = false }) {
+    try {
+      if (action === 'scrape' && url) {
+        const res = await browserRunner.scrapePage(url, { selector: selector || 'body' });
+        return res.content || res.message || 'Scrape completed.';
+      }
+      if (action === 'open' && url) {
+        const res = await browserRunner.openWebsites(url, { headless: !!headless });
+        return res.message;
+      }
+      if (action === 'search' && query) {
+        const res = await apps.searchOn(platform || 'google', query);
+        return res.message;
+      }
+      return 'Unknown browser task.';
+    } catch (e) {
+      return `Browser task failed: ${e.message}`;
+    }
+  },
   async search_on({ platform, query }) {
     const res = await apps.searchOn(platform, query);
     return res.message;
   },
+  async play_music({ song, platform = 'youtube' }) {
+    const res = await apps.playMusic(song, platform);
+    return res.message;
+  },
+  async run_script({ script, description }) {
+    const code = String(script || '').trim();
+    if (!code) return 'No script provided.';
+
+    // Deletion guardian: Block dangerous system-wide destructive scripts
+    if (/(?:del|rmdir|Remove-Item|rm)\s+.*(?:[cC]:\\(?:Windows|Program Files|Users\b|\*)|system32|\$env:SystemRoot|\$HOME\s*[-*\/])/i.test(code)) {
+      return 'Action blocked for safety: Recursive deletion of critical system directory detected.';
+    }
+
+    const tempDir = path.join(ud(), 'scripts');
+    try { fs.mkdirSync(tempDir, { recursive: true }); } catch {}
+    const tempFile = path.join(tempDir, `task_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.ps1`);
+    const wrappedScript = `$OutputEncoding = [System.Text.Encoding]::UTF8\n[Console]::OutputEncoding = [System.Text.Encoding]::UTF8\n${code}\n`;
+    try {
+      fs.writeFileSync(tempFile, wrappedScript, 'utf8');
+      const out = await new Promise(resolve => {
+        execFile('powershell', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', tempFile],
+          { timeout: 25000, windowsHide: true, maxBuffer: 4 * 1024 * 1024 },
+          (err, stdout, stderr) => {
+            try { fs.unlinkSync(tempFile); } catch {}
+            if (err && !stdout) {
+              resolve(`Script error: ${(stderr || err.message || '').trim()}`);
+            } else {
+              const res = (stdout || '').trim();
+              const errOut = (stderr || '').trim();
+              if (errOut && !res) resolve(`Task message: ${errOut}`);
+              else if (errOut && res) resolve(`${res}\n${errOut}`);
+              else resolve(res || (description ? `Completed: ${description}` : 'Task completed successfully.'));
+            }
+          });
+      });
+      return out;
+    } catch (e) {
+      try { fs.unlinkSync(tempFile); } catch {}
+      return `Script failed: ${e.message}`;
+    }
+  },
   async compound({ actions = [] }) {
+    const list = Array.isArray(actions) ? actions : [];
     const results = [];
-    for (const a of actions) {
-      if (!a || !a.id) continue;
-      const fn = ACTIONS[a.id];
+    for (const a of list) {
+      if (!a) continue;
+      const actId = a.id || a.name || a.tool;
+      if (!actId) continue;
+      const fn = ACTIONS[actId];
       if (fn) {
-        const r = await fn(a.args || {});
+        const r = await fn(a.args || a.parameters || {});
         if (r && typeof r === 'string') results.push(r);
       }
     }
@@ -785,7 +1015,7 @@ const ACTIONS = {
   async web_search({ query }) {
     const q = String(query || '').trim();
     await shell.openExternal('https://www.google.com/search?q=' + encodeURIComponent(q));
-    return `Searching for “${q}”.`;
+    return `Searching for â€œ${q}â€.`;
   },
   async set_timer({ seconds, label }) {
     const s = Math.max(1, Math.round(Number(seconds) || 0));
@@ -796,7 +1026,7 @@ const ACTIONS = {
     send('data-updated');
     showNotificationToast({
       title: item.label,
-      subtitle: `Timer · in ${intents.humanDuration(s)}`,
+      subtitle: `Timer Â· in ${intents.humanDuration(s)}`,
       kind: 'timer'
     });
     return `Timer set for ${intents.humanDuration(s)}.`;
@@ -815,7 +1045,7 @@ const ACTIONS = {
     send('data-updated');
     const stamp = new Date(when).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     const diffMin = Math.round((when - now) / 60000);
-    const subStr = diffMin > 0 ? `Reminder · in ${diffMin} minutes` : `Reminder · at ${stamp}`;
+    const subStr = diffMin > 0 ? `Reminder Â· in ${diffMin} minutes` : `Reminder Â· at ${stamp}`;
     showNotificationToast({
       title: item.label,
       subtitle: subStr,
@@ -837,25 +1067,25 @@ const ACTIONS = {
   async list_timers() {
     const all = [...data.timers, ...data.reminders].sort((a, b) => a.at - b.at);
     if (!all.length) return 'Nothing scheduled.';
-    return all.map(t => `• ${t.label} — ${new Date(t.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`).join('\n');
+    return all.map(t => `â€¢ ${t.label} â€” ${new Date(t.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`).join('\n');
   },
   async todo_add({ item }) {
     const text = String(item || '').trim();
     if (!text) return 'Nothing to add.';
     data.todo.push({ id: Date.now() + Math.random(), text, done: false, at: Date.now() });
     saveData();
-    return `Added “${text}”.`;
+    return `Added â€œ${text}â€.`;
   },
   async todo_list() {
     if (!data.todo.length) return 'Your list is empty.';
-    return data.todo.map(t => `• ${t.done ? '✓' : '○'} ${t.text}`).join('\n');
+    return data.todo.map(t => `â€¢ ${t.done ? 'âœ“' : 'â—‹'} ${t.text}`).join('\n');
   },
   async todo_remove({ item }) {
     const q = String(item || '').toLowerCase();
     const before = data.todo.length;
     data.todo = data.todo.filter(t => !t.text.toLowerCase().includes(q));
     saveData();
-    return before === data.todo.length ? `“${item}” was not on the list.` : `Removed “${item}”.`;
+    return before === data.todo.length ? `â€œ${item}â€ was not on the list.` : `Removed â€œ${item}â€.`;
   },
   async todo_toggle({ item }) {
     const q = String(item || '').toLowerCase();
@@ -880,7 +1110,7 @@ const ACTIONS = {
   },
   async list_notes() {
     if (!data.notes.length) return 'No notes yet.';
-    return data.notes.slice(-8).map(n => `• ${n.text}`).join('\n');
+    return data.notes.slice(-8).map(n => `â€¢ ${n.text}`).join('\n');
   },
   async volume({ action, amount = 5 }) {
     const step = Math.max(1, Math.min(50, Number(amount) || 5));
@@ -922,7 +1152,7 @@ const ACTIONS = {
   },
   async find_file({ query }) {
     const hits = await findFiles(query);
-    if (!hits.length) return `Could not find “${query}”.`;
+    if (!hits.length) return `Could not find â€œ${query}â€.`;
     await ps(`explorer.exe /select,"${hits[0].replace(/"/g, '')}"`);
     const extra = hits.length > 1 ? `\nAlso found: ${hits.slice(1).map(h => path.basename(h)).join(', ')}` : '';
     return `Found ${path.basename(hits[0])}.${extra}`;
@@ -955,9 +1185,9 @@ const ACTIONS = {
     const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: Math.min(width, 1600), height: Math.min(height, 900) } });
     if (!sources.length) return 'Could not capture the screen.';
     const png = sources[0].thumbnail.toPNG();
-    const dir = path.join(app.getPath('pictures'), 'Screenshots', 'Nixi');
+    const dir = path.join(app.getPath('pictures'), 'Screenshots', 'FUL');
     try { fs.mkdirSync(dir, { recursive: true }); } catch { }
-    const file = path.join(dir, `Nixi ${new Date().toISOString().replace(/[:.]/g, '-')}.png`);
+    const file = path.join(dir, `FUL ${new Date().toISOString().replace(/[:.]/g, '-')}.png`);
     fs.writeFileSync(file, png);
     return `Saved ${path.basename(file)}.`;
   },
@@ -974,6 +1204,76 @@ const ACTIONS = {
     const mem = Math.round(os.totalmem() / 1024 / 1024 / 1024);
     const free = Math.round(os.freemem() / 1024 / 1024 / 1024);
     return `${os.type()} ${os.release()} (${os.arch()})\n${cpu}\nRAM ${free} GB free of ${mem} GB\nScreen ${screen.getPrimaryDisplay().size.width}x${screen.getPrimaryDisplay().size.height}`;
+  },
+  async mouse_action({ action = 'click', x = -1, y = -1, amount = 0 }) {
+    try {
+      const mouseScript = path.join(ROOT, 'mouse.ps1');
+      const out = await psFile(mouseScript, ['-Action', action, '-X', String(x), '-Y', String(y), '-Amount', String(amount)]);
+      return out || `Mouse action ${action} completed.`;
+    } catch (e) {
+      return `Mouse action failed: ${e.message}`;
+    }
+  },
+  async keyboard_action({ keys, text }) {
+    try {
+      if (text) {
+        clipboard.writeText(String(text));
+        await pasteText('');
+        return `Typed: "${text}".`;
+      }
+      if (keys) {
+        await sendKeys(keys);
+        return `Sent key: ${keys}.`;
+      }
+      return 'No keys or text specified.';
+    } catch (e) {
+      return `Keyboard action failed: ${e.message}`;
+    }
+  },
+  async window_action({ action = 'minimize', target = '' }) {
+    try {
+      const winScript = path.join(ROOT, 'window.ps1');
+      const out = await psFile(winScript, ['-Action', action, '-Target', target]);
+      return out || `Window action ${action} completed.`;
+    } catch (e) {
+      return `Window action failed: ${e.message}`;
+    }
+  },
+  async like_video({ clickX = -1, clickY = -1, platform = '' }) {
+    try {
+      const likeScript = path.join(ROOT, 'scripts', 'like_video.ps1');
+      const out = await psFile(likeScript, ['-ClickX', String(clickX), '-ClickY', String(clickY), '-Platform', platform]);
+      return out || 'Liked video.';
+    } catch (e) {
+      return `Like video action failed: ${e.message}`;
+    }
+  },
+  async inspect_active() {
+    try {
+      const activeScript = path.join(ROOT, 'active-app.ps1');
+      const json = await psJson(activeScript, []);
+      const media = await nowPlaying(true);
+      return {
+        app: json?.app || '',
+        title: json?.title || '',
+        process: json?.process || '',
+        media: media || null
+      };
+    } catch (e) {
+      return { error: e.message };
+    }
+  },
+  async vision_click({ x_percent, y_percent }) {
+    try {
+      const { width, height } = screen.getPrimaryDisplay().size;
+      const x = Math.round((Number(x_percent) / 100) * width);
+      const y = Math.round((Number(y_percent) / 100) * height);
+      const mouseScript = path.join(ROOT, 'mouse.ps1');
+      const out = await psFile(mouseScript, ['-Action', 'click', '-X', String(x), '-Y', String(y)]);
+      return out || `Clicked at (${x}, ${y}).`;
+    } catch (e) {
+      return `Vision click failed: ${e.message}`;
+    }
   }
 };
 
@@ -1037,19 +1337,20 @@ ipcMain.handle('gemini-tts', async (_e, { text, voice, key } = {}) => {
   try {
     const k = key || cfg.key || cfg.apiKey;
     if (!k) throw new Error('No Gemini API key configured.');
-    const v = voice || cfg.voice || 'Aoede';
-    const cleanText = String(text || '').replace(/\s+/g, ' ').slice(0, 600);
+    const v = voice || cfg.voice || 'Kore';
+    const cleanText = String(text || '').replace(/\s+/g, ' ').replace(/[#*`_~]/g, '').slice(0, 800);
     if (!cleanText.trim()) throw new Error('Empty text.');
 
-    // Use gemini-2.5-flash-preview-tts as requested
-    const models = ['gemini-2.5-flash-preview-tts', 'gemini-3.8-flash-tts'];
+    // Prioritize high-performance, active Gemini TTS models (gemini-3.1-flash-tts-preview & 2.5-flash-preview-tts)
+    const models = ['gemini-3.1-flash-tts-preview', 'gemini-2.5-flash-preview-tts', 'gemini-3.8-flash-tts', 'gemini-3.8-flash-lite-tts'];
     let lastErr = null;
 
     for (const model of models) {
       try {
+        const promptText = model.includes('2.5') ? `Read aloud verbatim: ${cleanText}` : cleanText;
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${k}`;
         const payload = {
-          contents: [{ parts: [{ text: cleanText }] }],
+          contents: [{ role: 'user', parts: [{ text: promptText }] }],
           generationConfig: {
             responseModalities: ['AUDIO'],
             speechConfig: {
@@ -1061,10 +1362,13 @@ ipcMain.handle('gemini-tts', async (_e, { text, voice, key } = {}) => {
             }
           }
         };
+        const bodyStr = JSON.stringify(payload);
         const res = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: bodyStr
         });
         if (!res.ok) {
           const errData = await res.json().catch(() => null);
@@ -1076,16 +1380,36 @@ ipcMain.handle('gemini-tts', async (_e, { text, voice, key } = {}) => {
         const mimeType = part?.inlineData?.mimeType || 'audio/wav';
         if (!audioData) throw new Error('No audio returned by Gemini.');
 
-        // Convert raw PCM to WAV container so HTML5 Audio plays smoothly
+        // Convert audio to standard, clean WAV container (stripping C2PA metadata chunks that break browser decoding)
         let finalAudioData = audioData;
-        let finalMimeType = mimeType;
-        if (mimeType.includes('pcm') || mimeType.includes('L16')) {
-          const rateMatch = mimeType.match(/rate=(\d+)/i);
+        let finalMimeType = 'audio/wav';
+        const rawBuf = Buffer.from(audioData, 'base64');
+        const mt = (mimeType || '').toLowerCase();
+
+        if (rawBuf.slice(0, 4).toString() === 'RIFF') {
+          // Standard RIFF container - strip any trailing metadata (e.g. Google C2PA watermark block)
+          const dataIdx = rawBuf.indexOf('data');
+          if (dataIdx !== -1 && dataIdx + 8 <= rawBuf.length) {
+            const dataSize = rawBuf.readUInt32LE(dataIdx + 4);
+            const sampleRate = (rawBuf.length >= 28) ? rawBuf.readUInt32LE(24) : 24000;
+            const channels = (rawBuf.length >= 24) ? rawBuf.readUInt16LE(22) : 1;
+            const bits = (rawBuf.length >= 36) ? rawBuf.readUInt16LE(34) : 16;
+            const pcmEnd = Math.min(rawBuf.length, dataIdx + 8 + dataSize);
+            const cleanPcm = rawBuf.subarray(dataIdx + 8, pcmEnd);
+            const cleanWav = pcmToWavBuffer(cleanPcm, sampleRate || 24000, channels || 1, bits || 16);
+            finalAudioData = cleanWav.toString('base64');
+            finalMimeType = 'audio/wav';
+          }
+        } else if (mt.includes('pcm') || mt.includes('l16') || mt.includes('raw')) {
+          const rateMatch = mt.match(/rate=(\d+)/i);
           const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
-          const pcmBuf = Buffer.from(audioData, 'base64');
-          const wavBuf = pcmToWavBuffer(pcmBuf, sampleRate, 1, 16);
-          finalAudioData = wavBuf.toString('base64');
+          const cleanWav = pcmToWavBuffer(rawBuf, sampleRate, 1, 16);
+          finalAudioData = cleanWav.toString('base64');
           finalMimeType = 'audio/wav';
+        } else if (mt.includes('mp3') || mt.includes('mpeg')) {
+          finalMimeType = 'audio/mp3';
+        } else if (mt.includes('ogg') || mt.includes('opus')) {
+          finalMimeType = 'audio/ogg';
         }
 
         return { ok: true, audioData: finalAudioData, mimeType: finalMimeType };
@@ -1098,6 +1422,60 @@ ipcMain.handle('gemini-tts', async (_e, { text, voice, key } = {}) => {
     return { ok: false, error: e.message };
   }
 });
+
+ipcMain.handle('edge-tts', async (_e, { text, voice = 'en-US-AriaNeural' } = {}) => {
+  try {
+    const cleanText = String(text || '').replace(/\s+/g, ' ').replace(/[#*`_~]/g, '').slice(0, 1000);
+    if (!cleanText.trim()) throw new Error('Empty text.');
+
+    // Realistic neural female voice (Aria is expressive and ultra-realistic)
+    const voiceName = (voice && voice.includes('Neural')) ? voice : 'en-US-AriaNeural';
+
+    // 1) Primary: In-process MsEdgeTTS
+    try {
+      const tts = new MsEdgeTTS();
+      await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
+      const { audioStream } = tts.toStream(cleanText);
+      const audioBuffer = await new Promise((resolve, reject) => {
+        const chunks = [];
+        const timer = setTimeout(() => reject(new Error('Edge TTS timed out')), 8000);
+        audioStream.on('data', d => chunks.push(d));
+        audioStream.on('end', () => {
+          clearTimeout(timer);
+          resolve(Buffer.concat(chunks));
+        });
+        audioStream.on('error', err => {
+          clearTimeout(timer);
+          reject(err);
+        });
+      });
+      if (audioBuffer && audioBuffer.length > 500) {
+        return { ok: true, audioData: audioBuffer.toString('base64'), mimeType: 'audio/mp3', engine: 'edge-tts' };
+      }
+    } catch (inProcErr) {
+      // Fall through to python edge_tts fallback
+    }
+
+    // 2) Fallback: python edge_tts
+    const tempMp3 = path.join(ud(), `edge_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.mp3`);
+    const pyScript = `import edge_tts, asyncio; asyncio.run(edge_tts.Communicate('''${cleanText.replace(/'''/g, '')}''', '${voiceName}').save(r'${tempMp3}'))`;
+    await new Promise((resolve, reject) => {
+      execFile('python', ['-c', pyScript], { timeout: 10000, windowsHide: true }, (err) => {
+        if (err) reject(err); else resolve();
+      });
+    });
+
+    if (fs.existsSync(tempMp3)) {
+      const data = fs.readFileSync(tempMp3);
+      try { fs.unlinkSync(tempMp3); } catch {}
+      return { ok: true, audioData: data.toString('base64'), mimeType: 'audio/mp3', engine: 'edge-tts' };
+    }
+
+    throw new Error('Edge TTS failed to produce audio.');
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
 ipcMain.handle('paste', async (_e, text) => {
   try {
     await pasteText(text || '');
@@ -1106,43 +1484,153 @@ ipcMain.handle('paste', async (_e, text) => {
     return false;
   }
 });
-ipcMain.handle('transcribe-audio', async (_e, { base64Webm, promptText } = {}) => {
+ipcMain.handle('transcribe-audio', async (_e, { base64Webm, promptText, mimeType } = {}) => {
   const k = cfg.key || cfg.apiKey;
   if (!k || !base64Webm) return null;
-  const models = [cfg.model || 'gemini-2.5-flash', 'gemini-3.8-flash'].filter(Boolean);
+  const models = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', cfg.model, 'gemini-3.8-flash'].filter(Boolean);
+  const audioMime = mimeType || 'audio/webm';
   for (const m of models) {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${k}`;
-      const payload = JSON.stringify({
+      const payload = {
         contents: [{
           parts: [
-            { text: promptText || 'Transcribe this spoken audio verbatim.' },
-            { inlineData: { mimeType: 'audio/webm', data: base64Webm } }
+            { text: promptText || 'Transcribe this spoken audio verbatim into clean text. Remove fillers and ums. Output ONLY the transcription.' },
+            { inlineData: { mimeType: audioMime, data: base64Webm } }
           ]
         }],
-        generationConfig: { thinkingConfig: { thinkingBudget: 0 } }
-      });
+        generationConfig: { thinkingConfig: { thinkingBudget: 0 }, temperature: 0.1 }
+      };
+      const body = JSON.stringify(payload);
       const res = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Content-Length': String(Buffer.byteLength(payload))
+          'Content-Length': String(Buffer.byteLength(body))
         },
-        body: payload
+        body
       });
       if (res.ok) {
         const data = await res.json();
         const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-        if (text) return text;
+        if (text) return text.replace(/^["']|["']$/g, '').trim();
       }
-    } catch {}
+    } catch (e) {
+      // continue to next model
+    }
   }
   return null;
+});
+
+let parakeetProc = null;
+const parakeetRequests = new Map();
+let parakeetReqId = 0;
+
+function startParakeetWorker() {
+  if (parakeetProc) return;
+  const pyScript = path.join(ROOT, 'scripts', 'parakeet_transcribe.py');
+  if (!fs.existsSync(pyScript)) return;
+
+  try {
+    parakeetProc = spawn('python', [pyScript, '--worker'], {
+      windowsHide: true,
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+  } catch (err) {
+    parakeetProc = null;
+    return;
+  }
+
+  let buffer = '';
+  parakeetProc.stdout.on('data', chunk => {
+    buffer += chunk.toString();
+    let idx;
+    while ((idx = buffer.indexOf('\n')) >= 0) {
+      const line = buffer.slice(0, idx).trim();
+      buffer = buffer.slice(idx + 1);
+      if (!line) continue;
+      try {
+        const msg = JSON.parse(line);
+        if (msg.id && parakeetRequests.has(msg.id)) {
+          const cb = parakeetRequests.get(msg.id);
+          parakeetRequests.delete(msg.id);
+          cb(msg);
+        }
+      } catch {}
+    }
+  });
+
+  parakeetProc.on('exit', () => {
+    parakeetProc = null;
+  });
+  parakeetProc.on('error', () => {
+    parakeetProc = null;
+  });
+}
+
+ipcMain.handle('parakeet-status', () => {
+  const enc = path.join(ROOT, 'models', 'parakeet-unified-en-0.6b', 'encoder.int8.onnx');
+  const tok = path.join(ROOT, 'models', 'parakeet-unified-en-0.6b', 'tokens.txt');
+  const ready = fs.existsSync(enc) && fs.existsSync(tok) && fs.statSync(enc).size > 1000000;
+  return { ready, running: !!parakeetProc };
+});
+
+ipcMain.handle('parakeet-transcribe', async (_e, { audioPath, base64Wav } = {}) => {
+  let file = audioPath;
+  let tempCreated = false;
+  try {
+    if (!file && base64Wav) {
+      const tmpDir = path.join(ud(), 'audio');
+      fs.mkdirSync(tmpDir, { recursive: true });
+      file = path.join(tmpDir, `rec_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.wav`);
+      fs.writeFileSync(file, Buffer.from(base64Wav, 'base64'));
+      tempCreated = true;
+    }
+    if (!file || !fs.existsSync(file)) {
+      return { ok: false, error: 'Audio file not found' };
+    }
+
+    if (!parakeetProc) startParakeetWorker();
+
+    if (parakeetProc && parakeetProc.stdin && parakeetProc.stdin.writable) {
+      const id = 'req_' + (++parakeetReqId);
+      const res = await new Promise((resolve) => {
+        const timer = setTimeout(() => {
+          parakeetRequests.delete(id);
+          resolve({ ok: false, error: 'Parakeet transcription timeout' });
+        }, 15000);
+        parakeetRequests.set(id, (r) => {
+          clearTimeout(timer);
+          resolve(r);
+        });
+        parakeetProc.stdin.write(JSON.stringify({ id, audio: file }) + '\n');
+      });
+      return res;
+    } else {
+      // Direct one-shot python execution fallback
+      const pyScript = path.join(ROOT, 'scripts', 'parakeet_transcribe.py');
+      const out = await new Promise((resolve) => {
+        execFile('python', [pyScript, file], { timeout: 20000, windowsHide: true }, (err, stdout) => {
+          if (err) resolve({ ok: false, error: err.message });
+          else {
+            try { resolve(JSON.parse(stdout)); } catch (e) { resolve({ ok: false, error: stdout || e.message }); }
+          }
+        });
+      });
+      return out;
+    }
+  } catch (err) {
+    return { ok: false, error: err.message };
+  } finally {
+    if (tempCreated && file) {
+      try { fs.unlinkSync(file); } catch {}
+    }
+  }
 });
 ipcMain.handle('act', async (_e, name, args) => {
   try {
     const fn = ACTIONS[name];
-    if (!fn) return `I do not know how to “${name}” yet.`;
+    if (!fn) return `I do not know how to â€œ${name}â€ yet.`;
     const res = await fn(args || {});
     return res == null ? 'Done.' : res;
   } catch (e) {
@@ -1165,6 +1653,13 @@ ipcMain.handle('media-action', async (_e, action, position = 0) => {
   mediaCache = { at: 0, value: null };
   return await psJson(path.join(ROOT, 'media.ps1'), ['-Action', String(action), '-Position', String(position)]);
 });
+ipcMain.handle('active-app', async () => {
+  try {
+    const res = await psJson(path.join(ROOT, 'active-app.ps1'));
+    if (res && res.icon) return res;
+  } catch {}
+  return { process: 'Antigravity IDE', title: 'Antigravity IDE', app: 'Antigravity IDE', icon: 'icons/antigravity.png' };
+});
 ipcMain.handle('volume-get', () => currentVolume());
 ipcMain.handle('files', async (_e, q) => findFiles(q));
 ipcMain.on('speech-mode', (_e, mode) => setSpeechMode(mode));
@@ -1179,6 +1674,8 @@ ipcMain.on('tray-menu-action', (_e, action) => {
     app.quit();
   } else if (action === 'settings') {
     openSettingsWindow();
+  } else if (action === 'workspace') {
+    openWorkspaceWindow();
   } else if (action === 'about') {
     openAboutWindow();
   } else if (action === 'guide') {
@@ -1197,6 +1694,14 @@ ipcMain.on('toggle-tray-menu', (_e, pt) => {
   showTrayMenu(pt);
 });
 ipcMain.on('open-settings', () => openSettingsWindow());
+ipcMain.on('open-workspace', () => openWorkspaceWindow());
+ipcMain.on('workspace-window-control', (event, action) => {
+  const target = BrowserWindow.fromWebContents(event.sender);
+  if (!target) return;
+  if (action === 'minimize') target.minimize();
+  else if (action === 'maximize') target.isMaximized() ? target.unmaximize() : target.maximize();
+  else if (action === 'close') target.close();
+});
 ipcMain.on('close-settings', () => {
   if (settingsWin && !settingsWin.isDestroyed()) settingsWin.close();
 });
@@ -1227,6 +1732,120 @@ ipcMain.on('open-companion-panel', () => {
 ipcMain.on('focus', () => { if (win) { win.showInactive(); win.focus(); } });
 ipcMain.handle('window-show', () => { if (win) { win.showInactive(); } return true; });
 ipcMain.handle('window-hide', () => { if (win) win.hide(); return true; });
+ipcMain.handle('battery-get', async () => {
+  try {
+    if (agent && agent.battery) {
+      return await agent.battery.getSnapshot(true);
+    }
+  } catch {}
+  return null;
+});
+
+function initPowerMonitor() {
+  powerMonitor.on('on-ac', async () => {
+    try {
+      let percent = null;
+      if (agent && agent.battery) {
+        await agent.battery.onPowerEvent('on-ac');
+        const snap = agent.battery.snapshot;
+        percent = snap ? snap.percent : null;
+      }
+      broadcast('power-event', { type: 'plugged-in', percent, online: true, at: Date.now() });
+    } catch {}
+  });
+
+  powerMonitor.on('on-battery', async () => {
+    try {
+      let percent = null;
+      if (agent && agent.battery) {
+        await agent.battery.onPowerEvent('on-battery');
+        const snap = agent.battery.snapshot;
+        percent = snap ? snap.percent : null;
+      }
+      broadcast('power-event', { type: 'unplugged', percent, online: false, at: Date.now() });
+    } catch {}
+  });
+}
+
+/* ------------------------------------------------------------- agent boot */
+function initAgent() {
+  if (agent) return agent;
+  const { createAgentRuntime } = require('./agent/runtime');
+  agent = createAgentRuntime({
+    rootDir: ROOT,
+    userData: ud(),
+    data,
+    saveData: () => {
+      saveData();
+      send('data-updated');
+      if (workspaceWin && !workspaceWin.isDestroyed()) workspaceWin.webContents.send('data-updated');
+    },
+    getConfig: () => cfg,
+    setConfig: patch => {
+      cfg = { ...cfg, ...patch };
+      saveCfg();
+      applyCfg();
+      send('cfg', cfg);
+      broadcast('cfg', cfg);
+      return true;
+    },
+    broadcast,
+    toast: showNotificationToast,
+    actions: ACTIONS,
+    openPath: target => shell.openPath(target),
+    openExternal: target => shell.openExternal(target),
+    showItemInFolder: target => shell.showItemInFolder(target),
+    trash: target => shell.trashItem(target),
+    pickFolder: async () => {
+      const parent = workspaceWin && !workspaceWin.isDestroyed() ? workspaceWin : (settingsWin && !settingsWin.isDestroyed() ? settingsWin : win);
+      const result = await dialog.showOpenDialog(parent || undefined, {
+        title: 'Choose a workspace folder',
+        properties: ['openDirectory', 'createDirectory']
+      });
+      return result.canceled ? null : result.filePaths[0];
+    },
+    getIdleSeconds: () => {
+      try { return powerMonitor.getSystemIdleTime(); } catch { return 0; }
+    },
+    getActiveApp: async () => {
+      try {
+        const res = await psJson(path.join(ROOT, 'active-app.ps1'));
+        if (res) return res;
+      } catch { }
+      return { process: '', title: '', app: '' };
+    },
+    windowAction: async ({ action }) => {
+      const keys = {
+        minimize: "%{SPACE}n",
+        maximize: "%{SPACE}x",
+        restore: "%{SPACE}r",
+        close: '%{F4}',
+        switch: '%{TAB}'
+      };
+      const seq = keys[action];
+      if (!seq) return 'Unknown window action.';
+      await ps(`$s=New-Object -ComObject WScript.Shell; $s.SendKeys('${seq}')`);
+      return {
+        minimize: 'Minimized the active window.',
+        maximize: 'Maximized the active window.',
+        restore: 'Restored the active window.',
+        close: 'Closed the active window.',
+        switch: 'Switched windows.'
+      }[action];
+    },
+    recycleBin: async action => {
+      if (action === 'empty') {
+        await ps('Clear-RecycleBin -Force -ErrorAction SilentlyContinue');
+        return 'Recycle Bin emptied.';
+      }
+      const out = await ps(`$shell=New-Object -ComObject Shell.Application; $bin=$shell.Namespace(10); if($bin){$bin.Items().Count}else{0}`);
+      return `Recycle Bin contains ${Number(out) || 0} item(s).`;
+    }
+  });
+  agent.registerIpc(ipcMain);
+  agent.start();
+  return agent;
+}
 
 /* ---------------------------------------------------------- config apply */
 function applyCfg() {
@@ -1238,7 +1857,9 @@ function applyCfg() {
   setSpeechMode('wake');
   speechState({ listen: !!cfg.wake });
   if (!speechProc) startSpeech();
+  if (agent) agent.applyConfig();
   send('cfg', cfg);
+  broadcast('cfg', cfg);
 }
 
 /* ----------------------------------------------------------------- boot */
@@ -1248,26 +1869,34 @@ if (!app.requestSingleInstanceLock()) {
   app.on('second-instance', () => { if (win) { win.showInactive(); win.focus(); } });
 
   app.whenReady().then(() => {
+    migrateLegacyData();
     loadAll();
+    initAgent();
+    initPowerMonitor();
     createWindow();
     createTray();
 
     applyCfg();
     trackCursor();
+    if (process.argv.includes('--workspace')) setTimeout(() => openWorkspaceWindow(), 700);
+    if (process.argv.includes('--test-startup')) {
+      setTimeout(() => {
+        console.log('[TEST-STARTUP] Window and renderer loaded successfully.');
+        app.exit(0);
+      }, 3500);
+    }
 
-    // timers and reminders
     setInterval(() => {
       const now = Date.now();
-      const due = [...data.timers, ...data.reminders].filter(t => t.at <= now);
+      const due = data.timers.filter(t => t.at <= now);
       if (due.length) {
         data.timers = data.timers.filter(t => t.at > now);
-        data.reminders = data.reminders.filter(t => t.at > now);
         saveData();
         due.forEach(t => {
           send('toast', { title: t.label, kind: t.kind, at: t.at });
           showNotificationToast({
-            title: t.label || (t.kind === 'reminder' ? 'Reminder' : 'Timer'),
-            subtitle: `${t.kind === 'reminder' ? 'Reminder Due' : 'Timer Done!'}`,
+            title: t.label || 'Timer',
+            subtitle: 'Timer Done!',
             kind: t.kind
           });
         });
@@ -1281,7 +1910,9 @@ if (!app.requestSingleInstanceLock()) {
     try { globalShortcut.unregisterAll(); } catch { }
     try { speechProc && speechProc.kill(); } catch { }
     try { hotkeyProc && hotkeyProc.kill(); } catch { }
+    try { agent && agent.dispose(); } catch { }
   });
 
   app.on('window-all-closed', () => app.quit());
 }
+

@@ -1,0 +1,7 @@
+node_modules/
+models/
+*.log
+*.tmp
+screen2.png
+.DS_Store
+Thumbs.db

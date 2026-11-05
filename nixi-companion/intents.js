@@ -1,5 +1,5 @@
 /*
-  Nixi offline intent parser.
+  FUL offline intent parser.
 
   Turns a spoken sentence into a concrete action without needing the internet.
   The cloud model is used for anything fuzzy; everything in this file works
@@ -134,8 +134,8 @@ const INTENTS = [
       if (/\b(?:who are you|what is your name|what are you)\b/i.test(t)) {
         return {
           id: 'conversation',
-          args: { text: "I'm Nixi, your personal desktop companion and voice assistant. I live right here on your screen to help you launch apps, search, manage timers, play music, and answer questions." },
-          say: "I'm Nixi, your desktop voice assistant."
+          args: { text: "I'm FUL, your personal desktop companion and voice assistant. I live right here on your screen to help you launch apps, search, manage timers, play music, and answer questions." },
+          say: "I'm FUL, your desktop voice assistant."
         };
       }
       if (/\b(?:what can you do|help me|help\b)\b/i.test(t)) {
@@ -305,17 +305,91 @@ const INTENTS = [
     run: () => ({ id: 'now_playing', args: {}, say: null })
   },
   {
+    id: 'hand_vision',
+    test: /\b(?:what(?:'?s| is) in my hands?|what am i holding|look at (?:what i(?:'?m| am) holding|my hands?)|see what(?:'?s| is) in my hands?|tell me what is in my hands?|check my hands?)\b/i,
+    run: () => ({ id: 'hand_vision', args: {}, say: null })
+  },
+  {
+    id: 'screen_followup',
+    test: /\b(?:what should i do next|what to do next|suggest (?:next step|follow up)|read screen and (?:give|suggest) follow up|read my screen and tell me what to do)\b/i,
+    run: () => ({ id: 'screen_followup', args: {}, say: null })
+  },
+  {
+    id: 'play_music',
+    test: /\b(?:play|search\s+and\s+play|bajau|lagau|chalao)\b/i,
+    run: t => {
+      // Check if it's purely a media control command (play/resume without a title)
+      const isControlOnly = /^(?:hey\s+ful[\s,]+|ful[\s,]+)?(?:please\s+)?(?:play|resume)\s*(?:the\s*)?(?:music|song|track|media)?$/i.test(t.trim());
+      if (isControlOnly) {
+        return { id: 'media', args: { action: 'play' }, say: null };
+      }
+
+      let text = t.trim();
+      text = text.replace(/^(?:hey\s+ful[\s,]+|ful[\s,]+)/i, '')
+                 .replace(/^(?:can\s+you\s+(?:please\s+)?|could\s+you\s+(?:please\s+)?|please\s+)/i, '')
+                 .trim();
+
+      let platform = 'youtube';
+      const platMatch = text.match(/\b(?:on|in|ma)\s+(youtube\s+music|youtube|yt|spotify|apple\s+music|soundcloud)\b/i);
+      if (platMatch) {
+        const rawP = platMatch[1].toLowerCase().replace(/\s+/g, ' ');
+        platform = (rawP === 'yt') ? 'youtube' : rawP;
+        text = text.replace(/\b(?:on|in|ma)\s+(?:youtube\s+music|youtube|yt|spotify|apple\s+music|soundcloud)\b/i, '').trim();
+      }
+
+      // Check for Nepali/Hindi prefix "youtube ma ..."
+      const nepaliPlatMatch = text.match(/^(?:youtube|spotify)\s+ma\s+/i);
+      if (nepaliPlatMatch) {
+        if (/youtube/i.test(nepaliPlatMatch[0])) platform = 'youtube';
+        else if (/spotify/i.test(nepaliPlatMatch[0])) platform = 'spotify';
+        text = text.replace(/^(?:youtube|spotify)\s+ma\s+/i, '').trim();
+      }
+
+      // Strip "play", "play the song", "search and play"
+      let song = text.replace(/^(?:search\s+and\s+play|play)\s+(?:the\s+)?(?:song\s+|track\s+|video\s+)?/i, '')
+                     .replace(/\b(?:bajau|lagau|chalao|bajai\s+deu|bajai\s+dinus)\b/gi, '')
+                     .trim();
+
+      // Strip trailing "song", "track", "video", "music"
+      song = song.replace(/\s+(?:song|track|video|music)$/i, '').trim();
+
+      if (!song || song.length < 2) {
+        return { id: 'media', args: { action: 'play' }, say: null };
+      }
+
+      return {
+        id: 'play_music',
+        args: { song, platform },
+        say: `Playing "${song}" on ${platform === 'youtube' ? 'YouTube' : platform}.`
+      };
+    }
+  },
+  {
     id: 'open_music_ui',
-    test: /\b(?:music|music player|show music|open music|play song)\b/i,
+    test: /\b(?:music player|show music|open music)\b/i,
     run: () => ({ id: 'open_music_ui', args: {}, say: null })
   },
   {
-    id: 'play_on',
-    test: /\bplay\b[^.]*\bon\s+(spotify|apple music|youtube music|youtube|netflix|twitch|amazon music)\b/i,
+    id: 'like_video',
+    test: /\b(?:like(?:\s+(?:this|the))?\s+(?:video|song|reel|post|track)|thumbs?\s*up|inspect\s+and\s+like|hit\s+like)\b/i,
     run: t => {
-      const m = t.match(/\bon\s+(spotify|apple music|youtube music|youtube|netflix|twitch|amazon music)\b/i);
-      return { id: 'open_app', args: { names: [m[1]] }, say: `Playing on ${m[1]}.` };
+      let platform = '';
+      if (/\byoutube\b/i.test(t)) platform = 'youtube';
+      else if (/\btiktok\b/i.test(t)) platform = 'tiktok';
+      else if (/\binstagram\b/i.test(t)) platform = 'instagram';
+      else if (/\btwitter|x\b/i.test(t)) platform = 'twitter';
+      return { id: 'like_video', args: { platform }, say: 'Liking the video…' };
     }
+  },
+  {
+    id: 'inspect_video',
+    test: /\b(?:inspect\s+(?:the\s+)?video|what\s+video\s+is\s+this|video\s+info|inspect\s+active(?:\s+window)?)\b/i,
+    run: () => ({ id: 'inspect_video', args: {}, say: null })
+  },
+  {
+    id: 'battery_status',
+    test: /\b(?:battery(?:\s*(?:status|percentage|level|life|check|info|kati|kasto))?|kati\s+(?:chha\s+)?battery|battery\s+kati\s+chha|how\s+much\s+battery|check\s+battery|is\s+(?:laptop|pc)\s+charging|charger\s+status)\b/i,
+    run: () => ({ id: 'battery_status', args: {}, say: null })
   },
   {
     id: 'media',
@@ -536,7 +610,7 @@ function match(text) {
   if (!raw) return null;
 
   // Check if multiple action triggers are present (e.g. "open tiktok open youtube open google", or "open tiktok and open youtube")
-  const hasMultipleVerbs = (raw.match(/\b(?:open|launch|start|run|go to)\b/gi) || []).length > 1;
+  const hasMultipleVerbs = (raw.match(/\b(?:open|launch|start|run|go to|play|close)\b/gi) || []).length > 1;
 
   // If there are not multiple action verbs, see if it matches a single intent directly
   if (!hasMultipleVerbs) {
@@ -548,14 +622,14 @@ function match(text) {
   if (/\s+(?:and then|then|;)\s+/i.test(raw)) {
     parts = raw.split(/\s+(?:and then|then|;)\s+/i);
   } else if (hasMultipleVerbs) {
-    // Splits repeated commands like "open tiktok open youtube open google" or "open tiktok and open youtube and open google"
-    const cleaned = raw.replace(/\s+\band\s+(?=(?:open|launch|start|run|go to|close)\b)/gi, ' ');
-    parts = cleaned.split(/(?<=\S)\s*[,;]?\s+(?=(?:open|launch|start|run|go to|close)\b)/i);
-  } else if (/\s+\band\s+(?=(?:open|launch|start|run|close|mute|volume|set|remind|turn|dark mode|light mode)\b)/i.test(raw)) {
-    parts = raw.split(/\s+\band\s+(?=(?:open|launch|start|run|close|mute|volume|set|remind|turn|dark mode|light mode)\b)/i);
+    // Splits repeated commands like "open tiktok open youtube" or "open github and play agar tum sath ho"
+    const cleaned = raw.replace(/\s+\band\s+(?=(?:open|launch|start|run|go to|close|play)\b)/gi, ' ');
+    parts = cleaned.split(/(?<=\S)\s*[,;]?\s+(?=(?:open|launch|start|run|go to|close|play)\b)/i);
+  } else if (/\s+\band\s+(?=(?:open|launch|start|run|close|mute|volume|set|remind|turn|dark mode|light mode|play)\b)/i.test(raw)) {
+    parts = raw.split(/\s+\band\s+(?=(?:open|launch|start|run|close|mute|volume|set|remind|turn|dark mode|light mode|play)\b)/i);
   } else if (/\s+\band\b\s+/i.test(raw) && !/\bsearch\b/i.test(raw)) {
     const p = raw.split(/\s+\band\b\s+/i).map(s => s.trim()).filter(Boolean);
-    if (p.length > 1 && p.every(x => /\b(open|launch|start|run|close|mute|volume|set|remind|turn|dark mode|light mode)\b/i.test(x))) {
+    if (p.length > 1 && p.every(x => /\b(open|launch|start|run|close|mute|volume|set|remind|turn|dark mode|light mode|play)\b/i.test(x))) {
       parts = p;
     }
   }
@@ -601,11 +675,12 @@ function classify(text) {
   }
   const raw = String(text || '').trim();
   const isQ = /\?$/.test(raw) || /^(who|what|where|when|why|how|is|are|can|could|would|should|do|does|did|will|tell me|explain|define)\b/i.test(raw);
-  const isT = /^(open|launch|start|run|close|kill|search|play|pause|stop|skip|mute|unmute|set|remind|turn|switch|create|delete|type|volume)\b/i.test(raw);
+  const isT = /^(open|launch|start|run|close|kill|search|play|pause|stop|skip|mute|unmute|set|remind|turn|switch|create|delete|type|volume|make|download|install|script|automate|clean|empty|organize|move|copy)\b/i.test(raw) ||
+              /\b(and|then|also)\b/i.test(raw);
   return {
     category: isT ? 'task' : (isQ ? 'question' : 'question'),
     intent: null,
-    thought: isT ? 'Categorized: Task' : 'Categorized: Question / Inquiry'
+    thought: isT ? 'Categorized: Multi-step Automation Task' : 'Categorized: Question / Inquiry'
   };
 }
 

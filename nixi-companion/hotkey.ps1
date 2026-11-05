@@ -1,8 +1,8 @@
 <#
-  Nixi global hotkey watcher.
+  FUL global hotkey watcher.
 
   Electron's globalShortcut cannot tell the left and right modifier keys apart,
-  so Nixi uses this tiny helper to watch the real keyboard state. It reports
+  so FUL uses this tiny helper to watch the real keyboard state. It reports
   press/release edges for:
 
     rc     Right Ctrl          -> command mode (hold to talk)
@@ -19,7 +19,7 @@ $ErrorActionPreference = 'Stop'
 Add-Type -TypeDefinition @'
 using System;
 using System.Runtime.InteropServices;
-public static class NixiKeys {
+public static class FULKeys {
   [DllImport("user32.dll")]
   public static extern short GetAsyncKeyState(int vKey);
   public static bool Down(int vKey) {
@@ -39,16 +39,16 @@ $VK_D        = 0x44
 $VK_W        = 0x57
 $VK_M        = 0x4D
 
-function Ctrl { ([NixiKeys]::Down($VK_LCONTROL) -or [NixiKeys]::Down($VK_RCONTROL)) }
-function Alt  { ([NixiKeys]::Down($VK_LMENU)    -or [NixiKeys]::Down($VK_RMENU)) }
+function Ctrl { ([FULKeys]::Down($VK_LCONTROL) -or [FULKeys]::Down($VK_RCONTROL)) }
+function Alt  { ([FULKeys]::Down($VK_LMENU)    -or [FULKeys]::Down($VK_RMENU)) }
 
 $groups = [ordered]@{
-  'rc'    = { [NixiKeys]::Down($VK_RCONTROL) }
-  'ra'    = { [NixiKeys]::Down($VK_RMENU) }
-  'cmd'   = { (Ctrl) -and (Alt) -and ([NixiKeys]::Down($VK_SPACE)) }
-  'dict'  = { (Ctrl) -and (Alt) -and ([NixiKeys]::Down($VK_D)) }
-  'write' = { (Ctrl) -and (Alt) -and ([NixiKeys]::Down($VK_W)) }
-  'mute'  = { (Ctrl) -and (Alt) -and ([NixiKeys]::Down($VK_M)) }
+  'rc'    = { [FULKeys]::Down($VK_RCONTROL) }
+  'ra'    = { [FULKeys]::Down($VK_RMENU) }
+  'cmd'   = { (Ctrl) -and (Alt) -and ([FULKeys]::Down($VK_SPACE)) }
+  'dict'  = { (Ctrl) -and (Alt) -and ([FULKeys]::Down($VK_D)) }
+  'write' = { (Ctrl) -and (Alt) -and ([FULKeys]::Down($VK_W)) }
+  'mute'  = { (Ctrl) -and (Alt) -and ([FULKeys]::Down($VK_M)) }
 }
 
 $state = @{}

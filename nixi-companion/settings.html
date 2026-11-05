@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>heynixi Settings</title>
+  <title>FUL Settings</title>
   <style>
     :root {
       --bg: #f5f6f8;
@@ -78,7 +78,7 @@
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
     }
 
-    .nixi-eye {
+    .ful-eye {
       width: 7px;
       height: 15px;
       background: #ffffff;
@@ -150,6 +150,21 @@
       color: #4b5563;
       cursor: pointer;
       transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nav-btn svg {
+      width: 16px;
+      height: 16px;
+      flex: none;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: 0.85;
     }
 
     .nav-btn:hover {
@@ -157,10 +172,20 @@
       color: #111827;
     }
 
+    .nav-btn:hover svg {
+      opacity: 1;
+    }
+
     .nav-btn.active {
       background: #ffffff;
       color: #111827;
+      font-weight: 600;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    }
+
+    .nav-btn.active svg {
+      opacity: 1;
+      stroke: var(--accent);
     }
 
     /* Content Area */
@@ -451,25 +476,43 @@
   <div class="titlebar">
     <div class="title-left">
       <span class="title-dots">● ●</span>
-      <span>heynixi Settings</span>
+      <span>FUL Settings</span>
     </div>
     <button class="title-close" id="bCloseTop" title="Close">✕</button>
   </div>
 
   <div class="sub-banner">
-    Changes to how Nixi looks apply when you save. Others apply the next time heynixi starts.
+    Changes to how FUL looks apply when you save. Others apply the next time FUL starts.
   </div>
 
   <!-- Main Body -->
   <div class="main-body">
     <!-- Sidebar -->
     <div class="sidebar">
-      <button class="nav-btn active" data-tab="general">General</button>
-      <button class="nav-btn" data-tab="voice">Voice &amp; microphone</button>
-      <button class="nav-btn" data-tab="dictation">Dictation style</button>
-      <button class="nav-btn" data-tab="hotkeys">Command &amp; hotkeys</button>
-      <button class="nav-btn" data-tab="privacy">Privacy &amp; history</button>
-      <button class="nav-btn" data-tab="model">AI model</button>
+      <button class="nav-btn active" data-tab="general">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>General</span>
+      </button>
+      <button class="nav-btn" data-tab="voice">
+        <svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3M8 22h8"/></svg>
+        <span>Voice &amp; microphone</span>
+      </button>
+      <button class="nav-btn" data-tab="dictation">
+        <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        <span>Dictation style</span>
+      </button>
+      <button class="nav-btn" data-tab="hotkeys">
+        <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M8 16h8"/></svg>
+        <span>Command &amp; hotkeys</span>
+      </button>
+      <button class="nav-btn" data-tab="privacy">
+        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>Privacy &amp; history</span>
+      </button>
+      <button class="nav-btn" data-tab="model">
+        <svg viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/></svg>
+        <span>AI model</span>
+      </button>
     </div>
 
     <!-- Content Area -->
@@ -489,6 +532,14 @@
             <span class="setting-label">Show what's playing</span>
             <label class="switch">
               <input type="checkbox" id="cfgShowPlaying" checked>
+              <span class="slider-toggle"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <span class="setting-label">Sound effects</span>
+            <label class="switch">
+              <input type="checkbox" id="cfgSounds" checked>
               <span class="slider-toggle"></span>
             </label>
           </div>
@@ -531,7 +582,7 @@
             <span class="setting-label" style="margin-top: 24px;">Live preview</span>
             <div class="preview-dock-wrapper">
               <div class="preview-dock-card" id="previewDockCard">
-                <canvas id="previewFace" width="224" height="112" style="width: 104px; height: 50px; display: block; margin: 0 auto;" title="Live Nixi preview"></canvas>
+                <canvas id="previewFace" width="224" height="112" style="width: 104px; height: 50px; display: block; margin: 0 auto;" title="Live FUL preview"></canvas>
                 <div class="preview-dock-icons">
                   <svg viewBox="0 0 24 24" class="p-icon"><path d="M5.5 3.5l11.5 11.5-5.2.8 3.5 7-2.6 1.3-3.5-7-4.2 3.6V3.5z" fill="#ffffff" stroke="#101216" stroke-width="1.2"/></svg>
                   <svg viewBox="0 0 24 24" class="p-icon"><rect x="9" y="3" width="6" height="11" rx="3" fill="#ffffff"/><path d="M5.5 10.5a6.5 6.5 0 0 0 13 0M12 17v3.5M8.5 20.5h7" stroke="#ffffff" stroke-width="2" fill="none"/></svg>
@@ -566,14 +617,14 @@
           <div class="setting-row">
             <span class="setting-label">Speech recognition</span>
             <select id="cfgEngine">
-              <option value="whisper" selected>Whisper — Better recognition</option>
-              <option value="parakeet">Parakeet — Fast default</option>
-              <option value="gemini">Gemini Cloud STT — Ultra accurate</option>
+              <option value="parakeet" selected>Parakeet Unified EN 0.6B — Fast live transcription (Default)</option>
+              <option value="gemini">Gemini Cloud STT — Cloud transcription</option>
+              <option value="whisper">Whisper — Alternative local</option>
             </select>
           </div>
 
           <div style="font-size: 12.5px; color: var(--text-muted); line-height: 1.6; padding: 4px 0 10px 0;">
-            Parakeet is the fast, efficient default. Whisper can provide better recognition performance, especially on difficult speech, but uses more CPU/GPU resources and may respond more slowly. Both run locally on this PC.
+            Parakeet Unified EN 0.6B provides high-accuracy, low-latency live English transcription running completely on-device. Both Parakeet and local models run locally on this PC.
           </div>
 
           <div class="setting-row">
@@ -591,8 +642,8 @@
           <div class="setting-row">
             <span class="setting-label">Gemini Voice Personality</span>
             <select id="cfgVoice" style="max-width: 250px;">
-              <option value="Aoede" selected>Aoede — Warm &amp; Expressive Female</option>
-              <option value="Kore">Kore — Confident &amp; Natural Female</option>
+              <option value="Kore" selected>Kore — Confident &amp; Natural Female</option>
+              <option value="Aoede">Aoede — Warm &amp; Expressive Female</option>
               <option value="Puck">Puck — Energetic &amp; Upbeat Male</option>
               <option value="Charon">Charon — Deep &amp; Calm Male</option>
               <option value="Fenrir">Fenrir — Bold &amp; Authoritative Male</option>
@@ -650,11 +701,11 @@
       <div class="tab-content" id="tab-hotkeys">
         <div class="tab-header">
           <h1 class="tab-title">Command &amp; hotkeys</h1>
-          <p class="tab-subtitle">Global keyboard shortcuts to summon Nixi instantly.</p>
+          <p class="tab-subtitle">Global keyboard shortcuts to summon FUL instantly.</p>
         </div>
         <div class="settings-card">
           <div class="setting-row">
-            <span class="setting-label">Talk to Nixi (Voice Command)</span>
+            <span class="setting-label">Talk to FUL (Voice Command)</span>
             <strong style="font-size:13px;padding:4px 10px;background:#e2e8f0;border-radius:6px;">Right Ctrl &nbsp;/&nbsp; Ctrl+Alt+Space</strong>
           </div>
           <div class="setting-row">
@@ -708,8 +759,8 @@
             <span class="setting-label">Model Selection</span>
             <select id="cfgModel">
               <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash (Ultra Fast)</option>
-              <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-              <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+              <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
+              <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
             </select>
           </div>
         </div>
@@ -725,7 +776,7 @@
 
   <script src="face.js"></script>
   <script>
-    const { ipcRenderer, shell } = require('electron');
+    const { ipcRenderer, shell } = window.fulBridge;
 
     // Tab switching
     const navBtns = document.querySelectorAll('.nav-btn');
@@ -833,11 +884,31 @@
         outfitSelect.value = cfg.outfit;
         currentOutfit = cfg.outfit;
       }
+      if (cfg.sounds !== undefined && document.getElementById('cfgSounds')) document.getElementById('cfgSounds').checked = !!cfg.sounds;
       if (cfg.autostart !== undefined && document.getElementById('cfgAutostart')) document.getElementById('cfgAutostart').checked = cfg.autostart;
+      if (cfg.sttEngine && document.getElementById('cfgEngine')) document.getElementById('cfgEngine').value = cfg.sttEngine;
     });
+
+    // Engine dropdown auto-save
+    const engineSelect = document.getElementById('cfgEngine');
+    if (engineSelect) {
+      engineSelect.addEventListener('change', async () => {
+        await ipcRenderer.invoke('cfg-set', { sttEngine: engineSelect.value });
+      });
+    }
+
+    // Voice dropdown auto-save
+    const voiceSelect = document.getElementById('cfgVoice');
+    if (voiceSelect) {
+      voiceSelect.addEventListener('change', async () => {
+        const voice = voiceSelect.value;
+        await ipcRenderer.invoke('cfg-set', { voice });
+      });
+    }
 
     // Voice test preview
     let testAudio = null;
+    let testBlobUrl = null;
     const bTestVoice = document.getElementById('bTestVoice');
     if (bTestVoice) {
       bTestVoice.onclick = async () => {
@@ -849,28 +920,46 @@
           try { testAudio.pause(); } catch {}
           testAudio = null;
         }
+        if (testBlobUrl) {
+          try { URL.revokeObjectURL(testBlobUrl); } catch {}
+          testBlobUrl = null;
+        }
 
         statusEl.style.display = 'block';
         statusEl.textContent = `Generating "${voice}" voice sample with Gemini…`;
         bTestVoice.disabled = true;
 
         try {
-          const sampleText = `Hello! I am Nixi, your personal desktop assistant speaking with the ${voice} voice.`;
-          const res = await ipcRenderer.invoke('gemini-tts', { text: sampleText, voice, key });
+          const sampleText = `Hello! I am FUL, your personal desktop companion speaking with the ${voice} voice.`;
+          let res = null;
+          if (key) {
+            statusEl.textContent = `Generating "${voice}" sample with Gemini…`;
+            res = await ipcRenderer.invoke('gemini-tts', { text: sampleText, voice, key });
+          }
+          if (!res || !res.ok) {
+            statusEl.textContent = `Using realistic Edge Neural voice (Aria)…`;
+            res = await ipcRenderer.invoke('edge-tts', { text: sampleText, voice: 'en-US-AriaNeural' });
+          }
+
           if (res && res.ok && res.audioData) {
-            statusEl.textContent = `🔊 Playing "${voice}" sample…`;
-            testAudio = new Audio(`data:${res.mimeType || 'audio/wav'};base64,${res.audioData}`);
+            statusEl.textContent = `🔊 Playing voice sample…`;
+            const bin = atob(res.audioData);
+            const arr = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+            testBlobUrl = URL.createObjectURL(new Blob([arr], { type: res.mimeType || 'audio/wav' }));
+            testAudio = new Audio(testBlobUrl);
             testAudio.onended = () => {
+              if (testBlobUrl) { try { URL.revokeObjectURL(testBlobUrl); } catch {} testBlobUrl = null; }
               statusEl.textContent = `Sample finished.`;
               setTimeout(() => { statusEl.style.display = 'none'; }, 2000);
             };
+            testAudio.onerror = () => {
+              if (testBlobUrl) { try { URL.revokeObjectURL(testBlobUrl); } catch {} testBlobUrl = null; }
+              statusEl.textContent = `Error playing audio sample.`;
+            };
             await testAudio.play();
           } else {
-            statusEl.textContent = `Note: ${res?.error || 'Could not generate Gemini audio. Check API key.'}`;
-            // Local fallback test
-            const s = new SpeechSynthesisUtterance("Hello! This is Nixi speaking.");
-            window.speechSynthesis.cancel();
-            window.speechSynthesis.speak(s);
+            statusEl.textContent = `Note: ${res?.error || 'Could not generate audio sample.'}`;
           }
         } catch (e) {
           statusEl.textContent = `Error: ${e.message}`;
@@ -885,11 +974,15 @@
       const key = document.getElementById('cfgApiKey').value.trim();
       const model = document.getElementById('cfgModel').value;
       const outfit = outfitSelect.value;
-      const autostart = document.getElementById('cfgAutostart').checked;
+      const autostartEl = document.getElementById('cfgAutostart');
+      const soundsEl = document.getElementById('cfgSounds');
       const voice = document.getElementById('cfgVoice').value;
       const speak = document.getElementById('cfgSpeak').checked;
+      const sttEngine = document.getElementById('cfgEngine')?.value || 'parakeet';
 
-      await ipcRenderer.invoke('cfg-set', { key, model, outfit, autostart, voice, speak });
+      const patch = { key, model, outfit, voice, speak, sttEngine, sounds: soundsEl ? soundsEl.checked : true };
+      if (autostartEl) patch.autostart = autostartEl.checked;
+      await ipcRenderer.invoke('cfg-set', patch);
       closeWin();
     };
   </script>

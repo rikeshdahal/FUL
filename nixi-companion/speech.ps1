@@ -1,11 +1,11 @@
 <#
-  Nixi offline speech worker.
+  FUL offline speech worker.
 
-  Runs Windows' built-in SAPI recogniser (System.Speech) so Nixi can hear you
+  Runs Windows' built-in SAPI recogniser (System.Speech) so FUL can hear you
   without sending a single byte of audio to the internet.
 
   Modes
-    wake     listen for the wake phrase ("hey nixi"), then capture one command
+    wake     listen for the wake phrase ("hey ful"), then capture one command
     dictate  free dictation, every finished utterance is emitted
     once     recognise exactly one utterance and exit
 
@@ -24,7 +24,7 @@ param(
   [ValidateSet('wake', 'dictate', 'once')]
   [string]$Mode = 'wake',
   [string]$Culture = 'en-US',
-  [string]$WakePhrase = 'hey nixi',
+  [string]$WakePhrase = 'hey ful',
   [string]$StateFile = ''
 )
 
@@ -93,7 +93,7 @@ function Test-SameWord {
 }
 
 # Finds the wake phrase inside a spoken sentence and returns the index of its
-# first word, or -1. The match tolerates a misheard syllable ("hey nicki").
+# first word, or -1. The match tolerates a misheard syllable ("hey full").
 function Find-WakeIndex {
   param([string]$Text, [string]$Phrase)
   $n = Normalize $Text

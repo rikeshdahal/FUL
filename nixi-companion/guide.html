@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>heynixi Setup Guide</title>
+  <title>FUL Setup Guide</title>
   <style>
     * {
       box-sizing: border-box;
@@ -73,7 +73,7 @@
       background: rgba(0, 0, 0, 0.04);
     }
 
-    /* Center Nixi Notch Pill */
+    /* Center FUL Notch Pill */
     .center-notch {
       width: 76px;
       height: 42px;
@@ -249,7 +249,7 @@
       align-items: flex-end;
     }
 
-    .screen-floating-nixi {
+    .screen-floating-ful {
       position: absolute;
       top: -24px;
       left: 50%;
@@ -301,7 +301,7 @@
       place-items: center;
     }
 
-    .day-nixi-card {
+    .day-ful-card {
       width: 240px;
       background: #000000;
       border-radius: 20px;
@@ -510,14 +510,14 @@
 
   <!-- Notch Eyes with live eye tracking -->
   <div class="center-notch" style="background: transparent; box-shadow: none; padding: 0;">
-    <canvas id="guideNotchFace" width="152" height="84" style="width: 76px; height: 42px; border-radius: 21px; display: block; box-shadow: 0 8px 24px rgba(0,0,0,0.35); cursor: pointer;" title="Nixi following your cursor"></canvas>
+    <canvas id="guideNotchFace" width="152" height="84" style="width: 76px; height: 42px; border-radius: 21px; display: block; box-shadow: 0 8px 24px rgba(0,0,0,0.35); cursor: pointer;" title="FUL following your cursor"></canvas>
   </div>
 
   <!-- Slider Wrapper -->
   <div class="slider">
     <!-- Slide 1: Welcome -->
     <div class="slide active" data-index="0">
-      <h2 class="slide-title">Meet heynixi</h2>
+      <h2 class="slide-title">Meet FUL</h2>
       <p class="slide-sub">Your personal voice and screen companion that floats neatly at the top of your PC.</p>
       <div style="font-size: 14px; color: #64748b; line-height: 1.8; max-width: 440px; margin-top: 10px;">
         • Hold <strong>Right Ctrl</strong> anywhere to speak a voice command.<br>
@@ -529,7 +529,7 @@
     <!-- Slide 2: Screen Vision (Screenshot 5) -->
     <div class="slide" data-index="1">
       <h2 class="slide-title">It sees what you see</h2>
-      <p class="slide-sub">Ask about anything on your screen, or where to click. Nixi points right at it.</p>
+      <p class="slide-sub">Ask about anything on your screen, or where to click. FUL points right at it.</p>
       <div class="screen-mockup">
         <div class="screen-mock-head">
           <span style="font-size:12px;font-weight:600;color:#334155;">Photos</span>
@@ -541,16 +541,16 @@
           <span class="screen-export-btn">Export</span>
         </div>
         <div class="screen-preview-art">
-          <div class="screen-floating-nixi">
-            <span>●● Show me where the Export button is</span>
+          <div class="screen-floating-ful">
+            <span>● ● Show me where the Export button is</span>
             <span class="cursor-pointer-icon">↖</span>
           </div>
         </div>
       </div>
       <div class="pill-prompt-row">
-        <span class="pill-prompt">“What’s on my screen?”</span>
+        <span class="pill-prompt">“What's on my screen?”</span>
         <span class="pill-prompt">“Summarize this page”</span>
-        <span class="pill-prompt">“Where’s the Save button?”</span>
+        <span class="pill-prompt">“Where's the Save button?”</span>
       </div>
     </div>
 
@@ -559,7 +559,7 @@
       <h2 class="slide-title">Your day, handled</h2>
       <p class="slide-sub">Lists, reminders, timers and notes, without opening a single app.</p>
       <div class="day-mockup">
-        <div class="day-nixi-card">
+        <div class="day-ful-card">
           <div class="day-card-head">Your list</div>
           <div class="day-card-eyes">
             <div class="day-card-eye"></div>
@@ -575,7 +575,7 @@
         <div class="bubble-callout bubble-br"><span></span> Add bread to my list</div>
       </div>
       <div style="font-size: 13px; color: #64748b;">
-        Just say it: <span style="background:#e0f2fe;color:#0284c7;padding:3px 10px;border-radius:12px;font-weight:500;">🎙 "Hey Nixi ..."</span> or hold <strong style="background:#e2e8f0;padding:2px 8px;border-radius:6px;color:#1e293b;">Right Ctrl</strong>
+        Just say it: <span style="background:#e0f2fe;color:#0284c7;padding:3px 10px;border-radius:12px;font-weight:500;">🎙 "Hey FUL ..."</span> or hold <strong style="background:#e2e8f0;padding:2px 8px;border-radius:6px;color:#1e293b;">Right Ctrl</strong>
       </div>
     </div>
 
@@ -585,7 +585,7 @@
       <p class="slide-sub">Everything runs on this PC. Your voice never leaves it.</p>
       <div class="privacy-card">
         <div class="privacy-row">
-          <span class="privacy-label">Listen for “Hey Nixi”</span>
+          <span class="privacy-label">Listen for “Hey FUL”</span>
           <label class="switch">
             <input type="checkbox" checked>
             <span class="slider-toggle"></span>
@@ -610,16 +610,16 @@
 
     <!-- Slide 5: You're all set (Screenshot 2) -->
     <div class="slide" data-index="4">
-      <h2 class="slide-title">You’re all set</h2>
-      <p class="slide-sub">Nixi lives at the top of your screen. Try one of these:</p>
+      <h2 class="slide-title">You're all set</h2>
+      <p class="slide-sub">FUL lives at the top of your screen. Try one of these:</p>
       <div class="card-grid-2">
         <div class="action-card" data-cmd="open youtube">
           <div class="action-icon">▶</div>
-          <span>“Hey Nixi, open YouTube”</span>
+          <span>“Hey FUL, open YouTube”</span>
         </div>
         <div class="action-card" data-cmd="what is on my list">
           <div class="action-icon">☰</div>
-          <span>“What’s on my list?”</span>
+          <span>“What's on my list?”</span>
         </div>
         <div class="action-card" data-cmd="timer 5m">
           <div class="action-icon">⏱</div>
@@ -650,7 +650,7 @@
 
   <script src="face.js"></script>
   <script>
-    const { ipcRenderer } = require('electron');
+    const { ipcRenderer } = window.fulBridge;
 
     let current = 0;
     const slides = document.querySelectorAll('.slide');
@@ -677,7 +677,7 @@
       });
 
       btnBack.style.visibility = current === 0 ? 'hidden' : 'visible';
-      btnContinue.textContent = current === slides.length - 1 ? 'Start using Nixi' : 'Continue';
+      btnContinue.textContent = current === slides.length - 1 ? 'Start using FUL' : 'Continue';
     }
 
     btnContinue.onclick = () => showSlide(current + 1);

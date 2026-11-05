@@ -48,7 +48,7 @@
       from { opacity: 0; transform: translateY(18px) scale(0.96); }
       to { opacity: 1; transform: translateY(0) scale(1); }
     }
-    .nixi-pill {
+    .ful-pill {
       width: 44px;
       height: 30px;
       background: #000;
@@ -117,19 +117,19 @@
 </head>
 <body>
   <div class="toast-card" id="card">
-    <div class="nixi-pill">
+    <div class="ful-pill">
       <span class="eye"></span>
       <span class="eye"></span>
     </div>
     <div class="toast-content">
       <div class="toast-title" id="tTitle">Stretch</div>
-      <div class="toast-sub" id="tSub">Reminder · in 20 minutes</div>
+      <div class="toast-sub" id="tSub">Reminder Â· in 20 minutes</div>
     </div>
     <button class="toast-close" id="tClose" title="Dismiss">✕</button>
   </div>
 
   <script>
-    const { ipcRenderer: ipc } = require('electron');
+    const { ipcRenderer: ipc } = window.fulBridge;
     let dismissTimer = null;
 
     function playMelodicChime() {
@@ -165,7 +165,7 @@
 
     ipc.on('show-toast', (_e, data) => {
       document.getElementById('tTitle').textContent = data.title || (data.kind === 'reminder' ? 'Reminder' : 'Timer');
-      document.getElementById('tSub').textContent = data.subtitle || `${data.kind === 'reminder' ? 'Reminder' : 'Timer'} · active`;
+      document.getElementById('tSub').textContent = data.subtitle || `${data.kind === 'reminder' ? 'Reminder' : 'Timer'} Â· active`;
       playMelodicChime();
 
       clearTimeout(dismissTimer);

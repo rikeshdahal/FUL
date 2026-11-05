@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>heynixi Tray</title>
+  <title>FUL Tray</title>
   <style>
     * {
       box-sizing: border-box;
@@ -116,22 +116,23 @@
 </head>
 <body>
   <div class="tray-card">
-    <div class="tray-item" data-action="open">Open heynixi</div>
+    <div class="tray-item" data-action="open">Open FUL</div>
     <div class="tray-item" data-action="music">Now Playing</div>
     <div class="tray-item" data-action="history">History</div>
     <div class="tray-item" data-action="new-chat">New Conversation</div>
     <div class="tray-item" data-action="tele">Teleprompter</div>
+    <div class="tray-item" data-action="workspace">Coding Workspace</div>
     <div class="tray-item" data-action="settings">Settings</div>
     <div class="tray-item" data-action="guide">Setup Guide</div>
     <div class="tray-item" data-action="privacy">Privacy &amp; Data</div>
     <div class="tray-item" data-action="system-check">System Check</div>
-    <div class="tray-item" data-action="about">About heynixi</div>
+    <div class="tray-item" data-action="about">About FUL</div>
     <div class="divider"></div>
-    <button class="quit-btn" id="bQuit" data-action="quit">Quit heynixi</button>
+    <button class="quit-btn" id="bQuit" data-action="quit">Quit FUL</button>
   </div>
 
   <script>
-    const { ipcRenderer } = require('electron');
+    const { ipcRenderer } = window.fulBridge;
 
     document.querySelectorAll('[data-action]').forEach(el => {
       el.addEventListener('click', (e) => {
