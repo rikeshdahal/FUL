@@ -713,16 +713,74 @@ function speechState(patch) {
   });
 }
 
+/* -------------------------------------------------------- neural wake word worker (openwakeword) */
+let wakeWordProc = null;
+
+function startWakeWordWorker() {
+  if (wakeWordProc) return;
+  const pyScript = path.join(ROOT, 'scripts', 'wake_word_worker.py');
+  if (!fs.existsSync(pyScript)) return;
+
+  try {
+    wakeWordProc = spawn('python', [pyScript, '--state-file', statePath(), '--threshold', '0.5'], {
+      windowsHide: true,
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+  } catch (err) {
+    wakeWordProc = null;
+    return;
+  }
+
+  let buffer = '';
+  wakeWordProc.stdout.on('data', chunk => {
+    buffer += chunk.toString();
+    let idx;
+    while ((idx = buffer.indexOf('\n')) >= 0) {
+      const line = buffer.slice(0, idx).trim();
+      buffer = buffer.slice(idx + 1);
+      if (!line) continue;
+      try {
+        const msg = JSON.parse(line);
+        if (msg.type === 'wake') {
+          send('speech', { type: 'wake', model: msg.model || 'openwakeword' });
+        }
+      } catch {}
+    }
+  });
+
+  wakeWordProc.on('exit', () => {
+    wakeWordProc = null;
+  });
+
+  wakeWordProc.on('error', () => {
+    wakeWordProc = null;
+  });
+}
+
+function stopWakeWordWorker() {
+  if (wakeWordProc) {
+    try {
+      if (wakeWordProc.stdin && wakeWordProc.stdin.writable) wakeWordProc.stdin.end();
+      wakeWordProc.kill();
+    } catch {}
+    wakeWordProc = null;
+  }
+}
+
 function stopSpeech() {
   if (speechProc) {
     try { speechProc.kill(); } catch { }
     speechProc = null;
   }
+  stopWakeWordWorker();
 }
 
 function startSpeech() {
   stopSpeech();
   speechState({});
+  if (cfg.wake) {
+    startWakeWordWorker();
+  }
   const args = [
     '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
     '-File', path.join(ROOT, 'speech.ps1'),
@@ -2171,6 +2229,7 @@ if (!app.requestSingleInstanceLock()) {
 
   app.on('will-quit', () => {
     try { globalShortcut.unregisterAll(); } catch { }
+    try { stopWakeWordWorker(); } catch { }
     try { speechProc && speechProc.kill(); } catch { }
     try { hotkeyProc && hotkeyProc.kill(); } catch { }
     try { agent && agent.dispose(); } catch { }
