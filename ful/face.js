@@ -1,5 +1,5 @@
 /*
-  FUL face engine.
+  Nixi face engine.
 
   A tiny spring-driven character renderer: two eyes that blink, glance at the
   cursor, squint, wobble, and react. Everything is drawn on a canvas so the

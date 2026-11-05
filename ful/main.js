@@ -176,8 +176,8 @@ function migrateLegacyData() {
 function loadAll() {
   cfg = { ...DEFAULT_CFG, ...readJson(cfgPath(), {}) };
   data = { ...data, ...readJson(dataPath(), {}) };
-  if (typeof cfg.wakePhrase === 'string' && /^hey[\s._-]*nixi$/i.test(cfg.wakePhrase)) {
-    cfg.wakePhrase = 'hey ful';
+  if (typeof cfg.wakePhrase === 'string' && /^hey[\s._-]*(nixi|ful)$/i.test(cfg.wakePhrase)) {
+    cfg.wakePhrase = 'hey nixi';
     saveCfg();
   }
   for (const k of ['todo', 'notes', 'timers', 'reminders']) {
@@ -226,9 +226,10 @@ const mediaKey = code => ps(`$s=New-Object -ComObject WScript.Shell;$s.SendKeys(
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 /* ------------------------------------------------------- window handling */
-const PAD = 24;
-let currentW = 112;
-let currentH = 56;
+const PAD_X = 16;
+const PAD_BOTTOM = 12;
+let currentW = 240;
+let currentH = 48;
 
 function getActiveWorkArea() {
   if (win && !win.isDestroyed()) {
@@ -240,23 +241,23 @@ function getActiveWorkArea() {
 
 function calculateWindowBounds(w, h) {
   const area = getActiveWorkArea();
-  const width = Math.max(60, Math.min(Math.round(w) + PAD * 2, area.width));
-  const height = Math.max(40, Math.min(Math.round(h) + PAD * 2, area.height));
+  const width = Math.max(60, Math.min(Math.round(w) + PAD_X * 2, area.width));
+  const height = Math.max(40, Math.min(Math.round(h) + PAD_BOTTOM, area.height));
   let x, y;
   const placement = cfg.placement || 'top-center';
 
   if (placement === 'top-center') {
     x = Math.round(area.x + (area.width - width) / 2);
-    y = Math.round(area.y + 4);
+    y = Math.round(area.y);
   } else if (placement === 'top-right') {
-    x = Math.round(area.x + area.width - width - 16);
-    y = Math.round(area.y + 12);
+    x = Math.round(area.x + area.width - width);
+    y = Math.round(area.y);
   } else if (placement === 'top-left') {
-    x = Math.round(area.x + 16);
-    y = Math.round(area.y + 12);
+    x = Math.round(area.x);
+    y = Math.round(area.y);
   } else if (placement === 'bottom-right') {
-    x = Math.round(area.x + area.width - width - 16);
-    y = Math.round(area.y + area.height - height - 12);
+    x = Math.round(area.x + area.width - width);
+    y = Math.round(area.y + area.height - height);
   } else if (placement === 'custom' && cfg.customPos) {
     if (win && !win.isDestroyed()) {
       const cur = win.getBounds();
@@ -273,7 +274,7 @@ function calculateWindowBounds(w, h) {
     }
   } else {
     x = Math.round(area.x + (area.width - width) / 2);
-    y = Math.round(area.y + 4);
+    y = Math.round(area.y);
   }
 
   x = Math.max(area.x, Math.min(area.x + area.width - width, x));
@@ -371,7 +372,7 @@ function securePrefs(extra = {}) {
 }
 
 function createWindow() {
-  const initBounds = calculateWindowBounds(112, 56);
+  const initBounds = calculateWindowBounds(240, 48);
   win = new BrowserWindow({
     x: initBounds.x,
     y: initBounds.y,
@@ -649,7 +650,7 @@ function createTray() {
     const trayPath = path.join(ROOT, 'icons', 'tray.png');
     const trayImg = fs.existsSync(trayPath) ? nativeImage.createFromPath(trayPath) : makeTrayIcon();
     tray = new Tray(trayImg);
-    tray.setToolTip('FUL - your voice assistant');
+    tray.setToolTip('Nixi - your voice assistant');
     // Custom popup matching Screenshot 2 on both click and right-click
     tray.on('click', (_event, bounds) => showTrayMenu(bounds));
     tray.on('right-click', (_event, bounds) => showTrayMenu(bounds));
@@ -715,7 +716,7 @@ function trackCursor() {
 function speechState(patch) {
   writeJson(statePath(), {
     mode: speechMode,
-    wake: cfg.wakePhrase || 'hey ful',
+    wake: cfg.wakePhrase || 'hey nixi',
     listen: !!cfg.wake,
     capturing: false,
     gen: captureGen,
@@ -800,7 +801,7 @@ function startSpeech() {
     '-File', path.join(ROOT, 'speech.ps1'),
     '-Mode', speechMode,
     '-StateFile', statePath(),
-    '-WakePhrase', cfg.wakePhrase || 'hey ful'
+    '-WakePhrase', cfg.wakePhrase || 'hey nixi'
   ];
   try {
     speechProc = spawn('powershell', args, { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -1273,9 +1274,9 @@ const ACTIONS = {
     const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: Math.min(width, 1600), height: Math.min(height, 900) } });
     if (!sources.length) return 'Could not capture the screen.';
     const png = sources[0].thumbnail.toPNG();
-    const dir = path.join(app.getPath('pictures'), 'Screenshots', 'FUL');
+    const dir = path.join(app.getPath('pictures'), 'Screenshots', 'Nixi');
     try { fs.mkdirSync(dir, { recursive: true }); } catch { }
-    const file = path.join(dir, `FUL ${new Date().toISOString().replace(/[:.]/g, '-')}.png`);
+    const file = path.join(dir, `Nixi ${new Date().toISOString().replace(/[:.]/g, '-')}.png`);
     fs.writeFileSync(file, png);
     return `Saved ${path.basename(file)}.`;
   },
@@ -1418,7 +1419,7 @@ const ACTIONS = {
       await shell.openExternal(url);
       return `Opened WhatsApp Web to message ${recipient || 'contact'}.`;
     }
-    const mailto = `mailto:${recipient || ''}?subject=${encodeURIComponent('Message from FUL')}&body=${encodeURIComponent(message)}`;
+    const mailto = `mailto:${recipient || ''}?subject=${encodeURIComponent('Message from Nixi')}&body=${encodeURIComponent(message)}`;
     await shell.openExternal(mailto);
     return `Opened email client to draft message for ${recipient || 'contact'}.`;
   },
@@ -1456,7 +1457,7 @@ const ACTIONS = {
     return ok ? `Forgot "${key}" from ${category || 'all categories'}.` : `Could not find "${key}" in memory.`;
   },
 
-  /* F.U.L WebForge Website Builder */
+  /* Nixi WebForge Website Builder */
   async build_website({ prompt, theme = 'dark', site_name, open_browser = true } = {}) {
     return websiteBuilder.buildWebsite({ prompt, theme, site_name, open_browser });
   },
@@ -1469,7 +1470,7 @@ const ACTIONS = {
     return sites.map(s => `• ${s.name} (${s.theme}) - Updated: ${s.updatedAt}\n  Path: ${s.dir}`).join('\n');
   },
 
-  /* F.U.L Camera Vision */
+  /* Nixi Camera Vision */
   async camera_snapshot({ base64_image, filename } = {}) {
     if (!base64_image) return 'No image frame provided for camera snapshot.';
     return cameraVision.saveSnapshot(base64_image, filename);

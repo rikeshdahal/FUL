@@ -17,24 +17,33 @@
   </script>
   <style>
     :root {
-      --pill: #0d1117;
-      --pill-rgb: 13, 17, 23;
-      --fg: #f3f6fc;
-      --fg-muted: #9aa7b9;
-      --dim: #717d91;
-      --accent: #3b82f6;
-      --accent-glow: rgba(59, 130, 246, 0.45);
-      --aura-color: rgba(59, 130, 246, 0.3);
-      --aura-opacity: 0.6;
-      --line: rgba(255, 255, 255, 0.12);
-      --line-subtle: rgba(255, 255, 255, 0.06);
-      --card-bg: rgba(255, 255, 255, 0.05);
-      --card-hover: rgba(255, 255, 255, 0.085);
-      --panel-w: 460px;
-      --panel-h: 520px;
-      --radius-pill: 28px;
-      --radius-panel: 24px;
-      --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", "Inter", Roboto, system-ui, sans-serif;
+      --bg: #0C0D10;
+      --surface: #14161C;
+      --surface-card: #1A1D25;
+      --surface-hover: #222631;
+      --pill: #000000;
+      --pill-rgb: 0, 0, 0;
+      --fg: #F5F6F8;
+      --fg-muted: #8E939C;
+      --dim: #626972;
+      --faint: #505662;
+      --blue: #3882F6;
+      --blue-soft: rgba(56, 130, 246, 0.16);
+      --green: #22C55E;
+      --amber: #F59E0B;
+      --red: #FF453A;
+      --line: rgba(255, 255, 255, 0.08);
+      --line-subtle: rgba(255, 255, 255, 0.05);
+      --card-bg: rgba(255, 255, 255, 0.04);
+      --card-hover: rgba(255, 255, 255, 0.07);
+      --shadow: 0 30px 60px -24px rgba(0, 0, 0, 0.8), 0 2px 8px rgba(0, 0, 0, 0.35);
+      --font: 'Segoe UI Variable Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, Roboto, sans-serif;
+      --mono: 'Cascadia Mono', Consolas, ui-monospace, monospace;
+      --panel-w: 440px;
+      --panel-h: 530px;
+      --radius-pill: 27px;
+      --radius-panel: 26px;
+      --font-stack: var(--font);
     }
 
     * {
@@ -119,20 +128,21 @@
 
     /* Shell Mode Shapes */
     #shell.rest {
-      width: 112px;
-      height: 56px;
-      min-height: 56px;
-      border-radius: 28px;
+      width: 104px;
+      height: 54px;
+      min-height: 54px;
+      border-radius: 27px;
     }
 
     /* 1st Image: Hover Dock */
     #shell.dock {
-      width: 140px;
-      height: 112px;
-      min-height: 112px;
+      width: 154px;
+      height: 108px;
+      min-height: 108px;
       border-radius: 26px;
-      background: #0c0d10;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: #000000;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(0, 0, 0, 0.5);
     }
 
     /* 2nd Image: Cursor Active State */
@@ -801,40 +811,56 @@
     }
 
     #actions button {
-      width: 28px !important;
-      height: 28px !important;
-      min-width: 28px !important;
-      min-height: 28px !important;
-      max-width: 28px !important;
-      max-height: 28px !important;
+      width: 30px !important;
+      height: 30px !important;
+      min-width: 30px !important;
+      min-height: 30px !important;
+      max-width: 30px !important;
+      max-height: 30px !important;
       flex: none !important;
       flex-shrink: 0 !important;
       display: inline-flex !important;
       align-items: center !important;
       justify-content: center !important;
-      border-radius: 8px !important;
-      background: transparent;
-      border: 0;
-      opacity: 0.75;
+      border-radius: 50% !important;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #8E939C;
+      opacity: 0.9;
       padding: 0;
       margin: 0;
       cursor: pointer;
-      transition: all 0.16s ease;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
     }
 
     #actions button:hover {
-      background: rgba(255, 255, 255, 0.12) !important;
+      background: rgba(255, 255, 255, 0.16) !important;
+      border-color: rgba(255, 255, 255, 0.2) !important;
+      color: #FFFFFF !important;
       opacity: 1 !important;
-      transform: scale(1.08);
+      transform: translateY(-1px) scale(1.08);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+    }
+
+    #actions button:active {
+      transform: scale(0.95);
+    }
+
+    #actions button.active,
+    #actions button.live {
+      background: var(--blue) !important;
+      color: #FFFFFF !important;
+      border-color: var(--blue) !important;
+      box-shadow: 0 4px 14px rgba(56, 130, 246, 0.5) !important;
     }
 
     #actions button svg {
-      width: 16px !important;
-      height: 16px !important;
-      min-width: 16px !important;
-      min-height: 16px !important;
-      max-width: 16px !important;
-      max-height: 16px !important;
+      width: 15px !important;
+      height: 15px !important;
+      min-width: 15px !important;
+      min-height: 15px !important;
+      max-width: 15px !important;
+      max-height: 15px !important;
       flex: none !important;
       display: block;
     }
@@ -1245,38 +1271,39 @@
 
     #tabs {
       display: flex;
-      gap: 8px;
-      background: transparent;
-      padding: 0;
-      border: none;
+      gap: 4px;
+      padding: 3px;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      align-items: center;
     }
 
     #tabs button {
-      width: auto;
-      height: auto;
-      padding: 5px 14px;
-      font-size: 13.5px;
-      font-weight: 500;
-      border-radius: 14px;
+      height: 30px;
+      padding: 0 14px;
+      border-radius: 15px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #8E939C;
       background: transparent;
-      color: #717d91;
-      opacity: 1;
       border: none;
-      transition: all 0.15s ease;
       cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+      font-family: var(--font);
+      letter-spacing: -0.01em;
     }
 
     #tabs button:hover {
+      color: #F5F6F8;
       background: rgba(255, 255, 255, 0.06);
-      color: #cbd5e1;
-      transform: none;
+      transform: translateY(-1px);
     }
 
     #tabs button.on {
-      background: #27282d;
-      color: #ffffff;
-      font-weight: 600;
-      box-shadow: none;
+      background: var(--blue);
+      color: #FFFFFF;
+      box-shadow: 0 2px 8px rgba(56, 130, 246, 0.45);
     }
 
     .panel-quick-actions {
@@ -1453,22 +1480,15 @@
     }
 
     .chat-bubble-ful {
-      background: #1c202a;
-      color: #f8fafc;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: #181B23;
+      color: #F5F6F8;
+      border: 1px solid rgba(255, 255, 255, 0.07);
       padding: 10px 16px;
       border-radius: 18px 18px 18px 4px;
       font-size: 14px;
       line-height: 1.45;
       word-break: break-word;
-    }
-      background: #1c1d22;
-      color: #f1f5f9;
-      padding: 9px 16px;
-      border-radius: 18px 18px 18px 4px;
-      font-size: 13.5px;
-      line-height: 1.45;
-      word-break: break-word;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
     }
 
     .chat-msg-time {
@@ -2133,32 +2153,69 @@
       border-radius: 10px;
     }
 
-    /* --------------------------------- Toast Notification Card (Screenshot 4) */
-    #toast {
+    /* --------------------------------- Toast Notification Card (Screenshot 4 - Matching Mark-LVI/temp .toast) */
+    #toast,
+    .toast,
+    .toast-card {
       display: none;
       position: absolute;
-      bottom: 12px;
-      right: 12px;
-      left: 12px;
-      background: rgba(18, 22, 32, 0.96);
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      border-radius: 18px;
-      padding: 12px 14px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(28px);
+      bottom: 14px;
+      right: 14px;
+      left: 14px;
+      background: #1A1D25;
+      color: #ECEEF2;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 20px;
+      padding: 12px 16px;
+      box-shadow: 0 20px 40px -14px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(20px);
       z-index: 1000;
       align-items: center;
       gap: 12px;
-      animation: toastRise 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      animation: toastRise 0.4s cubic-bezier(0.34, 1.4, 0.64, 1);
     }
 
-    #toast.on {
-      display: flex;
+    #toast.on,
+    #toast.in,
+    #toast.show,
+    .toast.on,
+    .toast.in,
+    .toast-card.on {
+      display: flex !important;
     }
 
     @keyframes toastRise {
       from { opacity: 0; transform: translateY(18px) scale(0.95); }
       to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .toast-pill {
+      width: 36px;
+      height: 20px;
+      border-radius: 10px;
+      background: #000000;
+      position: relative;
+      flex: none;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.16);
+    }
+
+    .toast-pill::before,
+    .toast-pill::after {
+      content: '';
+      position: absolute;
+      top: 5px;
+      width: 3.5px;
+      height: 7px;
+      border-radius: 2px;
+      background: #FFFFFF;
+    }
+
+    .toast-pill::before {
+      left: 12px;
+    }
+
+    .toast-pill::after {
+      right: 12px;
     }
 
     .toast-icon {
@@ -2199,12 +2256,13 @@
 
     .toast-info strong {
       display: block;
-      font-size: 14px;
-      font-weight: 600;
+      font-size: 14.5px;
+      font-weight: 650;
       color: #fff;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      letter-spacing: -0.01em;
     }
 
     .toast-info small {
@@ -2217,18 +2275,21 @@
     .toast-close-btn {
       width: 26px;
       height: 26px;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.1);
-      color: var(--fg);
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--fg-muted);
       display: grid;
       place-items: center;
       font-size: 12px;
       cursor: pointer;
       border: 0;
+      transition: background 0.15s, color 0.15s, transform 0.1s;
     }
 
     .toast-close-btn:hover {
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.18);
+      color: #fff;
+      transform: scale(1.08);
     }
 
     /* Interactive Resize Handles */
@@ -2476,132 +2537,1817 @@
       50% { box-shadow: 0 0 0 3.5px rgba(255, 46, 67, 1), 0 0 45px rgba(255, 46, 67, 0.8); }
     }
 
-    /* WebForge, System Guardian & Memory Tabs Styling */
+    /* WebForge, System Guardian & Memory Tabs Styling (Modern Card System) */
     .tab-content-scroll {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 14px;
       padding: 12px 14px;
       overflow-y: auto;
       height: 100%;
       box-sizing: border-box;
     }
     .wf-card {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 14px;
-      padding: 12px;
+      background: #14161E;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 18px;
+      padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 12px;
+      box-shadow: 0 8px 24px -10px rgba(0, 0, 0, 0.5);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .wf-card:hover {
+      border-color: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.65);
     }
     .wf-card h4 {
       margin: 0;
-      font-size: 13px;
-      font-weight: 650;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.015em;
       display: flex;
       align-items: center;
-      gap: 6px;
-      color: #fff;
+      gap: 8px;
+      color: #F5F6F8;
     }
     .wf-input {
-      background: rgba(0, 0, 0, 0.4);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 8px;
-      padding: 8px 12px;
-      color: #fff;
-      font-size: 12px;
+      background: #0C0E14;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 12px;
+      padding: 9px 14px;
+      color: #F5F6F8;
+      font-size: 12.5px;
+      font-family: var(--font);
       outline: none;
       width: 100%;
       box-sizing: border-box;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
     .wf-input:focus {
-      border-color: #3b82f6;
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(56, 130, 246, 0.2);
     }
     .wf-select {
-      background: #141721;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 8px;
-      padding: 8px 10px;
-      color: #fff;
-      font-size: 12px;
+      background: #0C0E14;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 12px;
+      padding: 9px 12px;
+      color: #F5F6F8;
+      font-size: 12.5px;
+      font-family: var(--font);
       outline: none;
       cursor: pointer;
       width: 100%;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+    .wf-select:focus {
+      border-color: var(--blue);
     }
     .wf-btn {
-      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      background: var(--blue);
       border: none;
-      color: #fff;
-      border-radius: 8px;
-      padding: 9px 14px;
-      font-size: 12px;
+      color: #FFFFFF;
+      border-radius: 20px;
+      padding: 10px 18px;
+      font-size: 13px;
       font-weight: 600;
+      font-family: var(--font);
+      letter-spacing: -0.01em;
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s, filter 0.15s;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 8px;
     }
     .wf-btn:hover {
-      filter: brightness(1.15);
-      transform: translateY(-1px);
+      transform: translateY(-1px) scale(1.02);
+      filter: brightness(1.12);
+      box-shadow: 0 4px 14px rgba(56, 130, 246, 0.4);
+    }
+    .wf-btn:active {
+      transform: scale(0.98);
     }
     .wf-site-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 8px 10px;
-      border-radius: 8px;
+      padding: 10px 14px;
+      border-radius: 12px;
       background: rgba(255, 255, 255, 0.025);
       border: 1px solid rgba(255, 255, 255, 0.06);
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .wf-site-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.1);
     }
     .wf-site-name {
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 600;
-      color: #f0f3fa;
+      color: #F5F6F8;
     }
     .wf-site-meta {
-      font-size: 10px;
-      color: rgba(255, 255, 255, 0.45);
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
     }
     .wf-site-btn {
-      background: rgba(59, 130, 246, 0.2);
-      border: 1px solid rgba(59, 130, 246, 0.4);
-      color: #93c5fd;
-      border-radius: 6px;
-      padding: 4px 8px;
-      font-size: 10.5px;
+      background: rgba(56, 130, 246, 0.16);
+      border: 1px solid rgba(56, 130, 246, 0.35);
+      color: #60A5FA;
+      border-radius: 14px;
+      padding: 5px 12px;
+      font-size: 11px;
+      font-weight: 600;
       cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .wf-site-btn:hover {
+      background: var(--blue);
+      color: #fff;
+      transform: scale(1.04);
     }
     .ram-bar-container {
       width: 100%;
       height: 8px;
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.08);
       border-radius: 4px;
       overflow: hidden;
-      margin: 6px 0;
+      margin: 8px 0;
     }
     .ram-bar-fill {
       height: 100%;
       border-radius: 4px;
-      transition: width 0.4s ease;
+      transition: width 0.4s cubic-bezier(0.34, 1.3, 0.64, 1);
     }
     .proc-row {
       display: flex;
       justify-content: space-between;
-      font-size: 11.5px;
-      padding: 4px 6px;
+      font-size: 12px;
+      padding: 6px 8px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-      color: rgba(255, 255, 255, 0.85);
+      color: #F5F6F8;
+      align-items: center;
     }
-  </style>
+    .proc-row:last-child {
+      border-bottom: none;
+    }
+
+    :root {
+      --nixi-bg: #000000;
+      --nixi-surface: #141518;
+      --nixi-card: #1D1F23;
+      --nixi-card-2: #26282D;
+      --nixi-ink: #F5F6F8;
+      --nixi-muted: #8E939C;
+      --nixi-faint: #5A5F68;
+      --nixi-line: #2A2C31;
+      --nixi-blue: #3882F6;
+      --nixi-blue-soft: #EAF2FE;
+      --nixi-green: #34C759;
+      --nixi-amber: #FF9F0A;
+      --nixi-red: #FF453A;
+      --font-stack: "Segoe UI Variable Display", "Segoe UI Variable Text", "Segoe UI", "Inter", system-ui, sans-serif;
+    }
+
+    body {
+      padding: 0 16px 12px;
+      align-items: flex-start;
+    }
+
+    #shell {
+      background: var(--nixi-bg);
+      color: var(--nixi-ink);
+      border: 0;
+      border-radius: 0 0 20px 20px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.34);
+    }
+
+    .aura-glow {
+      display: none;
+    }
+
+    #shell.rest {
+      width: 240px;
+      height: 48px;
+      min-height: 48px;
+      border-radius: 0 0 20px 20px;
+      overflow: hidden;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.3);
+    }
+
+    #shell.rest.breathe {
+      animation: none;
+    }
+
+    #shell.rest #head {
+      height: 48px;
+      padding: 0;
+      justify-content: center;
+    }
+
+    #shell.rest #face {
+      width: 104px;
+      height: 52px;
+      margin: -2px auto 0;
+    }
+
+    #shell.dock {
+      width: 264px;
+      height: 64px;
+      min-height: 64px;
+      border-radius: 0 0 20px 20px;
+      background: #0B0C0E;
+      border: 0;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.38);
+      padding: 0 14px;
+    }
+
+    #shell.dock #head {
+      height: 64px;
+      padding: 0;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    #shell.dock #face {
+      width: 84px;
+      height: 44px;
+      margin: 0;
+      flex: none;
+    }
+
+    #shell.dock .head-lower-row {
+      width: auto;
+      flex: 1;
+      min-width: 0;
+      margin: 0;
+      padding: 0 0 0 8px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    #shell.dock #mid {
+      display: none !important;
+    }
+
+    #shell.dock #actions {
+      width: auto;
+      padding: 0;
+      margin: 0;
+      gap: 4px;
+      justify-content: flex-end;
+    }
+
+    #shell.dock #actions button {
+      width: 32px !important;
+      height: 32px !important;
+      min-width: 32px !important;
+      min-height: 32px !important;
+      max-width: 32px !important;
+      max-height: 32px !important;
+      border-radius: 50% !important;
+      background: var(--nixi-card) !important;
+      opacity: 1 !important;
+    }
+
+    #shell.dock #actions button:hover {
+      background: var(--nixi-card-2) !important;
+      transform: none;
+    }
+
+    #shell.capsule {
+      width: 380px;
+      height: 48px;
+      min-height: 48px;
+      border-radius: 0 0 20px 20px;
+      background: #050505;
+      border: 0;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.38);
+    }
+
+    #shell.capsule #head {
+      height: 48px;
+      padding: 0 10px 0 2px;
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    #shell.capsule #face {
+      width: 70px;
+      height: 44px;
+      margin: 0;
+      flex: none;
+    }
+
+    #shell.capsule .head-lower-row {
+      flex: 1;
+      min-width: 0;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    #shell.capsule #mid {
+      display: flex !important;
+      flex: 1;
+      min-width: 0;
+      margin: 0;
+      gap: 8px;
+      align-items: center;
+    }
+
+    #shell.capsule #status {
+      font-size: 14.5px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--nixi-ink);
+    }
+
+    #shell.capsule #level {
+      display: block !important;
+      width: 44px;
+      height: 16px;
+      flex: none;
+      opacity: 0.95;
+    }
+
+    #shell.capsule .capsule-dots {
+      display: none;
+    }
+
+    #shell.capsule #actions {
+      display: flex !important;
+      width: auto;
+      gap: 0;
+      margin: 0;
+      padding: 0;
+    }
+
+    #shell.capsule #actions button {
+      width: 26px !important;
+      height: 26px !important;
+      min-width: 26px !important;
+      min-height: 26px !important;
+      max-width: 26px !important;
+      max-height: 26px !important;
+      border-radius: 50% !important;
+      background: transparent !important;
+      opacity: 0.8 !important;
+    }
+
+    #shell.capsule #actions button:hover {
+      background: rgba(255, 255, 255, 0.08) !important;
+      opacity: 1 !important;
+    }
+
+    #shell.capsule #bScreen,
+    #shell.capsule #bMic,
+    #shell.capsule #bPen,
+    #shell.capsule #bCamera,
+    #shell.capsule .cursor-dots,
+    #shell.capsule .ai-spark-badge,
+    #shell.capsule .wave-bars {
+      display: none !important;
+    }
+
+    #shell.capsule #bMore {
+      display: inline-flex !important;
+    }
+
+    #shell.state-dictate {
+      width: 260px;
+      height: 48px;
+      min-height: 48px;
+      border-radius: 0 0 20px 20px;
+      background: #050505;
+      border: 0;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.38);
+      padding: 0 10px 0 2px;
+    }
+
+    #shell.state-dictate #head {
+      height: 48px;
+      padding: 0;
+      flex-direction: row;
+      align-items: center;
+    }
+
+    #shell.state-dictate #face {
+      width: 70px;
+      height: 44px;
+      margin: 0;
+      flex: none;
+    }
+
+    #shell.state-dictate .head-lower-row {
+      flex: 1;
+      min-width: 0;
+      margin: 0;
+      padding: 0;
+      justify-content: flex-end;
+    }
+
+    #shell.state-dictate #actions {
+      width: auto;
+      margin: 0;
+      padding: 0;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    #shell.state-dictate .ai-spark-badge {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+    }
+
+    #shell.state-dictate .dictate-app-img {
+      width: 20px;
+      height: 20px;
+    }
+
+    #shell.state-dictate .wave-bars {
+      display: flex !important;
+    }
+
+    #shell.state-write {
+      width: 340px;
+      height: 48px;
+      min-height: 48px;
+      border-radius: 0 0 20px 20px;
+      background: #050505;
+      border: 0;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.38);
+      padding: 0 10px 0 2px;
+    }
+
+    #shell.state-write #head {
+      height: 48px;
+      padding: 0;
+      flex-direction: row;
+      align-items: center;
+    }
+
+    #shell.state-write #face {
+      width: 70px;
+      height: 44px;
+      margin: 0;
+      flex: none;
+    }
+
+    #shell.state-write .head-lower-row {
+      flex: 1;
+      min-width: 0;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #shell.state-write #mid {
+      display: flex !important;
+      flex: 1;
+      min-width: 0;
+      margin: 0;
+    }
+
+    #shell.state-write #status {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--nixi-ink);
+    }
+
+    #shell.state-write #actions {
+      width: auto;
+      margin: 0;
+      padding: 0;
+      gap: 8px;
+    }
+
+    #shell.state-write .wave-bars {
+      display: flex !important;
+    }
+
+    #shell.state-cursor {
+      width: 300px;
+      height: 48px;
+      min-height: 48px;
+      border-radius: 0 0 20px 20px;
+      background: #050505;
+      border: 0;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.38);
+      padding: 0 10px 0 2px;
+    }
+
+    #shell.state-cursor #head {
+      height: 48px;
+      padding: 0;
+      flex-direction: row;
+      align-items: center;
+    }
+
+    #shell.state-cursor #face {
+      width: 70px;
+      height: 44px;
+      margin: 0;
+      flex: none;
+    }
+
+    #shell.state-cursor .head-lower-row {
+      flex: 1;
+      min-width: 0;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #shell.state-cursor #mid {
+      display: flex !important;
+      flex: 1;
+      min-width: 0;
+      margin: 0;
+    }
+
+    #shell.state-cursor #status {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--nixi-ink);
+    }
+
+    #shell.state-cursor #actions {
+      width: auto;
+      margin: 0;
+      padding: 0;
+      gap: 6px;
+    }
+
+    #shell.state-cursor #bScreen {
+      width: 26px !important;
+      height: 26px !important;
+      min-width: 26px !important;
+      min-height: 26px !important;
+      max-width: 26px !important;
+      max-height: 26px !important;
+      background: var(--nixi-card) !important;
+    }
+
+    #shell.state-error {
+      width: 440px;
+      height: 120px;
+      min-height: 120px;
+      border-radius: 0 0 22px 22px;
+      background: #0B0C0E;
+      border: 1px solid var(--nixi-line);
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.6);
+    }
+
+    #shell.panel {
+      width: 460px;
+      height: 520px;
+      max-width: calc(100vw - 32px);
+      max-height: calc(100vh - 12px);
+      border-radius: 0 0 24px 24px;
+      background: #0B0C0E;
+      border: 1px solid var(--nixi-line);
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+    }
+
+    #shell.panel #head {
+      height: 72px;
+    }
+
+    #shell.panel #face {
+      width: 76px;
+      height: 36px;
+    }
+
+    #shell.music {
+      width: 480px;
+      height: 150px;
+      min-height: 150px;
+      border-radius: 0 0 24px 24px;
+      background: #0B0C0E;
+      border: 1px solid var(--nixi-line);
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.6);
+    }
+
+    #shell .drag-bar {
+      height: 10px;
+    }
+
+    #shell.rest .drag-bar {
+      opacity: 0;
+    }
+
+    #shell.rest:hover .drag-bar {
+      opacity: 0.6;
+    }
+  
+
+
+    /* Concave ear fillets connecting notch to screen top edge (Matching Mark-LVI/temp ef() curves) */
+    #shell.notch-ears::before,
+    #shell.notch-ears::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      width: 16px;
+      height: 16px;
+      background: transparent;
+      pointer-events: none;
+      z-index: 50;
+      transition: opacity 0.25s ease;
+    }
+    #shell.notch-ears::before {
+      left: -16px;
+      border-top-right-radius: 16px;
+      box-shadow: 6px -6px 0 6px #000000;
+    }
+    #shell.notch-ears::after {
+      right: -16px;
+      border-top-left-radius: 16px;
+      box-shadow: -6px -6px 0 6px #000000;
+    }
+    #shell.panel.notch-ears::before,
+    #shell.panel.notch-ears::after {
+      opacity: 0;
+    }
+
+    /* Notch Mode Dimensions matching Mark-LVI/temp */
+    #shell.listening {
+      width: 440px !important;
+      height: 48px !important;
+      min-height: 48px !important;
+      border-radius: 24px !important;
+      background: #000000 !important;
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.85) !important;
+    }
+    #shell.listening #head {
+      height: 48px !important;
+      padding: 0 14px !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+    }
+    #shell.listening #face {
+      width: 74px !important;
+      height: 44px !important;
+      margin: 0 !important;
+      flex: none !important;
+    }
+    #shell.listening .head-lower-row {
+      display: flex !important;
+      flex: 1 !important;
+      padding: 0 !important;
+      margin: 0 0 0 10px !important;
+    }
+    #shell.listening #mid {
+      display: flex !important;
+      flex: 1 !important;
+    }
+    #shell.listening .wave-bars {
+      display: flex !important;
+    }
+    #shell.listening #actions button {
+      display: none !important;
+    }
+
+    /* Ask / Confirm Notch State (Screenshot 2: 560x168) */
+    #shell.ask,
+    #shell.state-ask {
+      width: 560px !important;
+      height: 168px !important;
+      min-height: 168px !important;
+      border-radius: 26px !important;
+      background: #000000 !important;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.95) !important;
+      overflow: hidden !important;
+    }
+    #shell.ask #head,
+    #shell.ask #body,
+    #shell.ask #mini,
+    #shell.ask #fallbackErrorCard,
+    #shell.ask #musicPlayer {
+      display: none !important;
+    }
+    #shell.ask #notchWidget {
+      display: flex !important;
+    }
+
+    /* Notes / Lists Notch State (Screenshot 3: 560x196) */
+    #shell.list,
+    #shell.state-list,
+    #shell.todo,
+    #shell.state-todo {
+      width: 560px !important;
+      height: 196px !important;
+      min-height: 196px !important;
+      border-radius: 26px !important;
+      background: #000000 !important;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.95) !important;
+      overflow: hidden !important;
+    }
+    #shell.list #head,
+    #shell.list #body,
+    #shell.list #mini,
+    #shell.list #fallbackErrorCard,
+    #shell.list #musicPlayer {
+      display: none !important;
+    }
+    #shell.list #notchWidget {
+      display: flex !important;
+    }
+
+    /* Pomodoro / Focus Notch State (Screenshot 5: 560x168) */
+    #shell.pomodoro,
+    #shell.state-pomo {
+      width: 560px !important;
+      height: 168px !important;
+      min-height: 168px !important;
+      border-radius: 26px !important;
+      background: #000000 !important;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.95) !important;
+      overflow: hidden !important;
+    }
+    #shell.pomodoro #head,
+    #shell.pomodoro #body,
+    #shell.pomodoro #mini,
+    #shell.pomodoro #fallbackErrorCard,
+    #shell.pomodoro #musicPlayer {
+      display: none !important;
+    }
+    #shell.pomodoro #notchWidget {
+      display: flex !important;
+    }
+
+    /* Small Timer Notch State (Screenshot 4: 240x48) */
+    #shell.timer-notch,
+    #shell.state-timer {
+      width: 240px !important;
+      height: 48px !important;
+      min-height: 48px !important;
+      border-radius: 24px !important;
+      background: #000000 !important;
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.85) !important;
+    }
+    #shell.timer-notch #head {
+      height: 48px !important;
+      padding: 0 14px !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+    }
+    #shell.timer-notch #face {
+      width: 74px !important;
+      height: 44px !important;
+      margin: 0 !important;
+    }
+    #shell.timer-notch .head-lower-row {
+      display: flex !important;
+      flex: 1 !important;
+      justify-content: flex-end !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    #shell.timer-notch #mid {
+      display: none !important;
+    }
+    #shell.timer-notch #actions {
+      display: none !important;
+    }
+    #shell.timer-notch #timerPillBadge {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      background: transparent !important;
+      border: none !important;
+      font-size: 14px !important;
+      font-weight: 700 !important;
+      color: #FF9F0A !important;
+    }
+
+
+.nv-host {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 0;
+    z-index: 3;
+    pointer-events: none;
+}
+
+.nv {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    height: 240px;
+    transform-origin: 50% 0;
+}
+
+.nv-shape {
+    position: absolute;
+    left: 0;
+    top: 0;
+    overflow: visible;
+}
+
+.nv-shape path {
+    fill: #000;
+}
+
+.nv-body {
+    position: absolute;
+    top: 0;
+    overflow: hidden;
+    color: #F5F6F8;
+    font-family: var(--font);
+    text-align: left;
+}
+
+.nv-shape,
+.nv-eyes {
+    pointer-events: none;
+}
+
+.nv-eyes {
+    position: absolute;
+    top: -8px;
+    left: 0;
+    transition: opacity 0.2s;
+}
+
+.nv-content {
+    position: absolute;
+    inset: 0;
+    animation: nv-in 0.34s cubic-bezier(0.2, 0.8, 0.2, 1) 0.08s both;
+}
+
+.nv-content.out {
+    animation: nv-out 0.18s ease-out both;
+}
+
+@keyframes nv-in {
+    from {
+        opacity: 0;
+        filter: blur(3px);
+        transform: scale(0.97);
+    }
+
+    to {
+        opacity: 1;
+        filter: none;
+        transform: none;
+    }
+}
+
+@keyframes nv-out {
+    to {
+        opacity: 0;
+        filter: blur(3px);
+    }
+}
+
+.nv-bar {
+    position: absolute;
+    left: 74px;
+    right: 16px;
+    top: 0;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 15px;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    line-height: 1.15;
+}
+
+.nv-line {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 600;
+}
+
+.nv-line small {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: #8E939C;
+}
+
+.nv-dictation {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    padding-right: 8px;
+}
+
+.nv-dictation .nv-dictation-app {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
+    border-radius: 3px;
+}
+
+.nv-dictation .nv-wave {
+    height: 18px;
+    gap: 2px;
+}
+
+.nv-dictation .nv-wave i {
+    width: 2px;
+}
+
+.nv-dim {
+    color: #8E939C;
+}
+
+.nv-value {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.nv-big {
+    font-size: 20px;
+    letter-spacing: -0.02em;
+}
+
+.nv-caret {
+    display: inline-block;
+    width: 2px;
+    height: 1.05em;
+    margin-left: 2px;
+    vertical-align: -0.15em;
+    background: #F5F6F8;
+    animation: nv-blink 1s steps(2) infinite;
+}
+
+@keyframes nv-blink {
+    50% {
+        opacity: 0;
+    }
+}
+
+.nv-wave {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 22px;
+}
+
+.nv-wave i {
+    width: 3px;
+    height: 100%;
+    border-radius: 2px;
+    background: #F5F6F8;
+    animation: nv-wave 0.9s ease-in-out infinite;
+}
+
+.nv-wave i:nth-child(2) {
+    animation-delay: -0.3s;
+}
+
+.nv-wave i:nth-child(3) {
+    animation-delay: -0.55s;
+}
+
+.nv-wave i:nth-child(4) {
+    animation-delay: -0.15s;
+}
+
+.nv-wave i:nth-child(5) {
+    animation-delay: -0.7s;
+}
+
+@keyframes nv-wave {
+
+    0%,
+    100% {
+        transform: scaleY(0.25);
+    }
+
+    50% {
+        transform: scaleY(1);
+    }
+}
+
+.nv-dots {
+    display: flex;
+    gap: 4px;
+}
+
+.nv-dots i {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #F5F6F8;
+    animation: nv-dot 1.1s ease-in-out infinite;
+}
+
+.nv-dots i:nth-child(2) {
+    animation-delay: 0.15s;
+}
+
+.nv-dots i:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+@keyframes nv-dot {
+
+    0%,
+    100% {
+        opacity: 0.3;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+.nv-check svg {
+    display: block;
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: var(--blue);
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.nv-ring-wrap {
+    position: relative;
+    flex: none;
+    display: inline-flex;
+    width: 24px;
+    height: 24px;
+    align-items: center;
+    justify-content: center;
+}
+
+.nv-ring-wrap.large {
+    width: 78px;
+    height: 78px;
+}
+
+.nv-ring {
+    display: block;
+    width: 24px;
+    height: 24px;
+    transform: rotate(-90deg);
+}
+
+.nv-ring.large {
+    width: 78px;
+    height: 78px;
+}
+
+.nv-ring circle {
+    fill: none;
+    stroke: #2A2C31;
+    stroke-width: 3;
+}
+
+.nv-ring.large circle {
+    stroke-width: 5;
+}
+
+.nv-ring .on {
+    stroke-linecap: round;
+}
+
+.nv-ring-icon {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    color: var(--ring-color);
+}
+
+.nv-ring-icon svg {
+    display: block;
+    width: 12px;
+    height: 12px;
+    fill: currentColor;
+    stroke: none;
+}
+
+.nv-ring-wrap.large .nv-ring-icon svg {
+    width: 31px;
+    height: 31px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.nv-status--focus {
+    color: #FF453A;
+}
+
+.nv-status--break {
+    color: #34C759;
+}
+
+.nv-status--timer {
+    color: #FF9F0A;
+}
+
+.nv-chip {
+    height: 28px;
+    padding: 0 14px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 14px;
+    background: var(--blue);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.nv-level {
+    width: 120px;
+    height: 6px;
+    border-radius: 3px;
+    background: #2A2C31;
+    overflow: hidden;
+}
+
+.nv-level i {
+    display: block;
+    height: 100%;
+    background: #F5F6F8;
+    border-radius: 3px;
+}
+
+.nv-open {
+    position: absolute;
+    inset: 0;
+}
+
+.nv-head {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    top: 8px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.nv-tabs {
+    display: flex;
+    gap: 8px;
+}
+
+.nv-tabs b {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #26282D;
+    display: grid;
+    place-items: center;
+}
+
+.nv-tabs b.on {
+    background: #F5F6F8;
+}
+
+.nv-tabs svg,
+.nv-small svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: #F5F6F8;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.nv-tabs b.on svg {
+    stroke: #141518;
+}
+
+.nv-clock {
+    margin-left: auto;
+    font-size: 12px;
+    color: #C9CCD2;
+    font-variant-numeric: tabular-nums;
+}
+
+.nv-small {
+    display: flex;
+    gap: 12px;
+}
+
+.nv-small svg {
+    width: 17px;
+    height: 17px;
+}
+
+.nv-card {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    top: 54px;
+    bottom: 10px;
+    background: #141518;
+    border-radius: 20px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.nv-card p {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nv-card small {
+    font-size: 12px;
+    color: #8E939C;
+}
+
+.nv-cardface {
+    flex: none;
+}
+
+.nv-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.nv-text small {
+    display: block;
+    margin-top: 3px;
+}
+
+.nv-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.nv-btn {
+    height: 34px;
+    padding: 0 16px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 17px;
+    background: #2A2C31;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.nv-btn.nv-blue {
+    background: var(--blue);
+}
+
+.nv-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 13px;
+}
+
+.nv-list p {
+    font-size: 14px;
+    margin-bottom: 1px;
+}
+
+.nv-list div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nv-list b {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1.6px #6A6F78;
+}
+
+.nv-new {
+    opacity: 0;
+    transform: translateY(5px);
+    transition: opacity 0.3s, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.nv-new.in {
+    opacity: 1;
+    transform: none;
+}
+
+.nv-todo {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    align-items: center;
+    gap: 16px;
+}
+
+.nv-todo-summary {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+}
+
+.nv-todo-summary strong {
+    font-size: 34px;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+}
+
+.nv-todo-summary small {
+    display: block;
+    font-size: 11px;
+    color: #8E939C;
+}
+
+.nv-todo-items {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.nv-todo-items>div {
+    min-width: 0;
+    min-height: 18px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 2px 8px;
+    border-radius: 8px;
+    background: #1D1F23;
+    font-size: 11px;
+    line-height: 1.2;
+}
+
+.nv-todo-items>div.done {
+    background: rgba(52, 199, 89, 0.18);
+    color: #A7ADB6;
+}
+
+.nv-todo-items>div.done span {
+    text-decoration: line-through;
+}
+
+.nv-todo-items b {
+    width: 13px;
+    height: 13px;
+    flex: none;
+    border: 1.5px solid #747982;
+    border-radius: 50%;
+}
+
+.nv-todo-items .done b {
+    display: grid;
+    place-items: center;
+    border-color: #34C759;
+    background: #34C759;
+}
+
+.nv-todo-items .done .nv-check svg {
+    width: 10px;
+    height: 10px;
+    stroke: #101114;
+    stroke-width: 2.6;
+}
+
+.nv-cover {
+    position: relative;
+    flex: none;
+    width: 80px;
+    height: 80px;
+    border-radius: 14px;
+    background: #2A1B3D;
+    overflow: hidden;
+}
+
+.nv-cover i {
+    position: absolute;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    left: 17px;
+    top: 26px;
+    background: #F6C15C;
+}
+
+.nv-cover b {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 26px;
+    background: #6B2E57;
+}
+
+.nv-cover.small {
+    width: 60px;
+    height: 60px;
+}
+
+.nv-music-layout {
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.nv-music-song {
+    width: 54%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-right: 15px;
+    border-right: 1px solid #303238;
+}
+
+.nv-music-song .nv-track>p {
+    font-size: 15px;
+}
+
+.nv-music-song .nv-track>small {
+    display: block;
+    margin-top: 2px;
+}
+
+.nv-music-song .nv-progress {
+    margin-top: 6px;
+}
+
+.nv-music-song .nv-controls {
+    margin-top: 5px;
+}
+
+.nv-track {
+    flex: 1;
+    min-width: 0;
+}
+
+.nv-progress {
+    display: block;
+    height: 4px;
+    margin: 8px 0 3px;
+    border-radius: 2px;
+    background: #2A2C31;
+    overflow: hidden;
+}
+
+.nv-progress i {
+    display: block;
+    height: 100%;
+    background: #F5F6F8;
+    transition: width 0.1s linear;
+}
+
+.nv-times {
+    display: flex;
+    justify-content: space-between;
+    font-variant-numeric: tabular-nums;
+}
+
+.nv-times small {
+    font-size: 10px;
+}
+
+.nv-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 2px;
+}
+
+.nv-controls svg {
+    width: 16px;
+    height: 16px;
+    fill: #F5F6F8;
+    stroke: #F5F6F8;
+    stroke-width: 2;
+    stroke-linejoin: round;
+}
+
+.nv-controls svg.big {
+    width: 20px;
+    height: 20px;
+    stroke: none;
+}
+
+.nv-lines {
+    flex: 1;
+    min-width: 0;
+    animation: nv-lift 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.nv-lines p {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nv-lines .prev,
+.nv-lines .next {
+    font-size: 13px;
+    font-weight: 500;
+    color: #5A5F68;
+}
+
+.nv-lines .now {
+    font-size: 19px;
+    margin: 4px 0;
+    letter-spacing: -0.015em;
+}
+
+.nv-music-layout .nv-lines {
+    padding-left: 2px;
+}
+
+.nv-music-layout .nv-lines .prev,
+.nv-music-layout .nv-lines .next {
+    font-size: 13px;
+}
+
+.nv-music-layout .nv-lines .now {
+    font-size: 16px;
+    line-height: 1.3;
+}
+
+.nv-pomo {
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.nv-pomo-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.nv-pomo-time {
+    min-width: 86px;
+    display: flex;
+    flex-direction: column;
+}
+
+.nv-pomo-time strong {
+    font-size: 32px;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+}
+
+.nv-pomo-time small {
+    margin-top: 4px;
+}
+
+.nv-pomo-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.nv-pomo-actions .nv-btn {
+    height: 38px;
+}
+
+.nv-stop {
+    width: 44px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 20px;
+    background: #FF453A;
+    color: #fff;
+    font-size: 13px;
+}
+
+.nv-stop.green {
+    background: #34C759;
+}
+
+@keyframes nv-lift {
+    from {
+        transform: translateY(10px);
+        opacity: 0.4;
+    }
+
+    to {
+        transform: none;
+        opacity: 1;
+    }
+}
+
+.nv-shelf {
+    flex: 1;
+    display: flex;
+    gap: 10px;
+    height: 100%;
+}
+
+.nv-shelf>div {
+    flex: 1;
+    min-width: 0;
+    border-radius: 14px;
+    background: #1D1F23;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px;
+}
+
+.nv-shelf p {
+    font-size: 12px;
+    max-width: 100%;
+}
+
+.nv-file {
+    width: 30px;
+    height: 38px;
+    border-radius: 5px 11px 5px 5px;
+    background: #F5F6F8;
+    display: grid;
+    place-items: end center;
+    padding-bottom: 4px;
+    margin-bottom: 5px;
+}
+
+.nv-file b {
+    font-size: 8px;
+    color: #141518;
+    letter-spacing: 0.04em;
+}
+
+.nv-drop {
+    animation: nv-drop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+}
+
+@keyframes nv-drop {
+    from {
+        transform: translateY(-30px) scale(0.8);
+        opacity: 0;
+    }
+
+    to {
+        transform: none;
+        opacity: 1;
+    }
+}
+
+.nv-shelf .nv-target {
+    background: none;
+    border: 1.5px dashed #3A3D44;
+}
+
+.nv-target span {
+    font-size: 12px;
+    color: #8E939C;
+}
+
+.notch-mark {
+    display: inline-block;
+    line-height: 0;
+    vertical-align: middle;
+}
+
+.notch-mark canvas {
+    display: block;
+    cursor: pointer;
+}
+
+
+
+
+    /* Mascot Capsule in Notch Card (Screenshots 2, 3, 5) */
+    .nv-cardface {
+      flex: none;
+      width: 96px;
+      height: 52px;
+      background: #18191E;
+      border-radius: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.04), 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+    .nv-face-capsule {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+    }
+    .nv-face-capsule .eye {
+      width: 9px;
+      height: 16px;
+      background: #FFFFFF;
+      border-radius: 5px;
+      display: inline-block;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.85), 0 0 20px rgba(255, 255, 255, 0.4);
+      transition: all 0.25s ease;
+    }
+    .nv-face-capsule .eye.arch {
+      height: 9px;
+      border-radius: 6px 6px 2px 2px;
+    }
+    .nv-face-capsule .eye.dash {
+      height: 4px;
+      border-radius: 2px;
+    }
+
+    /* Active Tab Icon Fill / Stroke */
+    .nv-tabs b.on svg path {
+      fill: #141518 !important;
+    }
+    .nv-tabs b:not(.on) svg path {
+      fill: #F5F6F8 !important;
+    }
+    .nv-tabs b.on svg rect {
+      fill: #141518 !important;
+    }
+    .nv-tabs b:not(.on) svg rect {
+      fill: #F5F6F8 !important;
+    }
+
+    /* Interactive Cursors */
+    .nv-tabs b,
+    .nv-small span,
+    .nv-btn,
+    .nv-stop,
+    .nv-list-item,
+    .nv-list div b,
+    .nv-todo-items div b {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    /* Timer Notch Badge & CAS-Mono Layout (Screenshot 4) */
+    .badge-timer {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: #FF9F0A;
+      font-weight: 700;
+      font-size: 14px;
+      font-family: var(--font);
+      letter-spacing: -0.01em;
+    }
+    .badge-timer .timer-ring-svg {
+      width: 18px;
+      height: 18px;
+      transform: rotate(-90deg);
+      flex: none;
+    }
+
+</style>
 </head>
 
 <body>
   <div id="snapPill">
-    <svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 2v20M2 12h20"/></svg>
+    <svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:currentColor"><path d="M3 5.5 10.5 4.4v7H3zM11.5 4.3 21 3v8.4h-9.5zM3 12.6h7.5v7L3 18.5zM11.5 12.6H21V21l-9.5-1.3z"/></svg>
     Snap to Top Notch
   </div>
 
@@ -2629,7 +4375,13 @@
             <div id="status">Ready — say Hey FUL</div>
             <div class="pill-badges" id="pillBadges">
               <span id="bellBadge" class="badge-bell" style="display:none" title="Reminders active">🔔</span>
-              <span id="timerPillBadge" class="badge-timer" style="display:none" title="Active timer">⏱ <span id="timerPillDigits">00:00</span></span>
+              <span id="timerPillBadge" class="badge-timer" style="display:none" title="Active timer">
+              <svg class="timer-ring-svg" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="8" fill="none" stroke="#3D2914" stroke-width="2.5"></circle>
+                <circle id="timerRingProgress" class="on" cx="12" cy="12" r="8" fill="none" stroke="#FF9F0A" stroke-width="2.5" stroke-dasharray="50.26" stroke-dashoffset="0"></circle>
+              </svg>
+              <span id="timerPillDigits">00:00</span>
+            </span>
             </div>
             <button id="bCancelAction" class="cancel-btn" style="display:none" title="Cancel">✕</button>
           </div>
@@ -2649,50 +4401,50 @@
             <img id="dictateAppIcon" src="icons/antigravity.png" class="dictate-app-img" alt="App" />
           </div>
 
-          <!-- Cursor Button -->
+          <!-- Cursor Button (Exact pointer from Mark-LVI/temp W0.pointer) -->
           <button id="bScreen" title="Ask about screen / Cursor">
             <svg viewBox="0 0 24 24" class="cursor-svg">
-              <path d="M5.5 3.5l11.5 11.5-5.2.8 3.5 7-2.6 1.3-3.5-7-4.2 3.6V3.5z" fill="#ffffff" stroke="#12141a" stroke-width="1.2" stroke-linejoin="round" />
+              <path d="M7 4v14l4-3.6 2.6 5.6 2.4-1.1-2.6-5.5H19z" fill="currentColor" stroke="none" />
             </svg>
           </button>
 
-          <!-- Camera Button -->
+          <!-- Camera Button (Exact modern stroke from Mark-LVI/temp) -->
           <button id="bCamera" title="Live Camera Vision & HUD (Look, Holding, OCR)">
             <svg viewBox="0 0 24 24" class="camera-svg">
-              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <circle cx="12" cy="13" r="4" fill="none" stroke="#ffffff" stroke-width="2"/>
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="13" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/>
             </svg>
           </button>
 
-          <!-- Mic Button -->
+          <!-- Mic Button (Exact mic from Mark-LVI/temp W0.mic) -->
           <button id="bMic" title="Talk / Dictate (Ctrl+Space / Hold Right Ctrl)">
             <svg viewBox="0 0 24 24" class="mic-svg">
-              <rect x="9" y="3" width="6" height="11" rx="3" fill="#ffffff" />
-              <path d="M5.5 10.5a6.5 6.5 0 0 0 13 0M12 17v3.5M8.5 20.5h7" stroke="#ffffff" stroke-width="2" stroke-linecap="round" fill="none" />
+              <rect x="9" y="3.5" width="6" height="11" rx="3" fill="currentColor" stroke="none" />
+              <path d="M6 11.5a6 6 0 0 0 12 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
             </svg>
           </button>
 
-          <!-- Pen / Write Button -->
+          <!-- Pen / Write Button (Exact pen from Mark-LVI/temp W0.pen) -->
           <button id="bPen" title="Write / Quick Command (Ctrl+Alt+W)">
             <svg viewBox="0 0 24 24" class="pen-svg">
-              <path d="m4.5 19.5 3.8-.9 10.2-10.2a2 2 0 0 0-2.8-2.8L5.5 15.8l-1 3.7Z" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-              <path d="m13.5 7.5 2.8 2.8" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" />
+              <path d="M14.5 5.5l4 4L9 19H5v-4zM12.5 7.5l4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
 
-          <!-- More / Chevron Down Button -->
+          <!-- More / Chevron Down Button (Exact chevron from Mark-LVI/temp) -->
           <button id="bMore" title="Expand panel">
             <svg viewBox="0 0 24 24" class="more-svg" id="bMoreSvg">
-              <path id="bMorePath" d="m6 9 6 6 6-6" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+              <path id="bMorePath" d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
 
           <!-- 3rd & 5th Images: 4 Blue Wave Equalizer Bars on Right -->
-          <div class="wave-bars" id="waveBars">
+          <div class="wave-bars nv-wave" id="waveBars" style="display:none">
             <span class="w-bar b1"></span>
             <span class="w-bar b2"></span>
             <span class="w-bar b3"></span>
             <span class="w-bar b4"></span>
+            <span class="w-bar b5"></span>
           </div>
         </div>
       </div>
@@ -2716,7 +4468,7 @@
     <!-- Music Player Card (Exact match to screenshot & Dynamic Island) -->
     <div id="musicPlayer" class="music-pill-widget">
       <button id="mBtnCollapse" class="music-collapse-btn" title="Back to Pill">✕</button>
-      <!-- Top Center: FUL with Headphones -->
+      <!-- Top Center: Nixi with Headphones -->
       <div class="music-top-center">
         <canvas id="musicFace" width="160" height="80" class="music-ful-face" title="FUL listening to music · Click to collapse"></canvas>
       </div>
@@ -2733,14 +4485,14 @@
 
         <div class="music-controls">
           <button class="music-btn" id="mBtnPrev" title="Previous track">
-            <svg viewBox="0 0 24 24"><path d="m11 19-9-7 9-7v14zm11 0-9-7 9-7v14z" fill="currentColor"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M7 6v12M18 6l-8 6 8 6z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
           </button>
           <button class="music-btn play-pause-btn" id="mBtnPlayPause" title="Play / Pause">
-            <svg viewBox="0 0 24 24" id="mIconPause"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" fill="currentColor"/></svg>
-            <svg viewBox="0 0 24 24" id="mIconPlay" style="display:none"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+            <svg viewBox="0 0 24 24" id="mIconPause"><path d="M8 5h3v14H8zM13 5h3v14h-3z" fill="currentColor"/></svg>
+            <svg viewBox="0 0 24 24" id="mIconPlay" style="display:none"><path d="M7 6l11 6-11 6z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
           </button>
           <button class="music-btn" id="mBtnNext" title="Next track">
-            <svg viewBox="0 0 24 24"><path d="m4 5 9 7-9 7V5zm11 0 9 7-9 7V5z" fill="currentColor"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M17 6v12M6 6l8 6-8 6z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
           </button>
         </div>
       </div>
@@ -2757,7 +4509,7 @@
       </div>
     </div>
 
-    <!-- Camera Viewfinder Overlay (F.U.L Vision) -->
+    <!-- Camera Viewfinder Overlay (Nixi Vision) -->
     <div id="cameraModal" class="camera-viewfinder-modal">
       <div class="camera-hud-header">
         <div class="camera-hud-live"><span class="live-dot"></span> LIVE VISION</div>
@@ -2783,11 +4535,38 @@
       <div id="cameraStatusText" class="camera-status-bar">Camera active · Ask FUL to look at anything</div>
     </div>
 
-    <!-- Mini Bar Section -->
+    
+    <!-- Nixi-style Interactive Notch Card (Matching Mark-LVI/temp Screenshots 2, 3, 5) -->
+    <div id="notchWidget" class="nv-open" style="display:none">
+      <div class="nv-head">
+        <span class="nv-tabs">
+          <b class="nv-tab-btn on" id="nvTabPointer" data-mode="pointer" title="Cursor Mode">
+            <svg viewBox="0 0 24 24"><path d="M7 4v14l4-3.6 2.6 5.6 2.4-1.1-2.6-5.5H19z" fill="currentColor"/></svg>
+          </b>
+          <b class="nv-tab-btn" id="nvTabMic" data-mode="mic" title="Voice Mode">
+            <svg viewBox="0 0 24 24"><rect x="9" y="3.5" width="6" height="11" rx="3" fill="currentColor"/><path d="M6 11.5a6 6 0 0 0 12 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </b>
+          <b class="nv-tab-btn" id="nvTabPen" data-mode="pen" title="Write Mode">
+            <svg viewBox="0 0 24 24"><path d="M14.5 5.5l4 4L9 19H5v-4zM12.5 7.5l4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </b>
+        </span>
+        <span class="nv-clock" id="nvClock">Sat 1 Nov 9:41</span>
+        <span class="nv-small">
+          <span title="Tasks / Notes" id="nvTrayBtn"><svg viewBox="0 0 24 24"><path d="M4 13h4l1.5 2.5h5L16 13h4M5.5 6h13L20 13v5H4v-5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span title="Timers / Focus" id="nvTimerBtn"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 8v4.5l3 1.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <span title="Expand Companion Panel" id="nvExpandBtn"><svg viewBox="0 0 24 24"><path d="M5 7h9M18 7h1M5 12h3M12 12h7M5 17h10M19 17h0M16 5v4M10 10v4M17 15v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+        </span>
+      </div>
+      <div class="nv-card" id="nvCard">
+        <!-- Dynamic state inserted here: Ask / Notes / Pomodoro / Music -->
+      </div>
+    </div>
+
+<!-- Mini Bar Section (Matching Mark-LVI/temp) -->
     <div id="mini">
       <button id="mUp" title="Expand">
         <svg viewBox="0 0 24 24">
-          <path d="m7 15 5-5 5 5" />
+          <path d="m6 15 6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </button>
       <button id="mMic" title="Talk">
@@ -2795,8 +4574,7 @@
       </button>
       <button id="mScan" title="Ask about my screen">
         <svg viewBox="0 0 24 24">
-          <path d="M4 9V5h4M16 5h4v4M20 15v4h-4M8 19H4v-4" />
-          <circle cx="12" cy="12" r="1.2" fill="currentColor" />
+          <path d="M7 4v14l4-3.6 2.6 5.6 2.4-1.1-2.6-5.5H19z" fill="currentColor" stroke="none" />
         </svg>
       </button>
     </div>
@@ -2844,7 +4622,7 @@
       <div class="tab on" id="tab-chat">
         <div id="chatMessages" class="chat-scroll-area">
           <div class="chat-empty-state" id="chatEmptyState">
-            <div class="chat-empty-pill">⚡ FUL Assistant</div>
+            <div class="chat-empty-pill">⚡ FUL Companion</div>
             <div class="chat-empty-headline">How can I help you today?</div>
             <div class="chat-empty-hint">Ask me anything, or give me a task like "open github tiktok", "browser search latest AI news", or "volume 50".</div>
           </div>
@@ -2876,11 +4654,9 @@
       </div>
     </div>
 
-    <!-- Notification Toast Banner (Screenshot 4) -->
-    <div id="toast" class="toast-card">
-      <div class="toast-icon">
-        <span class="ful-eyes-icon"></span>
-      </div>
+    <!-- Notification Toast Banner (Screenshot 4 - Matching Mark-LVI/temp .toast) -->
+    <div id="toast" class="toast">
+      <div class="toast-pill"></div>
       <div class="toast-info">
         <strong id="toastTitle">Stretch</strong>
         <small id="toastSub">Reminder · in 20 minutes</small>
