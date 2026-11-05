@@ -612,6 +612,11 @@ const DevAgent = {
   }
 };
 
+const memoryEngine = require('./memory_engine');
+const { SystemMonitor } = require('./system_monitor_engine');
+const { WebsiteBuilder } = require('./website_builder_engine');
+const { CameraVision } = require('./camera_vision_engine');
+
 /* -------------------------------------------------------------------------
  * Export All Modules
  * ------------------------------------------------------------------------- */
@@ -621,6 +626,9 @@ module.exports = {
   DevAgent,
   getWeatherReport,
   executeUndo,
-  pushUndo
+  pushUndo,
+  memoryEngine,
+  SystemMonitor,
+  WebsiteBuilder,
+  CameraVision
 };
-

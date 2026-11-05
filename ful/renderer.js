@@ -731,7 +731,7 @@ function renderHistory() {
 function openTab(name) {
   S.bodyKind = name;
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
-  ['chat', 'history', 'lists', 'settings', 'custom'].forEach(t => {
+  ['chat', 'history', 'webforge', 'system', 'memory', 'lists', 'settings', 'custom'].forEach(t => {
     const el = $('tab-' + t);
     if (el) el.classList.toggle('on', t === name);
   });
@@ -739,10 +739,348 @@ function openTab(name) {
     setTimeout(() => { const inp = $('chatInput'); if (inp) inp.focus(); }, 80);
   } else if (name === 'history') {
     renderHistory();
+  } else if (name === 'webforge') {
+    renderWebForge();
+  } else if (name === 'system') {
+    renderSystemTab();
+  } else if (name === 'memory') {
+    renderMemoryTab();
   } else if (name === 'lists') {
     renderLists();
   } else if (name === 'settings') {
     renderSettings();
+  }
+}
+
+/* ---------------------------------------------------- WebForge Tab Renderer */
+async function renderWebForge() {
+  const container = $('tab-webforge');
+  if (!container) return;
+  container.innerHTML = `
+    <div class="tab-content-scroll">
+      <div class="wf-card">
+        <h4>🌐 WebForge AI Website Builder</h4>
+        <div style="font-size:11.5px;color:rgba(255,255,255,0.65)">
+          Generate modern, responsive HTML5 websites with animations and launch instant local preview server.
+        </div>
+        <input type="text" id="wfPrompt" class="wf-input" placeholder="E.g. Dark neon portfolio for Rikesh Dahal with projects and contact" />
+        <div style="display:flex;gap:8px">
+          <select id="wfTheme" class="wf-select">
+            <option value="futuristic_neon">Futuristic Neon (Cyan/Purple)</option>
+            <option value="dark" selected>Dark Modern</option>
+            <option value="glassmorphism">Glassmorphism</option>
+            <option value="gaming">Gaming Cyberpunk</option>
+            <option value="ai_startup">AI Startup (Indigo/Violet)</option>
+            <option value="portfolio">Clean Portfolio</option>
+            <option value="ecommerce">E-Commerce Store</option>
+            <option value="light">Clean Light</option>
+            <option value="corporate">Corporate Business</option>
+          </select>
+          <input type="text" id="wfName" class="wf-input" placeholder="site-slug (optional)" style="flex:1" />
+        </div>
+        <button id="wfBtnGenerate" class="wf-btn">🚀 Build & Launch Website</button>
+        <div id="wfStatus" style="font-size:11px;color:#93c5fd;display:none"></div>
+      </div>
+
+      <div class="wf-card">
+        <h4>📁 Created Websites</h4>
+        <div id="wfSitesList" style="display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:11.5px;color:rgba(255,255,255,0.45);text-align:center;padding:12px">Loading websites…</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  async function refreshSites() {
+    const listEl = $('wfSitesList');
+    if (!listEl) return;
+    try {
+      const sites = await ipc.invoke('website-list');
+      if (!sites || !sites.length) {
+        listEl.innerHTML = '<div style="font-size:11.5px;color:rgba(255,255,255,0.45);text-align:center;padding:12px">No websites yet. Click Build above!</div>';
+        return;
+      }
+      listEl.innerHTML = sites.map(s => `
+        <div class="wf-site-item">
+          <div>
+            <div class="wf-site-name">${s.name}</div>
+            <div class="wf-site-meta">${s.theme} · ${new Date(s.updatedAt).toLocaleDateString()}</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="wf-site-btn" data-preview="${s.name}">Preview</button>
+          </div>
+        </div>
+      `).join('');
+
+      listEl.querySelectorAll('[data-preview]').forEach(btn => {
+        btn.onclick = async () => {
+          const siteName = btn.dataset.preview;
+          btn.textContent = 'Opening…';
+          await ipc.invoke('website-preview', { site_id_or_name: siteName, open_browser: true });
+          btn.textContent = 'Preview';
+        };
+      });
+    } catch (e) {
+      listEl.innerHTML = `<div style="font-size:11px;color:#f87171">Failed to load sites: ${e.message}</div>`;
+    }
+  }
+
+  await refreshSites();
+
+  const btnGen = $('wfBtnGenerate');
+  if (btnGen) {
+    btnGen.onclick = async () => {
+      const prompt = ($('wfPrompt')?.value || '').trim();
+      const theme = $('wfTheme')?.value || 'dark';
+      const site_name = ($('wfName')?.value || '').trim();
+      const statusEl = $('wfStatus');
+
+      if (!prompt) {
+        if (statusEl) {
+          statusEl.style.display = 'block';
+          statusEl.style.color = '#f87171';
+          statusEl.textContent = 'Please enter a description for your website.';
+        }
+        return;
+      }
+
+      btnGen.disabled = true;
+      btnGen.textContent = '⚡ Building Website…';
+      if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.style.color = '#93c5fd';
+        statusEl.textContent = 'Synthesizing responsive HTML, CSS & animations…';
+      }
+
+      feel('thinking', 3000);
+      try {
+        const res = await ipc.invoke('website-build', { prompt, theme, site_name, open_browser: true });
+        if (statusEl) {
+          statusEl.style.color = '#4ade80';
+          statusEl.textContent = res;
+        }
+        feel('happy', 2000);
+        playSound('correct');
+        await refreshSites();
+      } catch (err) {
+        if (statusEl) {
+          statusEl.style.color = '#f87171';
+          statusEl.textContent = 'Error: ' + err.message;
+        }
+        feel('sad', 1500);
+      } finally {
+        btnGen.disabled = false;
+        btnGen.textContent = '🚀 Build & Launch Website';
+      }
+    };
+  }
+}
+
+/* ---------------------------------------------------- System Guardian Tab Renderer */
+async function renderSystemTab() {
+  const container = $('tab-system');
+  if (!container) return;
+  container.innerHTML = `
+    <div class="tab-content-scroll">
+      <div class="wf-card">
+        <h4>⚡ System RAM & Guardian</h4>
+        <div id="sysRamStats" style="display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:11.5px;color:rgba(255,255,255,0.5);text-align:center;padding:10px">Inspecting hardware…</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <button id="sysBtnOptimize" class="wf-btn" style="flex:1;background:linear-gradient(135deg,#10b981,#059669)">🧹 Optimize & Clean Temp</button>
+          <button id="sysBtnRefresh" class="wf-btn" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15)">🔄 Refresh</button>
+        </div>
+        <div id="sysOptStatus" style="font-size:11px;color:#4ade80;display:none;margin-top:4px"></div>
+      </div>
+
+      <div class="wf-card">
+        <h4>🔥 Top Memory Consumers</h4>
+        <div id="sysProcList" style="display:flex;flex-direction:column;gap:2px">
+          <div style="font-size:11.5px;color:rgba(255,255,255,0.5);text-align:center;padding:10px">Loading processes…</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  async function updateStats() {
+    const statsEl = $('sysRamStats');
+    const procEl = $('sysProcList');
+    if (!statsEl) return;
+    try {
+      const stats = await ipc.invoke('system-check');
+      const isHigh = stats.alert || stats.usedPercent >= 85;
+      const barColor = isHigh ? '#ff2e43' : (stats.usedPercent > 70 ? '#f59e0b' : '#3b82f6');
+      
+      statsEl.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span style="font-size:12px;font-weight:600">RAM Load: <strong style="color:${barColor}">${stats.usedPercent}%</strong></span>
+          <span style="font-size:11px;color:rgba(255,255,255,0.6)">${stats.usedGb} GB / ${stats.totalGb} GB (${stats.freeGb} GB free)</span>
+        </div>
+        <div class="ram-bar-container">
+          <div class="ram-bar-fill" style="width:${stats.usedPercent}%;background:${barColor}"></div>
+        </div>
+        <div style="font-size:11px;color:${isHigh ? '#ff727d' : '#9ca3af'};display:flex;align-items:center;gap:5px">
+          <span>${isHigh ? '⚠️ Proactive alert triggered: High memory consumption' : '● System memory is healthy'}</span>
+        </div>
+      `;
+
+      if (procEl && stats.topProcesses) {
+        procEl.innerHTML = stats.topProcesses.slice(0, 8).map(p => `
+          <div class="proc-row">
+            <span style="font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px">${p.name} ${p.count > 1 ? '<small style="color:rgba(255,255,255,0.4)">(' + p.count + ')</small>' : ''}</span>
+            <span style="color:#93c5fd;font-weight:600">${p.mb} MB</span>
+          </div>
+        `).join('');
+      }
+    } catch (e) {
+      statsEl.innerHTML = `<div style="font-size:11px;color:#f87171">Error checking memory: ${e.message}</div>`;
+    }
+  }
+
+  await updateStats();
+
+  const btnOpt = $('sysBtnOptimize');
+  if (btnOpt) {
+    btnOpt.onclick = async () => {
+      btnOpt.disabled = true;
+      btnOpt.textContent = 'Cleaning…';
+      try {
+        const res = await ipc.invoke('system-optimize');
+        const st = $('sysOptStatus');
+        if (st) {
+          st.style.display = 'block';
+          st.textContent = res.result || 'Optimization completed.';
+        }
+        playSound('correct');
+        await updateStats();
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        btnOpt.disabled = false;
+        btnOpt.textContent = '🧹 Optimize & Clean Temp';
+      }
+    };
+  }
+
+  const btnRef = $('sysBtnRefresh');
+  if (btnRef) {
+    btnRef.onclick = () => updateStats();
+  }
+}
+
+/* ---------------------------------------------------- Long-Term Memory Tab Renderer */
+async function renderMemoryTab() {
+  const container = $('tab-memory');
+  if (!container) return;
+  container.innerHTML = `
+    <div class="tab-content-scroll">
+      <div class="wf-card">
+        <h4>🧠 Long-Term Memory (Mark-LVI)</h4>
+        <div style="font-size:11.5px;color:rgba(255,255,255,0.65)">
+          Remembers Rikesh Dahal ("Boss") identity, preferences, ongoing projects, relationships, and wishes across sessions.
+        </div>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="memSearchInput" class="wf-input" placeholder="Search remembered facts…" />
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <select id="memAddCat" class="wf-select" style="flex:1">
+            <option value="preferences">Preferences</option>
+            <option value="projects">Projects</option>
+            <option value="identity">Identity</option>
+            <option value="relationships">Relationships</option>
+            <option value="wishes">Wishes</option>
+            <option value="notes">Notes</option>
+          </select>
+          <input type="text" id="memAddKey" class="wf-input" placeholder="Key (e.g. favorite_ide)" style="flex:1" />
+        </div>
+        <input type="text" id="memAddVal" class="wf-input" placeholder="Value (e.g. Antigravity IDE)" />
+        <button id="memBtnAdd" class="wf-btn" style="background:linear-gradient(135deg,#8b5cf6,#6366f1)">💾 Remember Fact</button>
+      </div>
+
+      <div class="wf-card">
+        <h4>📋 Remembered Knowledge</h4>
+        <div id="memCardsArea" style="display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:11.5px;color:rgba(255,255,255,0.45);text-align:center;padding:12px">Loading memory…</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  async function refreshMemory(filter = '') {
+    const area = $('memCardsArea');
+    if (!area) return;
+    try {
+      const data = await ipc.invoke('memory-get');
+      if (!data) return;
+      const categories = ['identity', 'preferences', 'projects', 'relationships', 'wishes', 'notes'];
+      let html = '';
+      let totalCount = 0;
+
+      for (const cat of categories) {
+        const section = data[cat] || {};
+        const entries = Object.entries(section).filter(([k, v]) => {
+          if (!filter) return true;
+          const q = filter.toLowerCase();
+          return k.toLowerCase().includes(q) || String(v).toLowerCase().includes(q);
+        });
+
+        if (entries.length) {
+          totalCount += entries.length;
+          html += `
+            <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:8px 10px;border:1px solid rgba(255,255,255,0.05)">
+              <div style="font-size:11px;font-weight:700;color:#c084fc;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">${cat}</div>
+              <div style="display:flex;flex-direction:column;gap:4px">
+                ${entries.map(([k, v]) => `
+                  <div style="display:flex;justify-content:space-between;align-items:center;font-size:11.5px">
+                    <span><strong style="color:rgba(255,255,255,0.85)">${k}:</strong> <span style="color:rgba(255,255,255,0.65)">${String(v)}</span></span>
+                    <button class="wf-site-btn" style="background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:#fca5a5;padding:2px 6px" data-del-cat="${cat}" data-del-key="${k}">✕</button>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }
+      }
+
+      area.innerHTML = html || `<div style="font-size:11.5px;color:rgba(255,255,255,0.45);text-align:center;padding:12px">${filter ? 'No memories matching filter' : 'No memories saved yet.'}</div>`;
+
+      area.querySelectorAll('[data-del-key]').forEach(btn => {
+        btn.onclick = async () => {
+          const c = btn.dataset.delCat;
+          const k = btn.dataset.delKey;
+          await ipc.invoke('memory-forget', { category: c, key: k });
+          refreshMemory($('memSearchInput')?.value || '');
+        };
+      });
+    } catch (e) {
+      area.innerHTML = `<div style="font-size:11px;color:#f87171">Failed to load memory: ${e.message}</div>`;
+    }
+  }
+
+  await refreshMemory();
+
+  const searchInput = $('memSearchInput');
+  if (searchInput) {
+    searchInput.oninput = () => refreshMemory(searchInput.value.trim());
+  }
+
+  const btnAdd = $('memBtnAdd');
+  if (btnAdd) {
+    btnAdd.onclick = async () => {
+      const cat = $('memAddCat')?.value || 'notes';
+      const key = ($('memAddKey')?.value || '').trim();
+      const val = ($('memAddVal')?.value || '').trim();
+      if (!key || !val) {
+        alert('Please provide both Key and Value to remember.');
+        return;
+      }
+      await ipc.invoke('memory-save', { category: cat, key, value: val });
+      if ($('memAddKey')) $('memAddKey').value = '';
+      if ($('memAddVal')) $('memAddVal').value = '';
+      playSound('correct');
+      refreshMemory();
+    };
   }
 }
 
@@ -2007,19 +2345,17 @@ async function findAndClickLikeWithVision() {
       "3) Return ONLY a valid JSON object in this format: {\"found\": true, \"x_percent\": 62.5, \"y_percent\": 75.0, \"title\": \"video title\", \"platform\": \"YouTube\"}.\n" +
       "4) If no like button is visible on the screen, return {\"found\": false}.";
 
-    const vUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${S.cfg.key}`;
-    const vRes = await fetch(vUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    const vRes = await ipc.invoke('gemini-generate-content', {
+      model: 'gemini-2.5-flash',
+      payload: {
         contents: [{ role: 'user', parts: [{ text: prompt }, { inlineData: { mimeType: 'image/png', data: b64 } }] }],
         generationConfig: { responseMimeType: 'application/json' }
-      })
+      },
+      timeout: 35000
     });
 
-    if (vRes.ok) {
-      const vData = await vRes.json();
-      const jsonText = vData.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (vRes && vRes.ok && vRes.data) {
+      const jsonText = vRes.data.candidates?.[0]?.content?.parts?.[0]?.text;
       if (jsonText) {
         const parsed = JSON.parse(jsonText.replace(/```json|```/g, '').trim());
         if (parsed && parsed.found && typeof parsed.x_percent === 'number' && typeof parsed.y_percent === 'number') {
@@ -2137,16 +2473,20 @@ async function handleInspectVideo() {
 }
 
 /* --------------------------------------------------------- cloud model */
-const SYS = 'You are FUL, an advanced AI-powered desktop companion with FULL AUTONOMOUS CONTROL over the user\'s Windows PC, possessing the full power of Mark-LVI. ' +
-  'You can think and execute ANY desktop action, software engineering task, or multi-step workflow fast and accurately: ' +
+const SYS = 'You are FUL, an advanced AI-powered desktop companion with FULL AUTONOMOUS CONTROL over the user\'s Windows PC, possessing the combined power of Mark-LVI and F.U.L. ' +
+  'You are the devoted, intelligent companion to Rikesh Dahal ("Boss"). You can think and execute ANY desktop action, software engineering task, or multi-step workflow fast and accurately: ' +
   '1) AUTONOMOUS SOFTWARE ENGINEERING: Use `dev_agent` to scaffold entire software projects (React, Node, Python, C++, etc.), auto-install npm/pip packages, run projects, and self-heal syntax/import errors in a loop. ' +
-  '2) COMPLETE FILE SYSTEM MASTERY: Use `file_list`, `file_read`, `file_write`, `file_create`, `folder_create`, `file_delete`, `file_move`, `file_copy`, `file_rename`, `file_find`, `largest_files`, `disk_usage`, and `organize_desktop` to sort messy desktops into neat categorized folders in 1 click. ' +
-  '3) HARDWARE & SYSTEM SETTINGS: Use `brightness`, `wifi_scan`, `wifi_toggle`, `clean_temp`, `process_list`, `kill_process`, `battery_report`, and `dark_mode`. ' +
-  '4) VIDEO & MEDIA: Use `like_video` to inspect and like videos on YouTube, TikTok, Instagram, Twitter/X, etc. Use `play_music` to search and play any song on YouTube directly by name. Use `media` to pause, resume, or skip. ' +
-  '5) LIVE DATA & MESSAGING: Use `weather_report` for live weather worldwide and `send_message` for WhatsApp Web or Email. ' +
-  '6) PC & UI CONTROL: Use `mouse_action`, `keyboard_action`, `window_action`, and `vision_click` to click visual elements on screen. ' +
-  '7) MULTI-STEP WORKFLOWS & UNDO: Use `compound` to chain actions and `undo` to rollback file operations or settings. ' +
-  'Keep spoken answers concise, natural, and friendly (1-2 sentences). Never output raw code or PowerShell errors in spoken conversation.';
+  '2) WEBFORGE WEBSITE BUILDER: Use `build_website` to generate modern, responsive, animated HTML5/CSS3/JS websites (dark, light, glassmorphism, gaming, futuristic_neon, ai_startup, portfolio, corporate, ecommerce) and instantly launch a live preview server in the browser. Use `preview_website` and `list_websites` to inspect. ' +
+  '3) CAMERA VISION & HUD: Use `camera_vision` to look through the webcam to describe surroundings, identify objects the user is holding, read printed or screen text (OCR), and evaluate posture/ergonomics. Use `camera_snapshot` to save photos to Pictures. ' +
+  '4) LONG-TERM MEMORY ENGINE: You remember Rikesh\'s identity, preferences, ongoing projects, relationships, wishes, and notes across sessions. Use `save_memory` to remember facts, `recall_memory` to search, and `forget_memory` to remove. ' +
+  '5) SYSTEM GUARDIAN & HIGH RAM MONITOR: Use `system_health` to monitor RAM, free memory, CPU, and top heavy processes. ' +
+  '6) COMPLETE FILE SYSTEM MASTERY: Use `file_list`, `file_read`, `file_write`, `file_create`, `folder_create`, `file_delete`, `file_move`, `file_copy`, `file_rename`, `file_find`, `largest_files`, `disk_usage`, and `organize_desktop` to sort messy desktops into neat categorized folders in 1 click. ' +
+  '7) HARDWARE & SYSTEM SETTINGS: Use `brightness`, `wifi_scan`, `wifi_toggle`, `clean_temp`, `process_list`, `kill_process`, `battery_report`, and `dark_mode`. ' +
+  '8) VIDEO & MEDIA: Use `like_video` to inspect and like videos on YouTube, TikTok, Instagram, Twitter/X, etc. Use `play_music` to search and play any song on YouTube directly by name. Use `media` to pause, resume, or skip. ' +
+  '9) LIVE DATA & MESSAGING: Use `weather_report` for live weather worldwide and `send_message` for WhatsApp Web or Email. ' +
+  '10) PC & UI CONTROL: Use `mouse_action`, `keyboard_action`, `window_action`, and `vision_click` to click visual elements on screen. ' +
+  '11) MULTI-STEP WORKFLOWS & UNDO: Use `compound` to chain actions and `undo` to rollback file operations or settings. ' +
+  'Language: Fluent in English and Nepali (हजुर मालिक, हुन्छ म गरिहाल्छु, कुनै चिन्ता नलिनुहोस्). Keep spoken answers concise, natural, and friendly (1-2 sentences). Never output raw code or PowerShell errors in spoken conversation.';
 
 const S_ = (p, r) => ({ type: 'object', properties: p, required: r || Object.keys(p) });
 const str = { type: 'string' }, num = { type: 'number' }, bool = { type: 'boolean' };
@@ -2177,6 +2517,15 @@ const FN = [
   ['file_find', 'Recursively search for files matching a name or extension', S_({ query: str, extension: str, searchPath: str })],
   ['send_message', 'Send or draft a message via WhatsApp Web or Email client', S_({ platform: { type: 'string', enum: ['whatsapp', 'email'] }, recipient: str, message: str }, ['message'])],
   ['dev_agent', 'Autonomous coding developer agent to scaffold projects, install dependencies, run code, and self-heal errors in a loop', S_({ action: { type: 'string', enum: ['scaffold', 'run_and_fix', 'exec'] }, projectName: str, projectType: str, files: { type: 'object' }, autoInstall: bool, projectPath: str, runCommand: str }, ['action'])],
+  ['build_website', 'Generate a complete, modern responsive website with HTML/CSS/JS animations, interactive components, and instant live preview server', S_({ prompt: str, theme: { type: 'string', enum: ['dark', 'light', 'glassmorphism', 'gaming', 'futuristic_neon', 'ai_startup', 'portfolio', 'corporate', 'ecommerce'] }, site_name: str, open_browser: bool }, ['prompt'])],
+  ['preview_website', 'Start preview server and open a generated website in browser', S_({ site_id_or_name: str }, ['site_id_or_name'])],
+  ['list_websites', 'List all websites created by WebForge', S_({})],
+  ['camera_vision', 'Inspect surroundings, held objects, read documents, or analyze posture using the camera', S_({ mode: { type: 'string', enum: ['describe', 'holding', 'read_text', 'posture'] }, prompt: str })],
+  ['camera_snapshot', 'Capture and save a high-resolution snapshot from camera into Pictures folder', S_({ filename: str })],
+  ['save_memory', 'Save a long-term memory, fact, preference, project, wish or note about Rikesh Dahal (Boss)', S_({ category: { type: 'string', enum: ['identity', 'preferences', 'projects', 'relationships', 'wishes', 'notes'] }, key: str, value: str }, ['key', 'value'])],
+  ['recall_memory', 'Search long-term memory for past facts, preferences, context, or saved notes', S_({ query: str }, ['query'])],
+  ['forget_memory', 'Remove a specific fact from long-term memory', S_({ category: str, key: str }, ['category', 'key'])],
+  ['system_health', 'Check real-time RAM usage percentage, free memory, and top memory-hogging processes with optimization advice', S_({})],
   ['undo', 'Undo the most recent file operation, desktop organization, or setting change', S_({})],
   ['mouse_action', 'Simulate mouse action (click, doubleclick, rightclick, move, scroll) anywhere on screen', S_({ action: { type: 'string', enum: ['click', 'doubleclick', 'rightclick', 'move', 'scroll'] }, x: num, y: num, amount: num }, ['action'])],
   ['keyboard_action', 'Type text or press keyboard shortcuts into the active window (e.g. Enter, Esc, Tab, Win+D, Alt+Tab, Ctrl+C, Ctrl+V, L, Space)', S_({ keys: str, text: str })],
@@ -2270,6 +2619,99 @@ async function callGeminiAudio(base64Webm, promptText, mimeType) {
   }
 }
 
+/* --------------------------------------------------- FUL Live Camera Vision */
+let cameraStream = null;
+
+async function startCamera() {
+  if (cameraStream) return true;
+  try {
+    const videoEl = $('cameraVideo');
+    if (!videoEl) return false;
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    videoEl.srcObject = cameraStream;
+    await videoEl.play();
+    const modal = $('cameraModal');
+    if (modal) modal.classList.add('active');
+    const shellEl = $('shell');
+    if (shellEl) shellEl.classList.add('camera-active');
+    return true;
+  } catch (err) {
+    console.warn('[CAMERA] getUserMedia error:', err);
+    return false;
+  }
+}
+
+function stopCamera() {
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(t => t.stop());
+    cameraStream = null;
+  }
+  const videoEl = $('cameraVideo');
+  if (videoEl) videoEl.srcObject = null;
+  const modal = $('cameraModal');
+  if (modal) modal.classList.remove('active');
+  const shellEl = $('shell');
+  if (shellEl) shellEl.classList.remove('camera-active');
+}
+
+async function captureCameraBase64() {
+  const videoEl = $('cameraVideo');
+  if (!videoEl || !videoEl.videoWidth) {
+    const started = await startCamera();
+    if (!started) return null;
+    await new Promise(r => setTimeout(r, 600));
+  }
+  const canvas = $('cameraCanvas') || document.createElement('canvas');
+  canvas.width = videoEl.videoWidth || 640;
+  canvas.height = videoEl.videoHeight || 480;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+  return dataUrl.split(',')[1];
+}
+
+async function handleCameraVision({ mode = 'describe', prompt = '' } = {}) {
+  setStatus('📷 Looking through camera…');
+  feel('thinking', 2000);
+  const base64Jpg = await captureCameraBase64();
+  if (!base64Jpg) {
+    return 'Camera is not accessible or video permission was denied.';
+  }
+  
+  let visionPrompt = prompt;
+  if (!visionPrompt) {
+    if (mode === 'holding') visionPrompt = 'Look closely at what the user is holding in their hands in front of the camera and describe the object in detail.';
+    else if (mode === 'read_text') visionPrompt = 'Read and transcribe all visible text, documents, book pages, screens, or labels visible in this camera view.';
+    else if (mode === 'posture') visionPrompt = 'Analyze the user\'s sitting posture, distance from the screen, lighting, and ergonomics. Give friendly advice.';
+    else visionPrompt = 'Describe what you see in front of the camera in a friendly, conversational manner. Mention the person, surroundings, objects, and expression.';
+  }
+
+  const payload = {
+    systemInstruction: { parts: [{ text: 'You are FUL, an AI companion seeing the world through the user\'s webcam. Describe what you observe warmly, accurately, and naturally.' }] },
+    contents: [{
+      role: 'user',
+      parts: [
+        { text: visionPrompt },
+        { inlineData: { mimeType: 'image/jpeg', data: base64Jpg } }
+      ]
+    }],
+    generationConfig: { thinkingConfig: { thinkingBudget: 0 } }
+  };
+
+  const res = await ipc.invoke('gemini-generate-content', {
+    model: S.cfg?.model || 'gemini-2.5-flash',
+    payload,
+    timeout: 30000
+  });
+
+  if (res && res.ok && res.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+    return res.data.candidates[0].content.parts[0].text;
+  }
+  return 'Could not analyze camera image: ' + (res?.error || 'unknown error');
+}
+
 async function askModel(text, opts = {}) {
   if (!S.cfg.key) {
     say('Add a free Gemini API key in Settings (right click) for cloud answers & questions.', 'status');
@@ -2302,31 +2744,34 @@ async function askModel(text, opts = {}) {
     }
   }, 25000);
 
+  let activeSys = SYS;
+  try {
+    const memPrompt = await ipc.invoke('memory-prompt');
+    if (memPrompt) {
+      activeSys += '\n\n' + memPrompt;
+    }
+  } catch (err) {}
+
   const parts = (opts.parts || []).concat([{ text }]);
   const payload = {
-    systemInstruction: { parts: [{ text: SYS }] },
+    systemInstruction: { parts: [{ text: activeSys }] },
     contents: [{ role: 'user', parts }],
     tools: [{ functionDeclarations: FN }],
     generationConfig: { thinkingConfig: { thinkingBudget: 0 } }
   };
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${S.cfg.model}:generateContent?key=${S.cfg.key}`;
-
   try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      signal
+    const res = await ipc.invoke('gemini-generate-content', {
+      model: S.cfg.model,
+      payload,
+      timeout: 30000
     });
     clearTimeout(timeoutTimer);
 
-    if (!res.ok) {
-      let msg = res.statusText || 'request error';
-      try { msg = (await res.json()).error?.message || msg; } catch {}
-      throw new Error(msg);
+    if (!res || !res.ok) {
+      throw new Error(res?.error || 'request error');
     }
 
-    const data = await res.json();
+    const data = res.data;
     const candidateParts = data.candidates?.[0]?.content?.parts || [];
     let out = '';
     const calls = [];
@@ -2350,6 +2795,15 @@ async function askModel(text, opts = {}) {
         } else if (c.name === 'inspect_video') {
           await handleInspectVideo();
           x = 'Inspected active window.';
+        } else if (c.name === 'camera_vision') {
+          x = await handleCameraVision(c.args);
+        } else if (c.name === 'camera_snapshot') {
+          const frame = await captureCameraBase64();
+          if (frame) {
+            x = await ipc.invoke('camera-save-snapshot', { base64Data: frame, filename: c.args?.filename });
+          } else {
+            x = 'Could not access camera for snapshot.';
+          }
         } else {
           x = await ipc.invoke('act', c.name, c.args);
         }
@@ -2508,21 +2962,19 @@ async function handleUtterance(text, kind) {
 }
 
 async function polish(text) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${S.cfg.model}:generateContent`;
-  const bodies = [
-    {
-      contents: [{ parts: [{ text: 'Transcribe this dictation into clean text. Remove ums and fillers, apply self-corrections, add punctuation. Output ONLY the final text.' }, { text }] }],
-      generationConfig: { thinkingConfig: { thinkingBudget: 0 } }
-    }
-  ];
-  const r = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': S.cfg.key },
-    body: JSON.stringify(bodies[0])
+  const payload = {
+    contents: [{ parts: [{ text: 'Transcribe this dictation into clean text. Remove ums and fillers, apply self-corrections, add punctuation. Output ONLY the final text.' }, { text }] }],
+    generationConfig: { thinkingConfig: { thinkingBudget: 0 } }
+  };
+  const r = await ipc.invoke('gemini-generate-content', {
+    model: S.cfg.model,
+    payload,
+    timeout: 10000
   });
-  const j = await r.json().catch(() => null);
+  if (!r || !r.ok) throw new Error(r?.error || 'No text.');
+  const j = r.data;
   const t = (j?.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('').trim();
-  if (!t) throw new Error((j && j.error && j.error.message) || 'No text.');
+  if (!t) throw new Error('No text.');
   return t;
 }
 
@@ -2748,6 +3200,31 @@ ipc.on('placement-snapped', (_e, p) => {
   S.cfg.placement = p;
   setStatus(p === 'top-center' ? 'Snapped to Notch' : `Docked: ${p}`);
   feel('happy', 800);
+});
+
+ipc.on('system-alert', (_e, alert) => {
+  feel('surprised', 2500);
+  playSound('sad');
+  const shellEl = $('shell');
+  if (shellEl) {
+    shellEl.classList.add('ram-warning');
+    setTimeout(() => shellEl.classList.remove('ram-warning'), 15000);
+  }
+  const statusMsg = `⚠️ High RAM: ${alert.usedPercent}% (${alert.usedGb}GB/${alert.totalGb}GB)`;
+  setStatus(statusMsg);
+  
+  const textMsg = alert.nepaliMessage || alert.message;
+  appendChatMessage('ful', textMsg);
+  
+  showToast({
+    title: '⚠️ RAM Alert: ' + alert.usedPercent + '%',
+    kind: 'warning',
+    at: Date.now()
+  });
+
+  if (S.cfg?.speak !== false) {
+    say(textMsg, 'Guardian');
+  }
 });
 
 /* --------------------------------- Toast Notification (Screenshot 4) */
@@ -3322,6 +3799,81 @@ $('bScreen').onclick = (e) => {
     setShape('state-cursor');
   }
 };
+
+const bCamera = $('bCamera');
+if (bCamera) {
+  bCamera.onclick = async (e) => {
+    e?.stopPropagation?.();
+    if (cameraStream) {
+      stopCamera();
+    } else {
+      await startCamera();
+    }
+  };
+}
+
+const btnCamClose = $('btnCameraClose');
+if (btnCamClose) btnCamClose.onclick = () => stopCamera();
+
+const camActDesc = $('camActDescribe');
+if (camActDesc) {
+  camActDesc.onclick = async () => {
+    camActDesc.disabled = true;
+    const ans = await handleCameraVision({ mode: 'describe' });
+    appendChatMessage('ful', ans);
+    say(ans, 'FUL');
+    camActDesc.disabled = false;
+  };
+}
+
+const camActHold = $('camActHolding');
+if (camActHold) {
+  camActHold.onclick = async () => {
+    camActHold.disabled = true;
+    const ans = await handleCameraVision({ mode: 'holding' });
+    appendChatMessage('ful', ans);
+    say(ans, 'FUL');
+    camActHold.disabled = false;
+  };
+}
+
+const camActOcr = $('camActOcr');
+if (camActOcr) {
+  camActOcr.onclick = async () => {
+    camActOcr.disabled = true;
+    const ans = await handleCameraVision({ mode: 'read_text' });
+    appendChatMessage('ful', ans);
+    say(ans, 'FUL');
+    camActOcr.disabled = false;
+  };
+}
+
+const camActPost = $('camActPosture');
+if (camActPost) {
+  camActPost.onclick = async () => {
+    camActPost.disabled = true;
+    const ans = await handleCameraVision({ mode: 'posture' });
+    appendChatMessage('ful', ans);
+    say(ans, 'FUL');
+    camActPost.disabled = false;
+  };
+}
+
+const camActSnap = $('camActSnapshot');
+if (camActSnap) {
+  camActSnap.onclick = async () => {
+    camActSnap.disabled = true;
+    const frame = await captureCameraBase64();
+    if (frame) {
+      const res = await ipc.invoke('camera-save-snapshot', { base64Data: frame });
+      playChime();
+      showToast({ title: '📸 Snapshot Saved', kind: 'image', at: Date.now() });
+      const st = $('cameraStatusText');
+      if (st) st.textContent = res;
+    }
+    camActSnap.disabled = false;
+  };
+}
 
 $('bMore').onclick = (e) => {
   e?.stopPropagation?.();

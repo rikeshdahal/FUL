@@ -16,8 +16,18 @@ const apps = require('./apps');
 const intents = require('./intents');
 const browserRunner = require('./scripts/browser_runner');
 const { MsEdgeTTS, OUTPUT_FORMAT } = require('msedge-tts');
-const { FileController, ComputerSettings, DevAgent, getWeatherReport, executeUndo } = require('./actions_engine');
+const { FileController, ComputerSettings, DevAgent, getWeatherReport, executeUndo, memoryEngine, SystemMonitor, WebsiteBuilder, CameraVision } = require('./actions_engine');
 const { echoGuard, splitSentences, speakSystemSapi, speakElevenLabs, transcribeHostedWhisper, languageGuard } = require('./voice_engine');
+
+const systemMonitor = new SystemMonitor({
+  ramThresholdPercent: 85,
+  cooldownMs: 180000,
+  onAlert: (alertData) => {
+    send('system-alert', alertData);
+  }
+});
+const websiteBuilder = new WebsiteBuilder();
+const cameraVision = new CameraVision();
 
 if (app && app.commandLine) {
   app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
@@ -94,6 +104,8 @@ const DEFAULT_CFG = {
   batteryNotifyUnplug: true,
   chargeLimitEnabled: false,
   diskLowPercent: 10,
+  ramAlertThreshold: 85,
+  ramAlertEnabled: true,
 };
 
 let cfg = { ...DEFAULT_CFG };
@@ -1427,6 +1439,47 @@ const ACTIONS = {
       return r.output || (r.success ? 'Command executed successfully.' : 'Command exited with error.');
     }
     return `Unknown dev_agent action: ${action}`;
+  },
+
+  /* Mark-LVI Long-Term Memory Engine */
+  async save_memory({ category = 'notes', key, value } = {}) {
+    if (!key || !value) return 'Please specify key and value to remember.';
+    return memoryEngine.updateMemory({ category, key, value });
+  },
+  async recall_memory({ query = '' } = {}) {
+    const hits = memoryEngine.searchMemory(query);
+    if (!hits.length) return `No memories found matching "${query}".`;
+    return hits.map(h => `[${h.category.toUpperCase()}] ${h.key}: ${h.value}`).join('\n');
+  },
+  async forget_memory({ category, key } = {}) {
+    const ok = memoryEngine.forgetMemory(category, key);
+    return ok ? `Forgot "${key}" from ${category || 'all categories'}.` : `Could not find "${key}" in memory.`;
+  },
+
+  /* F.U.L WebForge Website Builder */
+  async build_website({ prompt, theme = 'dark', site_name, open_browser = true } = {}) {
+    return websiteBuilder.buildWebsite({ prompt, theme, site_name, open_browser });
+  },
+  async preview_website({ site_id_or_name, open_browser = true } = {}) {
+    return websiteBuilder.previewWebsite({ site_id_or_name, open_browser });
+  },
+  async list_websites() {
+    const sites = websiteBuilder.listWebsites();
+    if (!sites.length) return 'No websites created yet. Ask me to build one!';
+    return sites.map(s => `• ${s.name} (${s.theme}) - Updated: ${s.updatedAt}\n  Path: ${s.dir}`).join('\n');
+  },
+
+  /* F.U.L Camera Vision */
+  async camera_snapshot({ base64_image, filename } = {}) {
+    if (!base64_image) return 'No image frame provided for camera snapshot.';
+    return cameraVision.saveSnapshot(base64_image, filename);
+  },
+
+  /* System Health & RAM Guardian */
+  async system_health() {
+    const stats = await systemMonitor.checkMemory();
+    const topStr = stats.topProcesses.slice(0, 5).map(p => `  • ${p.name}: ${p.mb} MB (${p.count} proc)`).join('\n');
+    return `System Health:\nRAM Usage: ${stats.usedPercent}% (${stats.usedGb} GB used / ${stats.totalGb} GB total)\nFree RAM: ${stats.freeGb} GB\nStatus: ${stats.alert ? '⚠️ HIGH RAM USAGE' : '✅ Normal'}\n\nTop Memory Consumers:\n${topStr}`;
   }
 };
 
@@ -1488,7 +1541,7 @@ function pcmToWavBuffer(pcmBuffer, sampleRate = 24000, numChannels = 1, bitsPerS
 
 let geminiTtsCooldownUntil = 0;
 
-function geminiPostJson(urlStr, payload) {
+function geminiPostJson(urlStr, payload, timeoutMs = 25000) {
   return new Promise((resolve, reject) => {
     const url = new URL(urlStr);
     const bodyBuf = Buffer.from(JSON.stringify(payload), 'utf8');
@@ -1498,7 +1551,7 @@ function geminiPostJson(urlStr, payload) {
         'Content-Type': 'application/json',
         'Content-Length': bodyBuf.length
       },
-      timeout: 10000
+      timeout: timeoutMs
     }, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
@@ -1510,7 +1563,7 @@ function geminiPostJson(urlStr, payload) {
             errMsg = j?.error?.message || errMsg;
           } catch {}
           const isQuota = res.statusCode === 429 || /quota|exceeded|rate.?limit/i.test(errMsg);
-          if (isQuota) {
+          if (isQuota && urlStr.includes('tts')) {
             geminiTtsCooldownUntil = Date.now() + 18 * 3600 * 1000;
           }
           return reject(new Error(errMsg));
@@ -1523,11 +1576,25 @@ function geminiPostJson(urlStr, payload) {
       });
     });
     req.on('error', reject);
-    req.on('timeout', () => { req.destroy(); reject(new Error('Gemini TTS timed out')); });
+    req.on('timeout', () => { req.destroy(); reject(new Error('Gemini request timed out')); });
     req.write(bodyBuf);
     req.end();
   });
 }
+
+ipcMain.handle('gemini-generate-content', async (_e, { model, payload, key, timeout = 30000 } = {}) => {
+  const k = key || cfg.key || cfg.apiKey;
+  if (!k) return { ok: false, error: 'No Gemini API key configured.' };
+  const m = model || cfg.model || 'gemini-2.5-flash';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${k}`;
+  try {
+    const data = await geminiPostJson(url, payload, timeout);
+    return { ok: true, data };
+  } catch (err) {
+    const isQuota = /quota|exceeded|rate.?limit|429/i.test(err.message);
+    return { ok: false, error: err.message, isQuota };
+  }
+});
 
 ipcMain.handle('gemini-tts', async (_e, { text, voice, key } = {}) => {
   try {
@@ -1693,20 +1760,9 @@ ipcMain.handle('transcribe-audio', async (_e, { base64Webm, promptText, mimeType
         }],
         generationConfig: { thinkingConfig: { thinkingBudget: 0 }, temperature: 0.1 }
       };
-      const body = JSON.stringify(payload);
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': String(Buffer.byteLength(body))
-        },
-        body
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-        if (text) return text.replace(/^["']|["']$/g, '').trim();
-      }
+      const data = await geminiPostJson(url, payload, 15000);
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      if (text) return text.replace(/^["']|["']$/g, '').trim();
     } catch (e) {
       // continue to next model
     }
@@ -1993,6 +2049,23 @@ ipcMain.handle('active-app', async () => {
 });
 ipcMain.handle('volume-get', () => currentVolume());
 ipcMain.handle('files', async (_e, q) => findFiles(q));
+
+/* Mark-LVI Memory & Guardian IPC */
+ipcMain.handle('system-check', async () => systemMonitor.checkMemory());
+ipcMain.handle('system-optimize', async () => {
+  const r = await ComputerSettings.cleanTemp();
+  const fresh = await systemMonitor.checkMemory();
+  return { result: r, stats: fresh };
+});
+ipcMain.handle('memory-prompt', () => memoryEngine.formatMemoryForPrompt());
+ipcMain.handle('memory-get', () => memoryEngine.loadMemory());
+ipcMain.handle('memory-save', (_e, { category, key, value }) => memoryEngine.updateMemory({ category, key, value }));
+ipcMain.handle('memory-recall', (_e, { query, limit }) => memoryEngine.searchMemory(query, limit));
+ipcMain.handle('memory-forget', (_e, { category, key }) => memoryEngine.forgetMemory(category, key));
+ipcMain.handle('website-build', async (_e, opts) => websiteBuilder.buildWebsite(opts));
+ipcMain.handle('website-preview', async (_e, opts) => websiteBuilder.previewWebsite(opts));
+ipcMain.handle('website-list', async () => websiteBuilder.listWebsites());
+ipcMain.handle('camera-save-snapshot', async (_e, { base64Data, filename }) => cameraVision.saveSnapshot(base64Data, filename));
 ipcMain.on('speech-mode', (_e, mode) => setSpeechMode(mode));
 ipcMain.on('speech-capture', () => { captureGen++; speechState({ capturing: true, gen: captureGen }); });
 ipcMain.on('speech-stop', () => { speechState({ capturing: false }); setSpeechMode('wake'); });
@@ -2209,6 +2282,13 @@ if (!app.requestSingleInstanceLock()) {
 
     applyCfg();
     trackCursor();
+    try {
+      if (cfg.ramAlertEnabled !== false) {
+        systemMonitor.start(15000);
+      }
+    } catch (e) {
+      console.warn('[SYSTEM-MONITOR] Start error:', e);
+    }
     if (process.argv.includes('--workspace')) setTimeout(() => openWorkspaceWindow(), 700);
     if (process.argv.includes('--test-startup')) {
       setTimeout(() => {
@@ -2238,6 +2318,7 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   app.on('will-quit', () => {
+    try { systemMonitor && systemMonitor.stop(); } catch { }
     try { globalShortcut.unregisterAll(); } catch { }
     try { stopWakeWordWorker(); } catch { }
     try { speechProc && speechProc.kill(); } catch { }
