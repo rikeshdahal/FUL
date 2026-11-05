@@ -1489,8 +1489,8 @@ async function speak(text) {
     }
   }
 
-  // 2) Google Gemini TTS with Kore / selected voice
-  if (S.cfg.key) {
+  // 2) Google Gemini TTS with Kore / selected voice (bypassed smoothly if daily quota limit is reached)
+  if (S.cfg.key && Date.now() > (S.geminiTtsCooldownUntil || 0)) {
     try {
       const voice = S.cfg.voice || 'Kore';
       const res = await ipc.invoke('gemini-tts', { text: cleanStr, voice });
@@ -1503,10 +1503,20 @@ async function speak(text) {
         });
         if (result && result.ok) return;
       } else if (res && res.error) {
-        console.warn('Gemini TTS returned error, falling back to Edge Neural voice:', res.error);
+        if (/quota|exceeded|429/i.test(res.error)) {
+          S.geminiTtsCooldownUntil = Date.now() + 18 * 3600 * 1000;
+          console.info('[TTS] Gemini Free Tier daily audio quota reached (10 req/day limit). Seamlessly falling back to Microsoft Edge Neural voice.');
+        } else {
+          console.warn('Gemini TTS returned error, falling back to Edge Neural voice:', res.error);
+        }
       }
     } catch (e) {
-      console.warn('Gemini TTS invocation error, falling back to Edge Neural voice:', e);
+      if (/quota|exceeded|429/i.test(e.message)) {
+        S.geminiTtsCooldownUntil = Date.now() + 18 * 3600 * 1000;
+        console.info('[TTS] Gemini Free Tier daily audio quota reached. Falling back to Edge Neural voice.');
+      } else {
+        console.warn('Gemini TTS invocation error, falling back to Edge Neural voice:', e);
+      }
     }
   }
 
@@ -1589,7 +1599,7 @@ async function speakAgentPayload(payload) {
     }
 
     // 2) Google Gemini TTS
-    if (S.cfg.key) {
+    if (S.cfg.key && Date.now() > (S.geminiTtsCooldownUntil || 0)) {
       try {
         const voice = S.cfg.voice || 'Kore';
         const res = await ipc.invoke('gemini-tts', { text, voice });
@@ -1603,9 +1613,15 @@ async function speakAgentPayload(payload) {
             onEnd: finish
           });
           if (playRes && playRes.ok) return;
+        } else if (res && res.error && /quota|exceeded|429/i.test(res.error)) {
+          S.geminiTtsCooldownUntil = Date.now() + 18 * 3600 * 1000;
         }
       } catch (err) {
-        console.warn('Gemini TTS agent payload error, trying Edge Neural voice:', err);
+        if (/quota|exceeded|429/i.test(err.message)) {
+          S.geminiTtsCooldownUntil = Date.now() + 18 * 3600 * 1000;
+        } else {
+          console.warn('Gemini TTS agent payload error, trying Edge Neural voice:', err);
+        }
       }
     }
 

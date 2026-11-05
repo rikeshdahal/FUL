@@ -317,3 +317,4 @@ module.exports = {
   VISEMES,
   charToViseme
 };
+

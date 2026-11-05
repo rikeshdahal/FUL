@@ -11,6 +11,7 @@ const { execFile, spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const https = require('https');
 const apps = require('./apps');
 const intents = require('./intents');
 const browserRunner = require('./scripts/browser_runner');
@@ -1417,19 +1418,66 @@ function pcmToWavBuffer(pcmBuffer, sampleRate = 24000, numChannels = 1, bitsPerS
   return Buffer.concat([header, pcmBuffer]);
 }
 
+let geminiTtsCooldownUntil = 0;
+
+function geminiPostJson(urlStr, payload) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(urlStr);
+    const bodyBuf = Buffer.from(JSON.stringify(payload), 'utf8');
+    const req = https.request(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': bodyBuf.length
+      },
+      timeout: 10000
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        if (res.statusCode >= 400) {
+          let errMsg = `HTTP ${res.statusCode}`;
+          try {
+            const j = JSON.parse(data);
+            errMsg = j?.error?.message || errMsg;
+          } catch {}
+          const isQuota = res.statusCode === 429 || /quota|exceeded|rate.?limit/i.test(errMsg);
+          if (isQuota) {
+            geminiTtsCooldownUntil = Date.now() + 18 * 3600 * 1000;
+          }
+          return reject(new Error(errMsg));
+        }
+        try {
+          resolve(JSON.parse(data));
+        } catch (e) {
+          reject(new Error('Invalid JSON from Gemini: ' + data));
+        }
+      });
+    });
+    req.on('error', reject);
+    req.on('timeout', () => { req.destroy(); reject(new Error('Gemini TTS timed out')); });
+    req.write(bodyBuf);
+    req.end();
+  });
+}
+
 ipcMain.handle('gemini-tts', async (_e, { text, voice, key } = {}) => {
   try {
+    if (Date.now() < geminiTtsCooldownUntil) {
+      return { ok: false, error: 'Gemini TTS daily quota reached (cooldown active)' };
+    }
     const k = key || cfg.key || cfg.apiKey;
     if (!k) throw new Error('No Gemini API key configured.');
     const v = voice || cfg.voice || 'Kore';
     const cleanText = String(text || '').replace(/\s+/g, ' ').replace(/[#*`_~]/g, '').slice(0, 800);
     if (!cleanText.trim()) throw new Error('Empty text.');
 
-    // Prioritize high-performance, active Gemini TTS models (gemini-3.1-flash-tts-preview & 2.5-flash-preview-tts)
+    // Prioritize high-performance, active Gemini TTS models
     const models = ['gemini-3.1-flash-tts-preview', 'gemini-2.5-flash-preview-tts', 'gemini-3.8-flash-tts', 'gemini-3.8-flash-lite-tts'];
     let lastErr = null;
 
     for (const model of models) {
+      if (Date.now() < geminiTtsCooldownUntil) break;
       try {
         const promptText = model.includes('2.5') ? `Read aloud verbatim: ${cleanText}` : cleanText;
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${k}`;
@@ -1446,19 +1494,8 @@ ipcMain.handle('gemini-tts', async (_e, { text, voice, key } = {}) => {
             }
           }
         };
-        const bodyStr = JSON.stringify(payload);
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: bodyStr
-        });
-        if (!res.ok) {
-          const errData = await res.json().catch(() => null);
-          throw new Error(errData?.error?.message || `HTTP ${res.status}`);
-        }
-        const data = await res.json();
+
+        const data = await geminiPostJson(url, payload);
         const part = data?.candidates?.[0]?.content?.parts?.[0];
         const audioData = part?.inlineData?.data;
         const mimeType = part?.inlineData?.mimeType || 'audio/wav';
@@ -1499,9 +1536,12 @@ ipcMain.handle('gemini-tts', async (_e, { text, voice, key } = {}) => {
         return { ok: true, audioData: finalAudioData, mimeType: finalMimeType };
       } catch (e) {
         lastErr = e;
+        if (/quota|exceeded|429/i.test(e.message)) {
+          break; // Don't try other models if quota exceeded
+        }
       }
     }
-    throw lastErr || new Error('TTS generation failed.');
+    return { ok: false, error: lastErr?.message || 'TTS generation failed.' };
   } catch (e) {
     return { ok: false, error: e.message };
   }

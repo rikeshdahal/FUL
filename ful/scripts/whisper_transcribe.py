@@ -128,3 +128,4 @@ if __name__ == "__main__":
         print(json.dumps(out))
     else:
         print(json.dumps({"ok": False, "error": "Usage: whisper_transcribe.py <audio_file> OR whisper_transcribe.py --worker"}))
+
