@@ -1239,6 +1239,21 @@ const ACTIONS = {
       return `Window action failed: ${e.message}`;
     }
   },
+  async compound({ actions = [] }) {
+    const list = Array.isArray(actions) ? actions : [];
+    const results = [];
+    for (let i = 0; i < list.length; i++) {
+      const a = list[i];
+      if (a && a.id && ACTIONS[a.id]) {
+        if (i > 0 && (list[i - 1].id === 'play_music' || list[i - 1].id === 'open_app')) {
+          await new Promise(r => setTimeout(r, 3800));
+        }
+        const r = await ACTIONS[a.id](a.args || {});
+        results.push(r);
+      }
+    }
+    return results.filter(Boolean).join('\n') || 'Executed tasks.';
+  },
   async like_video({ clickX = -1, clickY = -1, platform = '' }) {
     try {
       const likeScript = path.join(ROOT, 'scripts', 'like_video.ps1');

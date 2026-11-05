@@ -1565,6 +1565,28 @@ async function runIntent(intent, confirmed, opts = {}) {
   const isVoice = !!opts.voice;
   const fromChat = !!opts.fromChat || S.panel === 'chat';
 
+  if (id === 'compound') {
+    const actions = Array.isArray(args.actions) ? args.actions : [];
+    if (!actions.length) return;
+    setStatus(`⚡ Executing ${actions.length} tasks in sequence…`);
+    feel('thinking', 1000);
+    const spokenSay = intent.say || `Executing ${actions.length} tasks.`;
+    if (isVoice || S.cfg.speak) speak(spokenSay);
+
+    for (let i = 0; i < actions.length; i++) {
+      const act = actions[i];
+      if (i > 0 && (actions[i - 1].id === 'play_music' || actions[i - 1].id === 'open_app' || actions[i - 1].id === 'open_url')) {
+        // Wait 4 seconds for YouTube / browser window to open and load the video before liking
+        setStatus(`⏳ Waiting for video to load in browser…`);
+        feel('thinking', 3000);
+        await new Promise(r => setTimeout(r, 4200));
+      }
+      await runIntent(act, true, { ...opts, voice: false });
+    }
+    feel('happy', 2500);
+    return;
+  }
+
   if (id === 'thanks') {
     celebrate();
     setStatus('Any time!');

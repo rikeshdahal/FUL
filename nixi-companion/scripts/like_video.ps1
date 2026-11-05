@@ -38,6 +38,15 @@ $comb = "$title $app $process $Platform".ToLower()
 
 $ws = New-Object -ComObject WScript.Shell
 
+# Ensure browser window (YouTube/TikTok/Instagram) has focus
+$browserProc = Get-Process | Where-Object { $_.MainWindowTitle -match 'YouTube|TikTok|Instagram|Chrome|Edge|Brave|Firefox' } | Select-Object -First 1
+if ($browserProc) {
+  try {
+    $ws.AppActivate($browserProc.Id)
+    Start-Sleep -Milliseconds 400
+  } catch {}
+}
+
 # 3) Platform-specific smart actions
 if ($comb -match 'tiktok') {
   # TikTok web has standard 'l' key to like active video

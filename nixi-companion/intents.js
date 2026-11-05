@@ -350,8 +350,10 @@ const INTENTS = [
                      .replace(/\b(?:bajau|lagau|chalao|bajai\s+deu|bajai\s+dinus)\b/gi, '')
                      .trim();
 
-      // Strip trailing "song", "track", "video", "music"
-      song = song.replace(/\s+(?:song|track|video|music)$/i, '').trim();
+      // Strip trailing "song", "track", "video", "music", "song play gara", "play gara", "bajau", etc.
+      song = song.replace(/\s+(?:geet\s+|song\s+)?(?:play\s+gara|play\s+gardeu|play\s+gar|play\s+garnu|bajaideu|bajau|chalao|chalaideu|lagau|song|track|video|music|geet)$/i, '')
+                 .replace(/\s+(?:play|bajau|chalao|gara|gardeu)$/i, '')
+                 .trim();
 
       if (!song || song.length < 2) {
         return { id: 'media', args: { action: 'play' }, say: null };
@@ -371,7 +373,7 @@ const INTENTS = [
   },
   {
     id: 'like_video',
-    test: /\b(?:like(?:\s+(?:this|the))?\s+(?:video|song|reel|post|track)|thumbs?\s*up|inspect\s+and\s+like|hit\s+like)\b/i,
+    test: /\b(?:like(?:\s+(?:this|the))?\s+(?:video|song|reel|post|track)|(?:video|song|post|reel)\s*(?:lai\s*)?like(?:\s*(?:gara|gardeu|garnu|hana|gardinuhos))?|like\s+(?:gara|gardeu|garnu|gardinuhos)|thumbs?\s*up|inspect\s+and\s+like|hit\s+like)\b/i,
     run: t => {
       let platform = '';
       if (/\byoutube\b/i.test(t)) platform = 'youtube';
@@ -609,57 +611,63 @@ function match(text) {
   const raw = String(text || '').trim();
   if (!raw) return null;
 
-  // Check if multiple action triggers are present (e.g. "open tiktok open youtube open google", or "open tiktok and open youtube")
-  const hasMultipleVerbs = (raw.match(/\b(?:open|launch|start|run|go to|play|close)\b/gi) || []).length > 1;
-
-  // If there are not multiple action verbs, see if it matches a single intent directly
-  if (!hasMultipleVerbs) {
-    const direct = matchSingle(raw);
-    if (direct) return direct;
-  }
-
-  let parts = [];
-  if (/\s+(?:and then|then|;)\s+/i.test(raw)) {
-    parts = raw.split(/\s+(?:and then|then|;)\s+/i);
-  } else if (hasMultipleVerbs) {
-    // Splits repeated commands like "open tiktok open youtube" or "open github and play agar tum sath ho"
-    const cleaned = raw.replace(/\s+\band\s+(?=(?:open|launch|start|run|go to|close|play)\b)/gi, ' ');
-    parts = cleaned.split(/(?<=\S)\s*[,;]?\s+(?=(?:open|launch|start|run|go to|close|play)\b)/i);
-  } else if (/\s+\band\s+(?=(?:open|launch|start|run|close|mute|volume|set|remind|turn|dark mode|light mode|play)\b)/i.test(raw)) {
-    parts = raw.split(/\s+\band\s+(?=(?:open|launch|start|run|close|mute|volume|set|remind|turn|dark mode|light mode|play)\b)/i);
-  } else if (/\s+\band\b\s+/i.test(raw) && !/\bsearch\b/i.test(raw)) {
-    const p = raw.split(/\s+\band\b\s+/i).map(s => s.trim()).filter(Boolean);
-    if (p.length > 1 && p.every(x => /\b(open|launch|start|run|close|mute|volume|set|remind|turn|dark mode|light mode|play)\b/i.test(x))) {
-      parts = p;
-    }
-  }
-
-  if (parts.length > 1) {
-    const sub = [];
-    for (const p of parts) {
-      const item = matchSingle(p.trim());
-      if (item) sub.push(item);
-    }
-    if (sub.length === parts.length) {
-      const appNames = [];
-      for (const it of sub) {
-        if (it.id === 'open_app' && it.args?.names) appNames.push(...it.args.names);
+  // 1) First check if compound conjunctions exist (English "and then", "then", "and", Nepali "ra", "ani")
+  // e.g. "youtube ma agartum sath ho song play gara ra video lai like gara"
+  // "open github and open tiktok"
+  // "open spotify ani volume badhau"
+  const conjunctionRegex = /\s+(?:and then|then|;|\bra\b|\bani\b|\band\b)\s+/i;
+  if (conjunctionRegex.test(raw) && !/\bsearch\b/i.test(raw)) {
+    const candidateParts = raw.split(conjunctionRegex).map(s => s.trim()).filter(Boolean);
+    if (candidateParts.length > 1) {
+      const sub = [];
+      for (const p of candidateParts) {
+        const item = matchSingle(p.trim());
+        if (item) sub.push(item);
       }
-      let compoundSay = '';
-      if (appNames.length === sub.length && appNames.length > 0) {
-        compoundSay = 'Opening ' + (appNames.length > 2 ? appNames.slice(0, -1).join(', ') + ', and ' + appNames[appNames.length - 1] : appNames.join(' and ')) + '.';
-      } else {
-        compoundSay = sub.map(s => s.say).filter(Boolean).join(' ') || 'Done.';
+      if (sub.length === candidateParts.length) {
+        const appNames = [];
+        for (const it of sub) {
+          if (it.id === 'open_app' && it.args?.names) appNames.push(...it.args.names);
+        }
+        let compoundSay = '';
+        if (appNames.length === sub.length && appNames.length > 0) {
+          compoundSay = 'Opening ' + (appNames.length > 2 ? appNames.slice(0, -1).join(', ') + ', and ' + appNames[appNames.length - 1] : appNames.join(' and ')) + '.';
+        } else {
+          compoundSay = sub.map(s => s.say).filter(Boolean).join(' ') || 'Done.';
+        }
+        return {
+          id: 'compound',
+          args: { actions: sub },
+          category: 'task',
+          say: compoundSay
+        };
       }
-      return {
-        id: 'compound',
-        args: { actions: sub },
-        category: 'task',
-        say: compoundSay
-      };
     }
   }
 
+  // 2) Check if multiple action triggers are present (e.g. "open tiktok open youtube")
+  const hasMultipleVerbs = (raw.match(/\b(?:open|launch|start|run|go to|play|close|like)\b/gi) || []).length > 1;
+  if (hasMultipleVerbs) {
+    const cleaned = raw.replace(/\s+\band\s+(?=(?:open|launch|start|run|go to|close|play|like)\b)/gi, ' ');
+    const parts = cleaned.split(/(?<=\S)\s*[,;]?\s+(?=(?:open|launch|start|run|go to|close|play|like)\b)/i);
+    if (parts.length > 1) {
+      const sub = [];
+      for (const p of parts) {
+        const item = matchSingle(p.trim());
+        if (item) sub.push(item);
+      }
+      if (sub.length === parts.length) {
+        return {
+          id: 'compound',
+          args: { actions: sub },
+          category: 'task',
+          say: sub.map(s => s.say).filter(Boolean).join(' ') || 'Done.'
+        };
+      }
+    }
+  }
+
+  // 3) Single intent match
   return matchSingle(raw);
 }
 
