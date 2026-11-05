@@ -1018,9 +1018,9 @@ function renderSettings() {
     <div class="glass-card">
       <h4>⌨ Shortcuts</h4>
       <div class="hintrow">
-        <kbd>Right Ctrl</kbd> hold - talk a command<br>
+        <kbd>Ctrl</kbd>+<kbd>Space</kbd> hold (or <kbd>Right Ctrl</kbd>) - talk a command<br>
         <kbd>Right Alt</kbd> hold - dictate directly into any app<br>
-        <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Space</kbd> talk &nbsp; <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>D</kbd> dictate &nbsp; <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>W</kbd> write<br>
+        <kbd>Ctrl</kbd>+<kbd>Space</kbd> talk &nbsp; <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>D</kbd> dictate &nbsp; <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>W</kbd> write<br>
         Drag top bar - move FUL anywhere on screen<br>
         Drag bottom-right corner - resize panel
       </div>
@@ -2431,6 +2431,9 @@ function localCleanup(text) {
   return t;
 }
 
+let lastHandledUtterance = '';
+let lastHandledUtteranceTime = 0;
+
 async function handleUtterance(text, kind) {
   const raw = String(text || '').trim();
   if (!raw) {
@@ -2438,6 +2441,12 @@ async function handleUtterance(text, kind) {
     collapse();
     return;
   }
+  const now = Date.now();
+  if (raw.toLowerCase() === lastHandledUtterance.toLowerCase() && (now - lastHandledUtteranceTime < 2500)) {
+    return;
+  }
+  lastHandledUtterance = raw;
+  lastHandledUtteranceTime = now;
   if (kind === 'dict') {
     let out = raw;
     if (S.cfg.polished && S.cfg.key) {
@@ -2518,6 +2527,10 @@ async function polish(text) {
 }
 
 /* -------------------------------------------------------- mic metering */
+let captureStartTime = 0;
+let vadSpeechStarted = false;
+let vadLastSpeech = 0;
+
 async function startMeter() {
   if (S.micStream) return true;
   try {
@@ -2531,8 +2544,6 @@ async function startMeter() {
     S.audioCtx = ctx;
     S.analyser = an;
     S.levelData = new Uint8Array(512);
-    let vadSpeechStarted = false;
-    let vadLastSpeech = 0;
     setInterval(() => {
       if (!S.analyser) return;
       S.analyser.getByteTimeDomainData(S.levelData);
@@ -2541,14 +2552,17 @@ async function startMeter() {
       const lvl = clamp(Math.sqrt(q / 512) * 4.2);
       S.level = lvl;
 
-      // Mark-LVI VAD: Auto-close turn after speech followed by natural silence (750ms)
+      // Mark-LVI VAD: Auto-close turn after speech followed by natural silence (850ms)
       if (S.capture && !isFULSpeaking()) {
         const now = Date.now();
-        if (lvl > 0.08) {
+        if (lvl > 0.045) {
           vadSpeechStarted = true;
           vadLastSpeech = now;
-        } else if (vadSpeechStarted && (now - vadLastSpeech > 750)) {
+        } else if (vadSpeechStarted && (now - vadLastSpeech > 850)) {
           vadSpeechStarted = false;
+          endCapture();
+        } else if (!vadSpeechStarted && captureStartTime && (now - captureStartTime > 4200)) {
+          // Auto-close if no speech detected for 4.2 seconds after wake
           endCapture();
         }
       } else {
@@ -2573,15 +2587,16 @@ ipc.on('speech', async (_e, evt) => {
   else if (evt.type === 'error') { S.speechNote = evt.message || 'Speech error.'; }
   else if (evt.type === 'bye') { S.speechAlive = false; }
   else if (evt.type === 'wake') {
+    if (S.capture) return; // already capturing
     wake('greeting');
-    setStatus('Listening…');
-    setShape('capsule');
     feel('surprised', 900);
     playSound('hello');
-    startMeter();
+    echoSuppressUntil = Date.now() + 500;
+    // Mark-LVI: Automatically begin capture turn upon neural wake detection
+    await beginCapture('cmd');
   } else if (evt.type === 'text') {
+    if (S.capture) endCapture();
     wake('greeting');
-    startMeter();
     await handleUtterance(evt.text, S.capture || 'cmd');
   }
 });
@@ -2638,9 +2653,9 @@ function openGuide() {
     <div class="glass-card">
       <h4>📖 FUL Setup Guide</h4>
       <div class="hintrow" style="font-size:13px;line-height:1.8">
-        • <strong>Hold Right Ctrl</strong> to talk a voice command<br>
+        • <strong>Hold Ctrl+Space</strong> (or Right Ctrl) to talk a voice command<br>
         • <strong>Hold Right Alt</strong> to talk into any text box (Notepad, Chrome, Word)<br>
-        • <strong>Ctrl+Alt+Space</strong> talk &nbsp; <strong>Ctrl+Alt+W</strong> write prompt<br>
+        • <strong>Ctrl+Space</strong> talk &nbsp; <strong>Ctrl+Alt+W</strong> write prompt<br>
         • <strong>Set timers:</strong> Say or type "timer 5m", "10 min timer", "remind me in 20m to stretch"<br>
         • <strong>Notifications:</strong> Timers & reminders appear on the bottom-right notification panel<br>
         • <strong>Reposition:</strong> Drag the top bar to snap to notch or corner
@@ -2772,12 +2787,15 @@ const SpeechRec = typeof window !== 'undefined' ? (window.SpeechRecognition || w
 async function beginCapture(mode) {
   wake();
   clearTimeout(captureTimeout);
+  captureStartTime = Date.now();
+  vadSpeechStarted = false;
+  vadLastSpeech = 0;
   S.capture = mode;
   setShape('state-dictate');
-  setStatus(mode === 'dict' ? 'Dictating… (click mic or ✕ to finish)' : 'Listening… (click mic or ✕ to finish)');
+  setStatus(mode === 'dict' ? 'Dictating… (click mic or ✕ to finish)' : 'Listening…');
   $('bMic').classList.add('rec');
   $('bCancelAction').style.display = 'inline-flex';
-  startMeter();
+  await startMeter();
   feel(mode === 'dict' ? 'talking' : 'listening', 12000);
 
   // Web Speech API fallback if available
@@ -2800,6 +2818,9 @@ async function beginCapture(mode) {
   }
 
   // Start MediaRecorder if available
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    try { mediaRecorder.stop(); } catch {}
+  }
   if (S.micStream) {
     try {
       recordedAudioChunks = [];
@@ -2813,14 +2834,17 @@ async function beginCapture(mode) {
   if (mode === 'dict') ipc.send('speech-mode', 'dict');
   else ipc.send('speech-capture');
 
-  // Hard safety timeout: 9 seconds
+  // Hard safety timeout: 10 seconds
   captureTimeout = setTimeout(() => {
     if (S.capture) endCapture();
-  }, 9000);
+  }, 10000);
 }
 
 async function endCapture(cancelled) {
   clearTimeout(captureTimeout);
+  captureStartTime = 0;
+  vadSpeechStarted = false;
+  vadLastSpeech = 0;
   const was = S.capture;
   S.capture = null;
   $('bMic').classList.remove('rec');
@@ -3419,7 +3443,19 @@ faceCanvas.addEventListener('pointercancel', () => finishFacePress(false));
 faceCanvas.addEventListener('pointerleave', () => finishFacePress(false));
 
 shell.addEventListener('contextmenu', e => { e.preventDefault(); openSettings(); });
+let ctrlSpaceDown = false;
 document.addEventListener('keydown', e => {
+  if (e.code === 'Space' && (e.ctrlKey || e.metaKey) && !e.repeat) {
+    const targetTag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+    if (targetTag !== 'input' && targetTag !== 'textarea') {
+      e.preventDefault();
+      if (!ctrlSpaceDown) {
+        ctrlSpaceDown = true;
+        beginCapture('cmd');
+      }
+      return;
+    }
+  }
   if (e.key === 'F5' || (e.ctrlKey && e.key.toLowerCase() === 'r')) {
     window.location.reload();
     return;
@@ -3430,6 +3466,12 @@ document.addEventListener('keydown', e => {
       setShape(S.hovering ? 'dock' : 'rest');
     }
     else if (S.panel) closePanel();
+  }
+});
+document.addEventListener('keyup', e => {
+  if (ctrlSpaceDown && (e.code === 'Space' || e.key === 'Control')) {
+    ctrlSpaceDown = false;
+    endCapture();
   }
 });
 

@@ -742,7 +742,9 @@ function startWakeWordWorker() {
       try {
         const msg = JSON.parse(line);
         if (msg.type === 'wake') {
-          send('speech', { type: 'wake', model: msg.model || 'openwakeword' });
+          if (!echoGuard.isSpeaking && Date.now() >= echoGuard.suppressingUntil) {
+            send('speech', { type: 'wake', model: msg.model || 'openwakeword' });
+          }
         }
       } catch {}
     }
@@ -846,6 +848,7 @@ function startHotkeys() {
 
 function registerShortcuts() {
   try {
+    globalShortcut.register('Control+Space', () => toggleHotkey('cmd'));
     globalShortcut.register('Control+Shift+Space', () => toggleHotkey('cmd'));
     globalShortcut.register('Control+Shift+D', () => toggleHotkey('dict'));
     globalShortcut.register('Control+Shift+W', () => send('hotkey', 'write'));
@@ -864,14 +867,21 @@ function onHotkey(id, down) {
   };
   if (id === 'rc') return guard(down ? 'cmd-hold' : 'cmd-release');
   if (id === 'ra') return guard(down ? 'dict-hold' : 'dict-release');
-  if (id === 'cmd') return guard(down ? 'cmd' : 'cmd-up');
-  if (id === 'dict') return guard(down ? 'dict' : 'dict-up');
+  if (id === 'cmd') {
+    lastTrigger['on_cmd'] = down;
+    return guard(down ? 'cmd' : 'cmd-up');
+  }
+  if (id === 'dict') {
+    lastTrigger['on_dict'] = down;
+    return guard(down ? 'dict' : 'dict-up');
+  }
   if (id === 'write') return guard(down ? 'write' : 'write-up');
   if (id === 'mute') return guard(down ? 'mute' : 'mute-up');
 }
 
 /* ---------------------------------------------------------------- media */
 function toggleHotkey(id) {
+  if (hotkeyProc && (id === 'cmd' || id === 'dict')) return;
   const now = Date.now();
   const stamp = 'toggle_' + id;
   if (lastTrigger[stamp] && now - lastTrigger[stamp] < 400) return;

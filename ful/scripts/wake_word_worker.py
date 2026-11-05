@@ -90,6 +90,8 @@ def main():
                     is_suppressed = True
                 elif st.get("isSpeaking") is True:
                     is_suppressed = True
+                elif st.get("capturing") is True:
+                    is_suppressed = True
                 elif st.get("suppressingUntil") and (time.time() * 1000) < float(st.get("suppressingUntil")):
                     is_suppressed = True
                 else:
@@ -149,3 +151,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

@@ -7,7 +7,7 @@
 
     rc     Right Ctrl          -> command mode (hold to talk)
     ra     Right Alt           -> dictation mode (hold to talk)
-    cmd    Ctrl + Alt + Space  -> command mode
+    cmd    Ctrl + Space        -> command mode (push to talk / toggle)
     dict   Ctrl + Alt + D      -> dictation mode
     write  Ctrl + Alt + W      -> write mode
     mute   Ctrl + Alt + M      -> toggle mute
@@ -45,7 +45,7 @@ function Alt  { ([FULKeys]::Down($VK_LMENU)    -or [FULKeys]::Down($VK_RMENU)) }
 $groups = [ordered]@{
   'rc'    = { [FULKeys]::Down($VK_RCONTROL) }
   'ra'    = { [FULKeys]::Down($VK_RMENU) }
-  'cmd'   = { (Ctrl) -and (Alt) -and ([FULKeys]::Down($VK_SPACE)) }
+  'cmd'   = { (Ctrl) -and ([FULKeys]::Down($VK_SPACE)) }
   'dict'  = { (Ctrl) -and (Alt) -and ([FULKeys]::Down($VK_D)) }
   'write' = { (Ctrl) -and (Alt) -and ([FULKeys]::Down($VK_W)) }
   'mute'  = { (Ctrl) -and (Alt) -and ([FULKeys]::Down($VK_M)) }
