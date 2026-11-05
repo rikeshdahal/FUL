@@ -82,9 +82,11 @@ window.addEventListener('mousemove', () => { S.idle = Date.now(); }, { passive: 
 window.addEventListener('keydown', () => { S.idle = Date.now(); }, { passive: true });
 window.addEventListener('pointerdown', () => { S.idle = Date.now(); }, { passive: true });
 
+let echoSuppressUntil = 0;
 const isFULSpeaking = () =>
   (currentTtsAudio && !currentTtsAudio.paused && !currentTtsAudio.ended) ||
-  (window.speechSynthesis && window.speechSynthesis.speaking);
+  (window.speechSynthesis && window.speechSynthesis.speaking) ||
+  (Date.now() < echoSuppressUntil);
 
 function currentMood() {
   if (isFULSpeaking()) return 'talking';
@@ -1454,18 +1456,50 @@ async function speak(text) {
   if (!cleanStr) return;
 
   const token = ++activeSpeechToken;
+  const estDuration = Math.max(1500, Math.min(25000, cleanStr.length * 85));
+  echoSuppressUntil = Date.now() + estDuration + 350;
+  try { ipc.send('echo-guard-start', estDuration); } catch {}
 
-  // 1) Try Google Gemini TTS first with Kore or user-selected voice
+  const onSpeechDone = () => {
+    echoSuppressUntil = Date.now() + 350;
+    try { ipc.send('echo-guard-stop'); } catch {}
+    feel('idle', 500);
+  };
+
+  // 1) Mark-LVI ElevenLabs Multilingual Neural TTS (if key provided in cfg)
+  if (S.cfg.elevenlabsKey || S.cfg.ttsEngine === 'elevenlabs') {
+    try {
+      const res = await ipc.invoke('elevenlabs-tts', {
+        text: cleanStr,
+        apiKey: S.cfg.elevenlabsKey,
+        voiceId: S.cfg.elevenlabsVoiceId || '21m00Tcm4TlvDq8ikWAM',
+        model: S.cfg.elevenlabsModel || 'eleven_flash_v2_5'
+      });
+      if (token !== activeSpeechToken) { onSpeechDone(); return; }
+      if (res && res.ok && res.audioData) {
+        feel('talking', estDuration);
+        const result = await playGeminiAudio(res.audioData, res.mimeType || 'audio/mp3', {
+          onStart: () => feel('talking', estDuration),
+          onEnd: onSpeechDone
+        });
+        if (result && result.ok) return;
+      }
+    } catch (e) {
+      console.warn('ElevenLabs TTS error, trying next engine:', e);
+    }
+  }
+
+  // 2) Google Gemini TTS with Kore / selected voice
   if (S.cfg.key) {
     try {
       const voice = S.cfg.voice || 'Kore';
       const res = await ipc.invoke('gemini-tts', { text: cleanStr, voice });
-      if (token !== activeSpeechToken) return;
+      if (token !== activeSpeechToken) { onSpeechDone(); return; }
       if (res && res.ok && res.audioData) {
-        feel('talking', Math.max(2500, Math.min(15000, cleanStr.length * 90)));
+        feel('talking', estDuration);
         const result = await playGeminiAudio(res.audioData, res.mimeType, {
-          onStart: () => feel('talking', Math.max(2500, Math.min(15000, cleanStr.length * 90))),
-          onEnd: () => feel('idle', 500)
+          onStart: () => feel('talking', estDuration),
+          onEnd: onSpeechDone
         });
         if (result && result.ok) return;
       } else if (res && res.error) {
@@ -1476,27 +1510,36 @@ async function speak(text) {
     }
   }
 
-  // 2) Realistic Microsoft Edge Neural TTS (en-US-AriaNeural female voice) - Free, ultra-natural, zero robotic sound
+  // 3) Microsoft Edge Neural TTS (en-US-AriaNeural or ne-NP-HemkalaNeural)
   try {
-    const res = await ipc.invoke('edge-tts', { text: cleanStr, voice: 'en-US-AriaNeural' });
-    if (token !== activeSpeechToken) return;
+    const isNepali = /[\u0900-\u097F]/.test(cleanStr);
+    const edgeVoice = isNepali ? 'ne-NP-HemkalaNeural' : (S.cfg.edgeVoice || 'en-US-AriaNeural');
+    const res = await ipc.invoke('edge-tts', { text: cleanStr, voice: edgeVoice });
+    if (token !== activeSpeechToken) { onSpeechDone(); return; }
     if (res && res.ok && res.audioData) {
-      feel('talking', Math.max(2500, Math.min(15000, cleanStr.length * 90)));
-      await playGeminiAudio(res.audioData, res.mimeType || 'audio/mp3', {
-        onStart: () => feel('talking', Math.max(2500, Math.min(15000, cleanStr.length * 90))),
-        onEnd: () => feel('idle', 500)
+      feel('talking', estDuration);
+      const result = await playGeminiAudio(res.audioData, res.mimeType || 'audio/mp3', {
+        onStart: () => feel('talking', estDuration),
+        onEnd: onSpeechDone
       });
-      return;
+      if (result && result.ok) return;
     }
   } catch (edgeErr) {
     console.warn('Edge TTS invocation error:', edgeErr);
   }
 
-  feel('idle', 500);
+  // 4) Offline SAPI5 System Speech Synthesizer (PowerShell UTF-8 safe)
+  try {
+    feel('talking', estDuration);
+    await ipc.invoke('system-tts', { text: cleanStr });
+  } catch (sapiErr) {
+    console.warn('System SAPI TTS error:', sapiErr);
+  }
+
+  onSpeechDone();
 }
 
 function speakBrowser(text) {
-  // Robotic SpeechSynthesis is disabled to maintain premium natural female voice
   return false;
 }
 
@@ -1512,21 +1555,49 @@ async function speakAgentPayload(payload) {
     }
 
     const token = ++activeSpeechToken;
+    const estDuration = Math.max(1500, Math.min(25000, text.length * 85));
+    echoSuppressUntil = Date.now() + estDuration + 350;
+    try { ipc.send('echo-guard-start', estDuration); } catch {}
+
     const finish = () => {
+      echoSuppressUntil = Date.now() + 350;
+      try { ipc.send('echo-guard-stop'); } catch {}
       try { feel('idle', 500); } catch {}
       ipc.send('agent-speech-event', { type: 'finished', id: payload.id || null });
     };
 
-    // 1) Try Google Gemini TTS first with Kore or selected voice
+    // 1) ElevenLabs
+    if (S.cfg.elevenlabsKey || S.cfg.ttsEngine === 'elevenlabs') {
+      try {
+        const res = await ipc.invoke('elevenlabs-tts', {
+          text,
+          apiKey: S.cfg.elevenlabsKey,
+          voiceId: S.cfg.elevenlabsVoiceId || '21m00Tcm4TlvDq8ikWAM'
+        });
+        if (token !== activeSpeechToken) { finish(); return; }
+        if (res && res.ok && res.audioData) {
+          const playRes = await playGeminiAudio(res.audioData, res.mimeType || 'audio/mp3', {
+            onStart: () => {
+              feel('talking', estDuration);
+              ipc.send('agent-speech-event', { type: 'speaking', value: true });
+            },
+            onEnd: finish
+          });
+          if (playRes && playRes.ok) return;
+        }
+      } catch (err) {}
+    }
+
+    // 2) Google Gemini TTS
     if (S.cfg.key) {
       try {
         const voice = S.cfg.voice || 'Kore';
         const res = await ipc.invoke('gemini-tts', { text, voice });
-        if (token !== activeSpeechToken) return;
+        if (token !== activeSpeechToken) { finish(); return; }
         if (res && res.ok && res.audioData) {
           const playRes = await playGeminiAudio(res.audioData, res.mimeType, {
             onStart: () => {
-              feel('talking', Math.min(12000, text.length * 100));
+              feel('talking', estDuration);
               ipc.send('agent-speech-event', { type: 'speaking', value: true });
             },
             onEnd: finish
@@ -1538,14 +1609,16 @@ async function speakAgentPayload(payload) {
       }
     }
 
-    // 2) Realistic Microsoft Edge Neural TTS (en-US-AriaNeural female voice) - Free, ultra-natural
+    // 3) Microsoft Edge Neural TTS
     try {
-      const res = await ipc.invoke('edge-tts', { text, voice: 'en-US-AriaNeural' });
-      if (token !== activeSpeechToken) return;
+      const isNepali = /[\u0900-\u097F]/.test(text);
+      const edgeVoice = isNepali ? 'ne-NP-HemkalaNeural' : (S.cfg.edgeVoice || 'en-US-AriaNeural');
+      const res = await ipc.invoke('edge-tts', { text, voice: edgeVoice });
+      if (token !== activeSpeechToken) { finish(); return; }
       if (res && res.ok && res.audioData) {
         await playGeminiAudio(res.audioData, res.mimeType || 'audio/mp3', {
           onStart: () => {
-            feel('talking', Math.min(12000, text.length * 100));
+            feel('talking', estDuration);
             ipc.send('agent-speech-event', { type: 'speaking', value: true });
           },
           onEnd: finish
@@ -1555,6 +1628,12 @@ async function speakAgentPayload(payload) {
     } catch (edgeErr) {
       console.warn('Edge TTS agent payload error:', edgeErr);
     }
+
+    // 4) Offline SAPI5 System Speech
+    try {
+      feel('talking', estDuration);
+      await ipc.invoke('system-tts', { text });
+    } catch {}
 
     finish();
   } catch {
@@ -2436,12 +2515,29 @@ async function startMeter() {
     S.audioCtx = ctx;
     S.analyser = an;
     S.levelData = new Uint8Array(512);
+    let vadSpeechStarted = false;
+    let vadLastSpeech = 0;
     setInterval(() => {
       if (!S.analyser) return;
       S.analyser.getByteTimeDomainData(S.levelData);
       let q = 0;
       for (const x of S.levelData) q += ((x - 128) / 128) ** 2;
-      S.level = clamp(Math.sqrt(q / 512) * 4.2);
+      const lvl = clamp(Math.sqrt(q / 512) * 4.2);
+      S.level = lvl;
+
+      // Mark-LVI VAD: Auto-close turn after speech followed by natural silence (750ms)
+      if (S.capture && !isFULSpeaking()) {
+        const now = Date.now();
+        if (lvl > 0.08) {
+          vadSpeechStarted = true;
+          vadLastSpeech = now;
+        } else if (vadSpeechStarted && (now - vadLastSpeech > 750)) {
+          vadSpeechStarted = false;
+          endCapture();
+        }
+      } else {
+        vadSpeechStarted = false;
+      }
     }, 50);
     return true;
   } catch (e) {
@@ -2747,20 +2843,37 @@ async function endCapture(cancelled) {
             feel('thinking', 1200);
 
             let transcribed = null;
-            // 1. Try on-device Parakeet Unified EN 0.6B (Fast, accurate live English transcription)
-            try {
-              const wavB64 = await blobToWavBase64(blob);
-              if (wavB64) {
+            const wavB64 = await blobToWavBase64(blob);
+
+            // 1. Mark-LVI Whisper STT (Local faster-whisper on CPU or hosted Groq/OpenAI)
+            if (wavB64) {
+              try {
+                const whisperRes = await ipc.invoke('whisper-transcribe', {
+                  base64Wav: wavB64,
+                  model: S.cfg.whisperModel || 'base',
+                  backend: S.cfg.whisperBackend || 'local'
+                });
+                if (whisperRes && whisperRes.ok && whisperRes.text) {
+                  transcribed = whisperRes.text;
+                }
+              } catch (wErr) {
+                console.warn('Whisper transcription failed, trying Parakeet:', wErr);
+              }
+            }
+
+            // 2. Try on-device Parakeet Unified EN 0.6B (Fast on-device English transcription)
+            if (!transcribed && wavB64) {
+              try {
                 const parakeetRes = await ipc.invoke('parakeet-transcribe', { base64Wav: wavB64 });
                 if (parakeetRes && parakeetRes.ok && parakeetRes.text) {
                   transcribed = parakeetRes.text;
                 }
+              } catch (err) {
+                console.warn('Parakeet transcription failed, falling back to Gemini:', err);
               }
-            } catch (err) {
-              console.warn('Parakeet transcription failed, falling back to Gemini:', err);
             }
 
-            // 2. Fallback to Gemini Audio if Parakeet did not return text
+            // 3. Fallback to Gemini Audio if local models did not return text
             if (!transcribed && S.cfg.key) {
               const reader = new FileReader();
               transcribed = await new Promise((resolve) => {

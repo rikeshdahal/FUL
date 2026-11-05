@@ -16,6 +16,7 @@ const intents = require('./intents');
 const browserRunner = require('./scripts/browser_runner');
 const { MsEdgeTTS, OUTPUT_FORMAT } = require('msedge-tts');
 const { FileController, ComputerSettings, DevAgent, getWeatherReport, executeUndo } = require('./actions_engine');
+const { echoGuard, splitSentences, speakSystemSapi, speakElevenLabs, transcribeHostedWhisper, languageGuard } = require('./voice_engine');
 
 if (app && app.commandLine) {
   app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
@@ -699,7 +700,16 @@ function trackCursor() {
 
 /* -------------------------------------------------------- speech worker */
 function speechState(patch) {
-  writeJson(statePath(), { mode: speechMode, wake: cfg.wakePhrase || 'hey ful', listen: !!cfg.wake, capturing: false, gen: captureGen, ...patch });
+  writeJson(statePath(), {
+    mode: speechMode,
+    wake: cfg.wakePhrase || 'hey ful',
+    listen: !!cfg.wake,
+    capturing: false,
+    gen: captureGen,
+    isSpeaking: echoGuard.isSpeaking,
+    suppressingUntil: echoGuard.suppressingUntil,
+    ...patch
+  });
 }
 
 function stopSpeech() {
@@ -1700,6 +1710,145 @@ ipcMain.handle('parakeet-transcribe', async (_e, { audioPath, base64Wav } = {}) 
       try { fs.unlinkSync(file); } catch {}
     }
   }
+});
+
+/* -------------------------------------------------------- whisper STT worker */
+let whisperProc = null;
+const whisperRequests = new Map();
+let whisperReqId = 0;
+
+function startWhisperWorker() {
+  if (whisperProc) return;
+  const pyScript = path.join(ROOT, 'scripts', 'whisper_transcribe.py');
+  if (!fs.existsSync(pyScript)) return;
+
+  try {
+    whisperProc = spawn('python', [pyScript, '--worker'], {
+      windowsHide: true,
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+  } catch (err) {
+    whisperProc = null;
+    return;
+  }
+
+  let buffer = '';
+  whisperProc.stdout.on('data', chunk => {
+    buffer += chunk.toString();
+    let idx;
+    while ((idx = buffer.indexOf('\n')) >= 0) {
+      const line = buffer.slice(0, idx).trim();
+      buffer = buffer.slice(idx + 1);
+      if (!line) continue;
+      try {
+        const msg = JSON.parse(line);
+        if (msg.id && whisperRequests.has(msg.id)) {
+          const cb = whisperRequests.get(msg.id);
+          whisperRequests.delete(msg.id);
+          cb(msg);
+        }
+      } catch {}
+    }
+  });
+
+  whisperProc.on('exit', () => { whisperProc = null; });
+  whisperProc.on('error', () => { whisperProc = null; });
+}
+
+ipcMain.handle('whisper-status', () => {
+  return { ready: true, running: !!whisperProc };
+});
+
+ipcMain.handle('whisper-transcribe', async (_e, { audioPath, base64Wav, model = 'base', language, backend = 'local', apiKey, baseUrl } = {}) => {
+  let file = audioPath;
+  let tempCreated = false;
+  try {
+    if (!file && base64Wav) {
+      const tmpDir = path.join(ud(), 'audio');
+      fs.mkdirSync(tmpDir, { recursive: true });
+      file = path.join(tmpDir, `rec_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.wav`);
+      fs.writeFileSync(file, Buffer.from(base64Wav, 'base64'));
+      tempCreated = true;
+    }
+    if (!file || !fs.existsSync(file)) {
+      return { ok: false, error: 'Audio file not found' };
+    }
+
+    const hostKey = apiKey || cfg.groqKey || cfg.openaiKey || process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY;
+    if (backend === 'hosted' || (hostKey && backend !== 'local')) {
+      try {
+        const hostUrl = baseUrl || (cfg.groqKey ? 'https://api.groq.com/openai/v1' : 'https://api.openai.com/v1');
+        const hostModel = (model === 'base' || !model) ? 'whisper-large-v3-turbo' : model;
+        return await transcribeHostedWhisper({ audioPath: file, apiKey: hostKey, baseUrl: hostUrl, model: hostModel, language });
+      } catch (hostErr) {
+        // Fall back to local worker
+      }
+    }
+
+    if (!whisperProc) startWhisperWorker();
+
+    if (whisperProc && whisperProc.stdin && whisperProc.stdin.writable) {
+      const id = 'wreq_' + (++whisperReqId);
+      const res = await new Promise((resolve) => {
+        const timer = setTimeout(() => {
+          whisperRequests.delete(id);
+          resolve({ ok: false, error: 'Whisper transcription timeout' });
+        }, 25000);
+        whisperRequests.set(id, (r) => {
+          clearTimeout(timer);
+          resolve(r);
+        });
+        whisperProc.stdin.write(JSON.stringify({ id, audio: file, model, language }) + '\n');
+      });
+      return res;
+    } else {
+      const pyScript = path.join(ROOT, 'scripts', 'whisper_transcribe.py');
+      const out = await new Promise((resolve) => {
+        execFile('python', [pyScript, file, model], { timeout: 30000, windowsHide: true }, (err, stdout) => {
+          if (err) resolve({ ok: false, error: err.message });
+          else {
+            try { resolve(JSON.parse(stdout)); } catch (e) { resolve({ ok: false, error: stdout || e.message }); }
+          }
+        });
+      });
+      return out;
+    }
+  } catch (err) {
+    return { ok: false, error: err.message };
+  } finally {
+    if (tempCreated && file) {
+      try { fs.unlinkSync(file); } catch {}
+    }
+  }
+});
+
+/* -------------------------------------------------------- mark-lvi voice & echo guard handlers */
+ipcMain.handle('system-tts', async (_e, { text, voice } = {}) => {
+  return speakSystemSapi(text, voice);
+});
+
+ipcMain.handle('elevenlabs-tts', async (_e, { text, apiKey, voiceId, model } = {}) => {
+  try {
+    const key = apiKey || cfg.elevenlabsKey || process.env.ELEVENLABS_API_KEY;
+    const vid = voiceId || cfg.elevenlabsVoiceId || '21m00Tcm4TlvDq8ikWAM';
+    return await speakElevenLabs({ text, apiKey: key, voiceId: vid, model: model || 'eleven_flash_v2_5' });
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+});
+
+ipcMain.on('echo-guard-start', (_e, durationMs) => {
+  echoGuard.start(Number(durationMs) || 2000);
+  speechState({});
+});
+
+ipcMain.on('echo-guard-stop', () => {
+  echoGuard.stop();
+  speechState({});
+});
+
+ipcMain.handle('echo-guard-check', () => {
+  return { isEcho: echoGuard.isEcho(), isSpeaking: echoGuard.isSpeaking };
 });
 ipcMain.handle('act', async (_e, name, args) => {
   try {

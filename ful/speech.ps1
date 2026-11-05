@@ -39,6 +39,7 @@ $script:appActive = $false
 $script:gen = -1
 $script:buffer = ''
 $script:lastSpeech = [DateTime]::UtcNow
+$script:isEchoSuppressed = $false
 
 function Send-Event {
   param([hashtable]$Data)
@@ -152,11 +153,23 @@ function Read-State {
       # the key was released - flush whatever was said
       $script:appActive = $false
       if ($script:capturing) {
-        if ($script:buffer.Trim()) {
+        if ($script:buffer.Trim() -and -not $script:isEchoSuppressed) {
           Send-Event @{ type = 'text'; text = $script:buffer.Trim(); final = $true }
         }
         $script:capturing = $false
         $script:buffer = ''
+      }
+    }
+
+    # Mark-LVI EchoGuard integration: drop input when FUL is speaking or in echo tail
+    $script:isEchoSuppressed = $false
+    if ($st.isSpeaking -eq $true) {
+      $script:isEchoSuppressed = $true
+    }
+    if ($st.suppressingUntil) {
+      $nowMs = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+      if ($nowMs -lt [double]$st.suppressingUntil) {
+        $script:isEchoSuppressed = $true
       }
     }
   } catch { }
@@ -212,6 +225,10 @@ try {
     }
 
     if ($res) {
+      if ($script:isEchoSuppressed) {
+        # EchoGuard: FUL is speaking or in echo decay window, suppress self audio
+        continue
+      }
       $script:lastSpeech = [DateTime]::UtcNow
       $text = ($res.Text -replace '\s+', ' ').Trim()
       $norm = Normalize $text

@@ -341,7 +341,7 @@ class Face {
       }
       const vis = clamp(isTalking ? Math.max(this.talkVis, 0.4) : this.talkVis);
       if (vis > 0.02) {
-        try { this.mouthVisualizer(c, L, t, vis, opts.audioData, opts.level); } catch {}
+        try { this.mouthVisualizer(c, L, t, vis, opts.audioData, opts.level, opts.viseme); } catch {}
       }
       if (v.dots > .02) {
         for (let i = 0; i < 3; i++) {
@@ -383,7 +383,7 @@ class Face {
     }
   }
 
-  mouthVisualizer(c, L, t, vis, audioData, level) {
+  mouthVisualizer(c, L, t, vis, audioData, level, viseme) {
     const waveW = L.d * 0.46;
     const halfW = waveW / 2;
     // Sit the mouth clearly below the eyes so it never crosses the eye area
@@ -392,6 +392,14 @@ class Face {
     const P = this.pal;
     const pts = 28;
     const points = [];
+
+    // Mark-LVI Viseme fusion: closure forces lips shut, openness scales height
+    let visOpen = 1.0;
+    let visClose = 0.0;
+    if (viseme && typeof viseme === 'object') {
+      if (typeof viseme.closure === 'number') visClose = clamp(viseme.closure);
+      if (typeof viseme.openness === 'number') visOpen = clamp(viseme.openness * 1.3, 0.4, 2.0);
+    }
 
     // Real-time audio energy calculation
     let audAmp = 0.5;
@@ -431,6 +439,9 @@ class Face {
         const composite = (s1 * 0.55 + s2 * 0.32 + s3 * 0.18);
         waveOffset = composite * (L.d * 0.12) * env * vis * audAmp;
       }
+
+      // Modulate with viseme phoneme shape
+      waveOffset = waveOffset * visOpen * (1 - visClose * 0.88);
 
       // Keep the wave from rising back into the eyes
       const y = Math.max(eyeBottom + L.d * 0.02, mouthY + waveOffset);
