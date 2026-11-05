@@ -1702,6 +1702,20 @@ async function runIntent(intent, confirmed, opts = {}) {
                     id === 'play_music' ? `Playing "${args.song}" on ${args.platform || 'YouTube'}` :
                     id === 'like_video' ? `Liking active video on ${args.platform || 'screen'}` :
                     id === 'inspect_video' ? 'Inspecting active video' :
+                    id === 'organize_desktop' ? 'Organizing Desktop clutter' :
+                    id === 'clean_temp' ? 'Cleaning temporary files' :
+                    id === 'brightness' ? `Setting brightness to ${args.level || 70}%` :
+                    id === 'wifi_scan' ? 'Scanning Wi-Fi networks' :
+                    id === 'weather_report' ? `Checking weather in ${args.location || 'current location'}` :
+                    id === 'process_list' ? 'Inspecting active processes' :
+                    id === 'disk_usage' ? 'Checking storage disk space' :
+                    id === 'largest_files' ? `Finding largest files in ${args.targetPath || 'downloads'}` :
+                    id === 'dev_agent' ? `Autonomous Dev Agent (${args.action || 'task'})` :
+                    id === 'undo' ? 'Undoing last action' :
+                    id === 'file_list' ? `Listing files in ${args.targetPath || 'directory'}` :
+                    id === 'file_read' ? `Reading file ${args.filePath || ''}` :
+                    id === 'file_write' ? `Writing file ${args.filePath || ''}` :
+                    id === 'send_message' ? `Sending message via ${args.platform || 'app'}` :
                     id === 'mouse_action' ? `Mouse ${args.action || 'click'}` :
                     id === 'keyboard_action' ? 'Keyboard action' :
                     id === 'window_action' ? `Window ${args.action || 'action'}` :
@@ -2028,16 +2042,16 @@ async function handleInspectVideo() {
 }
 
 /* --------------------------------------------------------- cloud model */
-const SYS = 'You are FUL, an advanced AI-powered desktop assistant and companion with FULL CONTROL over the user\'s Windows PC. ' +
-  'You can think and execute ANY desktop action, workflow, or multi-step task fast and accurately: ' +
-  '1) FIRST THINK: Analyze what the user wants, identify the required steps or tools, and execute them immediately. ' +
-  '2) FOR VIDEO & MEDIA: Use `like_video` to inspect and like videos on YouTube, TikTok, Instagram, Twitter/X, etc. Use `play_music` to search and play any song on YouTube directly by name. Use `media` to pause, resume, or skip. ' +
-  '3) FOR PC & UI CONTROL: Use `mouse_action` to click or scroll anywhere, `keyboard_action` to type text or press shortcuts (e.g. Enter, Esc, Ctrl+C, Win+D, Alt+Tab), and `window_action` to minimize, maximize, snap, or switch windows. Use `vision_click` to click visual elements on the screen. ' +
-  '4) FOR SYSTEM AUTOMATION: For any file operations, system actions, or desktop tasks, write and run a clean PowerShell script using `run_script`. ' +
-  '5) FOR WEB AUTOMATION: Use `browser_script` with Playwright (Node.js) or `browser_task` to control web pages, scrape content, and automate web interactions. ' +
-  '6) FOR APPS: Call `open_app` with the list of apps or websites to open. ' +
-  '7) FOR MULTI-STEP WORKFLOWS: Call `compound` or chain multiple tool calls. ' +
-  'Keep spoken answers concise, natural, and friendly (1-2 sentences). Never output raw code in spoken conversation.';
+const SYS = 'You are FUL, an advanced AI-powered desktop companion with FULL AUTONOMOUS CONTROL over the user\'s Windows PC, possessing the full power of Mark-LVI. ' +
+  'You can think and execute ANY desktop action, software engineering task, or multi-step workflow fast and accurately: ' +
+  '1) AUTONOMOUS SOFTWARE ENGINEERING: Use `dev_agent` to scaffold entire software projects (React, Node, Python, C++, etc.), auto-install npm/pip packages, run projects, and self-heal syntax/import errors in a loop. ' +
+  '2) COMPLETE FILE SYSTEM MASTERY: Use `file_list`, `file_read`, `file_write`, `file_create`, `folder_create`, `file_delete`, `file_move`, `file_copy`, `file_rename`, `file_find`, `largest_files`, `disk_usage`, and `organize_desktop` to sort messy desktops into neat categorized folders in 1 click. ' +
+  '3) HARDWARE & SYSTEM SETTINGS: Use `brightness`, `wifi_scan`, `wifi_toggle`, `clean_temp`, `process_list`, `kill_process`, `battery_report`, and `dark_mode`. ' +
+  '4) VIDEO & MEDIA: Use `like_video` to inspect and like videos on YouTube, TikTok, Instagram, Twitter/X, etc. Use `play_music` to search and play any song on YouTube directly by name. Use `media` to pause, resume, or skip. ' +
+  '5) LIVE DATA & MESSAGING: Use `weather_report` for live weather worldwide and `send_message` for WhatsApp Web or Email. ' +
+  '6) PC & UI CONTROL: Use `mouse_action`, `keyboard_action`, `window_action`, and `vision_click` to click visual elements on screen. ' +
+  '7) MULTI-STEP WORKFLOWS & UNDO: Use `compound` to chain actions and `undo` to rollback file operations or settings. ' +
+  'Keep spoken answers concise, natural, and friendly (1-2 sentences). Never output raw code or PowerShell errors in spoken conversation.';
 
 const S_ = (p, r) => ({ type: 'object', properties: p, required: r || Object.keys(p) });
 const str = { type: 'string' }, num = { type: 'number' }, bool = { type: 'boolean' };
@@ -2046,6 +2060,29 @@ const FN = [
   ['play_music', 'Search and play a song or video directly on YouTube or music platforms by name', S_({ song: str, platform: str }, ['song'])],
   ['like_video', 'Inspect active video or post (YouTube, TikTok, Instagram, Twitter/X) and hit the Like button', S_({ platform: str })],
   ['inspect_video', 'Inspect what video, audio or application is currently active on screen', S_({})],
+  ['organize_desktop', 'Automatically organize all loose clutter files on the Desktop into categorized folders (Documents, Images, Media, Archives, Installers, Code) with 1-click undo', S_({})],
+  ['clean_temp', 'Clean temporary cache and junk files from the PC to free up disk space', S_({})],
+  ['brightness', 'Set screen brightness percentage (0-100)', S_({ level: num }, ['level'])],
+  ['wifi_scan', 'Scan and list nearby available Wi-Fi networks with signal strength', S_({})],
+  ['wifi_toggle', 'Turn the Wi-Fi adapter on or off', S_({ enable: bool }, ['enable'])],
+  ['weather_report', 'Get live weather conditions, temperature, and forecast for any city or location', S_({ location: str })],
+  ['process_list', 'List the top memory and CPU consuming processes running on the PC', S_({ count: num })],
+  ['kill_process', 'Gracefully close or terminate an application or process by name', S_({ processName: str }, ['processName'])],
+  ['disk_usage', 'Inspect storage drive free and total space on all drives', S_({})],
+  ['largest_files', 'Find the largest disk space hogging files in a directory (e.g. downloads, desktop, home)', S_({ targetPath: str, count: num })],
+  ['file_list', 'List files and folders in a directory (desktop, downloads, documents, pictures, home, or path)', S_({ targetPath: str, showHidden: bool })],
+  ['file_read', 'Read text or code from a file with line limit', S_({ filePath: str, maxLines: num }, ['filePath'])],
+  ['file_write', 'Write or append text content to a file with automatic parent folder creation and undo backup', S_({ filePath: str, content: str, append: bool }, ['filePath', 'content'])],
+  ['file_create', 'Create a new file', S_({ filePath: str, content: str }, ['filePath'])],
+  ['folder_create', 'Create a new folder', S_({ folderPath: str }, ['folderPath'])],
+  ['file_delete', 'Safely delete a file or move it to the Recycle Bin with undo capability', S_({ filePath: str }, ['filePath'])],
+  ['file_move', 'Move a file or folder to a new destination', S_({ source: str, destination: str }, ['source', 'destination'])],
+  ['file_copy', 'Copy a file or folder to a destination', S_({ source: str, destination: str }, ['source', 'destination'])],
+  ['file_rename', 'Rename a file or folder', S_({ filePath: str, newName: str }, ['filePath', 'newName'])],
+  ['file_find', 'Recursively search for files matching a name or extension', S_({ query: str, extension: str, searchPath: str })],
+  ['send_message', 'Send or draft a message via WhatsApp Web or Email client', S_({ platform: { type: 'string', enum: ['whatsapp', 'email'] }, recipient: str, message: str }, ['message'])],
+  ['dev_agent', 'Autonomous coding developer agent to scaffold projects, install dependencies, run code, and self-heal errors in a loop', S_({ action: { type: 'string', enum: ['scaffold', 'run_and_fix', 'exec'] }, projectName: str, projectType: str, files: { type: 'object' }, autoInstall: bool, projectPath: str, runCommand: str }, ['action'])],
+  ['undo', 'Undo the most recent file operation, desktop organization, or setting change', S_({})],
   ['mouse_action', 'Simulate mouse action (click, doubleclick, rightclick, move, scroll) anywhere on screen', S_({ action: { type: 'string', enum: ['click', 'doubleclick', 'rightclick', 'move', 'scroll'] }, x: num, y: num, amount: num }, ['action'])],
   ['keyboard_action', 'Type text or press keyboard shortcuts into the active window (e.g. Enter, Esc, Tab, Win+D, Alt+Tab, Ctrl+C, Ctrl+V, L, Space)', S_({ keys: str, text: str })],
   ['window_action', 'Control desktop windows: minimize, maximize, restore, close, switch, snap_left, snap_right', S_({ action: { type: 'string', enum: ['minimize', 'maximize', 'restore', 'close', 'switch', 'snap_left', 'snap_right'] }, target: str }, ['action'])],
@@ -2079,6 +2116,7 @@ const FN = [
   ['clipboard_read', 'Read the clipboard', S_({})],
   ['clipboard_paste', 'Paste the clipboard into the focused window', S_({})],
   ['system_info', 'Tell the user about this PC', S_({})],
+  ['battery_report', 'Get a comprehensive battery health and charging report', S_({})],
   ['list_timers', 'List timers and reminders', S_({})],
   ['cancel_timer', 'Cancel timers and reminders', S_({})]
 ].map(([name, description, parameters]) => ({ name, description, parameters }));

@@ -440,6 +440,67 @@ const INTENTS = [
     }
   },
   {
+    id: 'organize_desktop',
+    test: /\b(?:organize\s+(?:my\s+)?desktop|desktop\s+organize|clean\s+(?:up\s+)?(?:my\s+)?desktop|desktop\s+safa\s+gara|safa\s+gara\s+desktop|tidy\s+(?:up\s+)?(?:my\s+)?desktop)\b/i,
+    run: () => ({ id: 'organize_desktop', args: {}, say: 'Organizing your desktop into tidy folders.' })
+  },
+  {
+    id: 'clean_temp',
+    test: /\b(?:clean\s+(?:up\s+)?(?:the\s+)?(?:temp|cache|junk)|clear\s+cache|delete\s+temp|temp\s+files?\s+delete|junk\s+(?:files?|clean|safa|safaa)|free\s+up\s+disk|safa\s+gara\s+temp)\b/i,
+    run: () => ({ id: 'clean_temp', args: {}, say: 'Cleaning temporary files and cache.' })
+  },
+  {
+    id: 'brightness',
+    test: /\b(?:brightness|screen\s+brightness)\b/i,
+    run: t => {
+      const m = t.match(/\b(\d{1,3})\s*(?:percent|%)?\b/);
+      let level = m ? parseInt(m[1], 10) : 70;
+      if (/\b(?:up|increase|higher|badhau)\b/i.test(t)) level = 85;
+      if (/\b(?:down|lower|decrease|ghatau|ghata)\b/i.test(t)) level = 40;
+      return { id: 'brightness', args: { level }, say: `Setting brightness to ${level}%.` };
+    }
+  },
+  {
+    id: 'wifi_scan',
+    test: /\b(?:wifi\s+scan|scan\s+wifi|available\s+wifi|kun\s+kun\s+wifi|wifi\s+networks?)\b/i,
+    run: () => ({ id: 'wifi_scan', args: {}, say: 'Scanning available Wi-Fi networks.' })
+  },
+  {
+    id: 'weather_report',
+    test: /\b(?:weather|mausam|temperature|forecast)\b/i,
+    run: t => {
+      let loc = '';
+      const m1 = t.match(/\b([a-zA-Z]+)\s+(?:ko|ma)\s+(?:weather|mausam|forecast|temperature)\b/i);
+      const m2 = t.match(/\b(?:weather|mausam|forecast|temperature)\s+(?:in|of|at|for)\s+([a-zA-Z\s]+?)(?:\s+(?:today|now|kasto|cha))?$/i);
+      const m3 = t.match(/\b(?:in|of|at|for)\s+([a-zA-Z\s]+?)(?:\s+(?:weather|today|now))?$/i);
+      if (m1) loc = m1[1];
+      else if (m2) loc = m2[1];
+      else if (m3) loc = m3[1];
+      loc = loc.replace(/\b(?:kasto|cha|today|now|please)\b/gi, '').trim();
+      return { id: 'weather_report', args: { location: loc }, say: `Checking live weather ${loc ? 'for ' + loc : ''}.` };
+    }
+  },
+  {
+    id: 'process_list',
+    test: /\b(?:task\s+manager|top\s+processes|running\s+processes|ram\s+usage|cpu\s+usage|kun\s+app\s+le\s+dherai\s+ram)\b/i,
+    run: () => ({ id: 'process_list', args: { count: 10 }, say: 'Checking running processes.' })
+  },
+  {
+    id: 'disk_usage',
+    test: /\b(?:disk\s+space|storage\s+space|drive\s+space|free\s+space|disk\s+usage|storage\s+check)\b/i,
+    run: () => ({ id: 'disk_usage', args: {}, say: 'Checking storage space.' })
+  },
+  {
+    id: 'largest_files',
+    test: /\b(?:largest\s+files?|biggest\s+files?|dherai\s+size\s+ko\s+files?)\b/i,
+    run: () => ({ id: 'largest_files', args: { targetPath: 'downloads', count: 10 }, say: 'Finding largest files.' })
+  },
+  {
+    id: 'undo',
+    test: /\b(?:undo|undo\s+that|undo\s+gara|pachhadi\s+ko\s+kaam\s+undo)\b/i,
+    run: () => ({ id: 'undo', args: {}, say: 'Undoing last action.' })
+  },
+  {
     id: 'find_file',
     test: /\b(?:find|locate|look for|search for|where is|where'?s)\b[^.]*\b(?:file|document|folder|resume|cv|pdf|spreadsheet|folder)\b|^\s*find my\b/i,
     run: t => {

@@ -15,6 +15,7 @@ const apps = require('./apps');
 const intents = require('./intents');
 const browserRunner = require('./scripts/browser_runner');
 const { MsEdgeTTS, OUTPUT_FORMAT } = require('msedge-tts');
+const { FileController, ComputerSettings, DevAgent, getWeatherReport, executeUndo } = require('./actions_engine');
 
 if (app && app.commandLine) {
   app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
@@ -1289,6 +1290,64 @@ const ACTIONS = {
     } catch (e) {
       return `Vision click failed: ${e.message}`;
     }
+  },
+
+  /* Mark-LVI File Controller */
+  async file_list(args) { return FileController.listFiles(args || {}); },
+  async file_read(args) { return FileController.readFile(args || {}); },
+  async file_write(args) { return FileController.writeFile(args || {}); },
+  async file_create(args) { return FileController.writeFile(args || {}); },
+  async folder_create(args) { return FileController.createFolder(args || {}); },
+  async file_delete(args) { return FileController.deleteFile(args || {}); },
+  async file_move(args) { return FileController.moveFile(args || {}); },
+  async file_copy(args) { return FileController.copyFile(args || {}); },
+  async file_rename(args) { return FileController.renameFile(args || {}); },
+  async file_find(args) { return FileController.findFiles(args || {}); },
+  async largest_files(args) { return FileController.getLargestFiles(args || {}); },
+  async disk_usage() { return FileController.getDiskUsage(); },
+  async organize_desktop() { return FileController.organizeDesktop(); },
+
+  /* Mark-LVI Computer Settings & Hardware */
+  async brightness({ level = 70 } = {}) { return ComputerSettings.setBrightness({ level }); },
+  async wifi_scan() { return ComputerSettings.wifiScan(); },
+  async wifi_toggle({ enable = true } = {}) { return ComputerSettings.wifiToggle({ enable }); },
+  async clean_temp() { return ComputerSettings.cleanTemp(); },
+  async process_list({ count = 10 } = {}) { return ComputerSettings.processList({ count }); },
+  async kill_process({ processName } = {}) { return ComputerSettings.killProcess({ processName }); },
+  async battery_report() { return ComputerSettings.batteryReport(); },
+
+  /* Live Weather & Communication */
+  async weather_report({ location = '' } = {}) { return getWeatherReport({ location }); },
+  async send_message({ platform = 'whatsapp', recipient = '', message = '' } = {}) {
+    if (String(platform).toLowerCase() === 'whatsapp') {
+      const cleanPhone = String(recipient || '').replace(/[^\d+]/g, '');
+      const url = cleanPhone
+        ? `https://web.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`
+        : `https://web.whatsapp.com/`;
+      await shell.openExternal(url);
+      return `Opened WhatsApp Web to message ${recipient || 'contact'}.`;
+    }
+    const mailto = `mailto:${recipient || ''}?subject=${encodeURIComponent('Message from FUL')}&body=${encodeURIComponent(message)}`;
+    await shell.openExternal(mailto);
+    return `Opened email client to draft message for ${recipient || 'contact'}.`;
+  },
+
+  /* Undo */
+  async undo() { return executeUndo(); },
+
+  /* Mark-LVI Autonomous Dev Agent */
+  async dev_agent({ action = 'scaffold', projectName, projectType, files, autoInstall = true, projectPath, runCommand } = {}) {
+    if (action === 'scaffold' || action === 'build') {
+      return DevAgent.scaffoldProject({ projectName, projectType, files: files || {}, autoInstall });
+    }
+    if (action === 'run_and_fix' || action === 'fix_errors') {
+      return DevAgent.runAndSelfHeal({ projectPath, runCommand });
+    }
+    if (action === 'exec' || action === 'run') {
+      const r = await DevAgent.executeCommand({ command: runCommand, cwd: projectPath || process.cwd() });
+      return r.output || (r.success ? 'Command executed successfully.' : 'Command exited with error.');
+    }
+    return `Unknown dev_agent action: ${action}`;
   }
 };
 
