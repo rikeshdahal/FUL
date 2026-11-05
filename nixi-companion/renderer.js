@@ -1417,9 +1417,40 @@ function playGeminiAudio(audioData, mimeType, { onStart, onEnd } = {}) {
   });
 }
 
+function sanitizeSpeech(raw) {
+  if (!raw) return '';
+  let str = String(raw).trim();
+  if (!str) return '';
+
+  // 1) Detect PowerShell parser, runtime or script exception traces
+  const isPsError = /CategoryInfo|FullyQualifiedErrorId|ParserError|At line:|char \d+|Unexpected token|Missing expression|CommandNotFoundException|ScriptBlock/i.test(str);
+
+  // 2) Detect JavaScript / NodeJS stack traces or unhandled exceptions
+  const isStackTrace = /at\s+[\w$.<>]+\s+\([^)]+:\d+:\d+\)|Error:\s+|TypeError:|SyntaxError:|ReferenceError:|UnhandledPromiseRejection/i.test(str);
+
+  // 3) Detect raw script code blocks / PowerShell code / C# / JSON dumps
+  const isCode = /(<#|#>\b|Add-Type|New-Object|\$ErrorActionPreference|System\.Windows\.Automation|function\s+\w+\s*\(|class\s+\w+|import\s+.*from|const\s+\w+\s*=|let\s+\w+\s*=|var\s+\w+\s*=)/i.test(str)
+    || (str.includes('{') && str.includes('}') && str.includes(';') && (str.includes('$') || str.includes('return') || str.includes('void')))
+    || (/^\s*[\{\[][\s\S]*[\}\]]\s*$/.test(str) && str.length > 40);
+
+  if (isPsError || isStackTrace || isCode) {
+    console.warn('[SPEECH_SANITIZER] Suppressed raw code/error in speech:', str);
+    const userName = S?.cfg?.userName || 'Rikesh';
+    return `I ran into a small issue performing that action, ${userName}. Let me know if you want me to try again.`;
+  }
+
+  // Strip markdown formatting symbols (#, *, `, _, ~)
+  str = str.replace(/[#*`_~]/g, '').trim();
+
+  // Strip HTML tags if any
+  str = str.replace(/<[^>]*>/g, '').trim();
+
+  return str;
+}
+
 async function speak(text) {
   if (!text) return;
-  const cleanStr = String(text).replace(/[#*`_~]/g, '').trim();
+  const cleanStr = sanitizeSpeech(text);
   if (!cleanStr) return;
 
   const token = ++activeSpeechToken;
@@ -1472,7 +1503,7 @@ function speakBrowser(text) {
 async function speakAgentPayload(payload) {
   try {
     if (!payload || !payload.text) return;
-    const text = String(payload.text).replace(/[#*`_~]/g, '').trim();
+    const text = sanitizeSpeech(payload.text);
     if (!text) return;
 
     if (S.cfg.speak === false) {
@@ -1637,33 +1668,8 @@ async function runIntent(intent, confirmed, opts = {}) {
     if (isVoice || S.cfg.speak) speak(text);
     return;
   }
-  if (id === 'like_video') { await handleLikeVideo(args); return; }
-  if (id === 'inspect_video') { await handleInspectVideo(); return; }
-  if (id === 'battery_status') {
-    let snap = null;
-    try { snap = await ipc.invoke('battery-get'); } catch {}
-    if (!snap) {
-      try {
-        if (navigator.getBattery) {
-          const b = await navigator.getBattery();
-          snap = { percent: Math.round(b.level * 100), online: b.charging, charging: b.charging };
-        }
-      } catch {}
-    }
-    const pct = (snap && snap.percent != null) ? snap.percent : 50;
-    const isOnline = !!(snap && (snap.online || snap.charging));
-    const name = S.cfg.userName || 'Rikesh';
-    const isNepali = String(S.cfg.language || 'mixed').toLowerCase().includes('nepali') || String(S.cfg.language || 'mixed').toLowerCase() === 'mixed';
-    const text = isOnline
-      ? (isNepali ? `Battery ahile ${pct}% ma chha ra charger lagera charging hudai chha ${name}, tension chhaina!` : `Battery is at ${pct}% and currently charging, ${name}!`)
-      : (isNepali ? `Battery ahile ${pct}% ma chha ra battery power ma chaldaichha ${name}.` : `Battery is at ${pct}% running on battery power, ${name}.`);
-    setStatus(`🔋 ${pct}% • ${isOnline ? '⚡ Charging' : 'Battery'}`);
-    feel('happy', 3000);
-    if (fromChat) appendChatMessage('ful', text);
-    else say(text, 'FUL');
-    if (isVoice || S.cfg.speak) speak(text);
-    return;
-  }
+
+
   if (id === 'play_music') {
     const songName = args.song || 'music';
     const platform = args.platform || 'YouTube';
@@ -1726,9 +1732,15 @@ async function runIntent(intent, confirmed, opts = {}) {
   } else {
     say(reply, 'status');
   }
-  const speechText = (intent.say && id === 'compound') ? intent.say : reply.replace(/\n/g, '. ');
+  let speechText = (intent.say && id === 'compound') ? intent.say : reply.replace(/\n/g, '. ');
+  if (failed) {
+    if (/ParserError|Exception|FullyQualifiedErrorId|failed:|error:|at line|stderr/i.test(speechText) || speechText.length > 110) {
+      const userName = S?.cfg?.userName || 'Rikesh';
+      speechText = `I couldn't finish that action, ${userName}. Let me know if you want me to try again.`;
+    }
+  }
   if (isVoice || S.cfg.speak) speak(speechText);
-  feel('happy', 1800);
+  feel(failed ? 'sad' : 'happy', 1800);
   updateTimers();
 }
 
@@ -1874,16 +1886,53 @@ async function askAboutScreen(prompt) {
 }
 
 /* --------------------------------------------------------- video & PC control helpers */
+async function findAndClickLikeWithVision() {
+  if (!S.cfg.key) return null;
+  try {
+    const b64 = await ipc.invoke('shot');
+    if (!b64) return null;
+
+    const prompt = "Look at this screenshot carefully. The user wants to like the currently open video or post (YouTube, Instagram, TikTok, Twitter/X, etc.).\n" +
+      "1) Find the Like button (thumbs up icon, heart icon, or 'Like' button) on the screen.\n" +
+      "2) If found, return the exact center position as percentages of screen width and height (0-100).\n" +
+      "3) Return ONLY a valid JSON object in this format: {\"found\": true, \"x_percent\": 62.5, \"y_percent\": 75.0, \"title\": \"video title\", \"platform\": \"YouTube\"}.\n" +
+      "4) If no like button is visible on the screen, return {\"found\": false}.";
+
+    const vUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${S.cfg.key}`;
+    const vRes = await fetch(vUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: prompt }, { inlineData: { mimeType: 'image/png', data: b64 } }] }],
+        generationConfig: { responseMimeType: 'application/json' }
+      })
+    });
+
+    if (vRes.ok) {
+      const vData = await vRes.json();
+      const jsonText = vData.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (jsonText) {
+        const parsed = JSON.parse(jsonText.replace(/```json|```/g, '').trim());
+        if (parsed && parsed.found && typeof parsed.x_percent === 'number' && typeof parsed.y_percent === 'number') {
+          await ipc.invoke('act', 'vision_click', { x_percent: parsed.x_percent, y_percent: parsed.y_percent });
+          return { ok: true, platform: parsed.platform || 'video', title: parsed.title || '' };
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[LIKE_VIDEO] Vision locator attempt failed:', err);
+  }
+  return null;
+}
+
 async function handleLikeVideo(args = {}) {
-  setStatus('Inspecting video to like…');
+  setStatus('Checking video to like…');
   feel('thinking', 1500);
 
-  // 1) First check active app to see if it is TikTok or another known platform
+  // 1) Quick check: if TikTok, instant 'l' shortcut
   const activeInfo = await ipc.invoke('active-app').catch(() => null);
   const title = (activeInfo?.title || '').toLowerCase();
   const app = (activeInfo?.app || '').toLowerCase();
-
-  // If TikTok, native 'l' shortcut is immediate and reliable
   if (title.includes('tiktok') || app.includes('tiktok') || (args.platform && args.platform.toLowerCase() === 'tiktok')) {
     await ipc.invoke('act', 'like_video', { platform: 'tiktok' });
     const reply = 'Liked the video on TikTok!';
@@ -1893,66 +1942,89 @@ async function handleLikeVideo(args = {}) {
     return;
   }
 
-  // 2) Use Screen capture + Gemini Vision to locate the exact Like button on screen
-  const b64 = await ipc.invoke('shot');
-  if (b64 && S.cfg.key) {
-    try {
-      const prompt = "Look at this screenshot. The user wants to like the currently open video or post (YouTube, Instagram, TikTok, Twitter/X, etc.). " +
-        "1) Find the Like button (thumbs up icon or heart icon) on the screen. " +
-        "2) Return ONLY a valid JSON object in this exact format: " +
-        '{"found": true, "x_percent": 62.5, "y_percent": 75.0, "title": "video title", "platform": "YouTube"} ' +
-        'If no like button is visible on the screen, return {"found": false}.';
-
-      const vUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${S.cfg.key}`;
-      const vRes = await fetch(vUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }, { inlineData: { mimeType: 'image/png', data: b64 } }] }],
-          generationConfig: { responseMimeType: 'application/json' }
-        })
-      });
-
-      if (vRes.ok) {
-        const vData = await vRes.json();
-        const jsonText = vData.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (jsonText) {
-          const parsed = JSON.parse(jsonText.replace(/```json|```/g, '').trim());
-          if (parsed && parsed.found && typeof parsed.x_percent === 'number' && typeof parsed.y_percent === 'number') {
-            await ipc.invoke('act', 'vision_click', { x_percent: parsed.x_percent, y_percent: parsed.y_percent });
-            const platformName = parsed.platform || 'video';
-            const titleMsg = parsed.title ? ` "${parsed.title}"` : '';
-            const msg = `Liked the ${platformName}${titleMsg}!`;
-            say(msg, 'status');
-            feel('happy', 2500);
-            speak(msg);
-            return;
-          }
-        }
-      }
-    } catch (vErr) {
-      console.warn('[LIKE_VIDEO] Vision locator notice:', vErr);
-    }
+  // 2) Attempt 1: Locate Like button with Gemini Vision
+  let visionRes = await findAndClickLikeWithVision();
+  if (visionRes && visionRes.ok) {
+    const titleMsg = visionRes.title ? ` "${visionRes.title}"` : '';
+    const msg = `Liked the ${visionRes.platform}${titleMsg}!`;
+    say(msg, 'status');
+    feel('happy', 2500);
+    playSound('correct');
+    speak(msg);
+    return;
   }
 
-  // 3) Fallback to UI Automation / script liker
-  const fallbackRes = await ipc.invoke('act', 'like_video', args);
-  const reply = (typeof fallbackRes === 'string' && fallbackRes) ? fallbackRes : 'Sent like command to active video.';
-  say(reply, 'status');
-  feel('happy', 2500);
-  speak(reply);
+  // 3) Attempt 1 didn't locate it: AUTO-FIX & RETRY
+  // User request: "error only in short and retry msg and try to fix first and try again"
+  setStatus('Focusing video and retrying…');
+  feel('thinking', 2000);
+  const retryMsg = "Couldn't spot the like button yet. Let me focus the video and try again...";
+  say(retryMsg, 'status');
+  speak(retryMsg);
+
+  // Try to fix: Bring the browser/video window to the foreground
+  await ipc.invoke('act', 'like_video', { platform: args.platform || 'YouTube' }).catch(() => null);
+  // Wait 1.6 seconds for the window to come to foreground and video player elements to settle
+  await new Promise(r => setTimeout(r, 1600));
+
+  // 4) Attempt 2: Re-capture screen and re-run Vision locator
+  visionRes = await findAndClickLikeWithVision();
+  if (visionRes && visionRes.ok) {
+    const titleMsg = visionRes.title ? ` "${visionRes.title}"` : '';
+    const msg = `Found it! Liked the ${visionRes.platform}${titleMsg}!`;
+    say(msg, 'status');
+    feel('happy', 2500);
+    playSound('correct');
+    speak(msg);
+    return;
+  }
+
+  // 5) Attempt 3: Try UI Automation / keyboard like fallback
+  try {
+    const fallbackRes = await ipc.invoke('act', 'like_video', args);
+    const cleanFallback = typeof fallbackRes === 'string' ? fallbackRes.trim() : '';
+    if (cleanFallback && /liked/i.test(cleanFallback)) {
+      const msg = 'Liked the video!';
+      say(msg, 'status');
+      feel('happy', 2500);
+      playSound('correct');
+      speak(msg);
+      return;
+    }
+  } catch (fallbackErr) {
+    console.warn('[LIKE_VIDEO] UI Automation fallback notice:', fallbackErr);
+  }
+
+  // 6) All attempts failed: Handle exception gracefully with a SHORT, friendly companion message
+  const userName = S.cfg?.userName || 'Rikesh';
+  const isNepali = String(S.cfg?.language || 'mixed').toLowerCase().includes('nepali');
+  const errorMsg = isNepali
+    ? `Screen ma like button bhetiyena ${userName}, video visible chha ki nai check garnu na.`
+    : `I couldn't locate the like button on screen, ${userName}. Please make sure the video is visible.`;
+
+  setStatus("Couldn't locate Like button.");
+  feel('sad', 2500);
+  playSound('wrong');
+  say(errorMsg, 'status');
+  speak(errorMsg);
 }
 
 async function handleInspectVideo() {
   setStatus('Inspecting active video & window…');
   feel('curious', 1500);
-  const info = await ipc.invoke('act', 'inspect_active', {});
-  const title = info?.title || info?.media?.title || 'Unknown Video';
-  const app = info?.app || 'Active Application';
-  const reply = `Active: "${title}" in ${app}.`;
-  say(reply, 'status');
-  feel('happy', 2500);
-  speak(reply);
+  try {
+    const info = await ipc.invoke('act', 'inspect_active', {});
+    const title = info?.title || info?.media?.title || 'Unknown Video';
+    const app = info?.app || 'Active Application';
+    const reply = `Active: "${title}" in ${app}.`;
+    say(reply, 'status');
+    feel('happy', 2500);
+    speak(reply);
+  } catch (e) {
+    const reply = "I couldn't inspect the active window right now.";
+    say(reply, 'status');
+    speak(reply);
+  }
 }
 
 /* --------------------------------------------------------- cloud model */
@@ -2138,7 +2210,16 @@ async function askModel(text, opts = {}) {
         const actionLabel = c.name === 'run_script' ? (c.args?.description || 'script task') : (c.name === 'compound' ? 'multi-task' : c.name.replace(/_/g, ' '));
         setStatus(`⚡ Executing ${actionLabel}…`);
         feel('thinking', 1500);
-        const x = await ipc.invoke('act', c.name, c.args);
+        let x;
+        if (c.name === 'like_video') {
+          await handleLikeVideo(c.args);
+          x = 'Liked the video.';
+        } else if (c.name === 'inspect_video') {
+          await handleInspectVideo();
+          x = 'Inspected active window.';
+        } else {
+          x = await ipc.invoke('act', c.name, c.args);
+        }
         if (x && typeof x === 'object' && x.tele) {
           openTeleprompter(x.tele);
           S.busy = false;
@@ -2158,7 +2239,10 @@ async function askModel(text, opts = {}) {
         if (!actionLines.length && !out.trim()) appendChatMessage('ful', 'Done.');
         setStatus(text2.slice(0, 60) || 'Done.');
       } else {
-        say(text2, 'FUL');
+        const spoken = failed
+          ? `I encountered an issue executing that task, ${S.cfg?.userName || 'Rikesh'}. Let me know if you want me to try again.`
+          : (out.trim() || text2);
+        say(spoken, 'FUL');
       }
       feel('happy', 2200);
       updateTimers();

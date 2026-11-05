@@ -192,7 +192,17 @@ async function psJson(script, args = []) {
 function psFile(script, args = [], timeout = 20000) {
   return new Promise(resolve => {
     execFile('powershell', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', script, ...args], { timeout, windowsHide: true, maxBuffer: 4 * 1024 * 1024 },
-      (err, stdout, stderr) => resolve(((stdout || '') + (stderr ? '\n' + stderr : '')).trim()));
+      (err, stdout, stderr) => {
+        if (err || stderr) {
+          console.warn('[PS_WARN]', script, err?.message || stderr);
+        }
+        const out = (stdout || '').trim();
+        if (out) return resolve(out);
+        if (stderr && !/ParserError|FullyQualifiedErrorId|CategoryInfo|At line:/i.test(stderr)) {
+          return resolve(stderr.trim());
+        }
+        return resolve('');
+      });
   });
 }
 const sendKeys = (keys, times = 1) => ps(`$s=New-Object -ComObject WScript.Shell;1..${times}|%{$s.SendKeys('${keys}')}`);
@@ -991,21 +1001,7 @@ const ACTIONS = {
       return `Script failed: ${e.message}`;
     }
   },
-  async compound({ actions = [] }) {
-    const list = Array.isArray(actions) ? actions : [];
-    const results = [];
-    for (const a of list) {
-      if (!a) continue;
-      const actId = a.id || a.name || a.tool;
-      if (!actId) continue;
-      const fn = ACTIONS[actId];
-      if (fn) {
-        const r = await fn(a.args || a.parameters || {});
-        if (r && typeof r === 'string') results.push(r);
-      }
-    }
-    return results.join('\n') || 'Done.';
-  },
+
   async open_url({ url }) {
     const u = String(url || '').trim();
     if (!u) return 'No address given.';
@@ -1258,9 +1254,13 @@ const ACTIONS = {
     try {
       const likeScript = path.join(ROOT, 'scripts', 'like_video.ps1');
       const out = await psFile(likeScript, ['-ClickX', String(clickX), '-ClickY', String(clickY), '-Platform', platform]);
-      return out || 'Liked video.';
+      const cleanOut = (out || '').trim();
+      if (!cleanOut || /ParserError|Exception|FullyQualifiedErrorId|At line:/i.test(cleanOut)) {
+        return 'Could not locate like button.';
+      }
+      return cleanOut;
     } catch (e) {
-      return `Like video action failed: ${e.message}`;
+      return 'Could not locate like button.';
     }
   },
   async inspect_active() {

@@ -2,11 +2,23 @@
 node_modules/
 **/node_modules/
 
+# Other folders & backups
+nixi-companion-backup*/
+**/nixi-companion-backup*/
+Mark-LVI/
+**/Mark-LVI/
+
 # Logs & debugging
 *.log
+**/*.log
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
+
+# Models & temp assets
+models/
+**/models/
+screen2.png
+**/screen2.png
 
 # OS & Environment
 .DS_Store

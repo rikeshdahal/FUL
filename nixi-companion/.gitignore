@@ -1,7 +1,11 @@
 node_modules/
 models/
+Mark-LVI/
+**/Mark-LVI/
 *.log
 *.tmp
 screen2.png
 .DS_Store
 Thumbs.db
+.env
+.env.local
