@@ -407,6 +407,23 @@ function createWindow() {
   });
   win.loadFile('index.html');
   win.once('ready-to-show', () => win.showInactive());
+
+  screen.on('display-metrics-changed', () => placeWindow(currentW, currentH));
+  screen.on('display-added', () => placeWindow(currentW, currentH));
+  screen.on('display-removed', () => placeWindow(currentW, currentH));
+
+  powerMonitor.on('resume', () => {
+    if (win && !win.isDestroyed()) {
+      placeWindow(currentW, currentH);
+      win.showInactive();
+    }
+  });
+  powerMonitor.on('unlock-screen', () => {
+    if (win && !win.isDestroyed()) {
+      placeWindow(currentW, currentH);
+      win.showInactive();
+    }
+  });
   win.on('closed', () => { win = null; });
 }
 

@@ -58,29 +58,79 @@
     }
 
     body {
-      padding: 20px;
+      padding: 0;
+      margin: 0;
       display: flex;
       justify-content: center;
       align-items: flex-start;
+      overflow: hidden;
+      background: transparent;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    /* Notch Container & Hardware Concave Shoulder Fillets */
+    .notch-container {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      position: relative;
+      width: auto;
+    }
+    .notch-shoulder {
+      width: 16px;
+      height: 16px;
+      position: relative;
+      overflow: hidden;
+      flex: none;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      z-index: 99;
+    }
+    .notch-shoulder.left::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      box-shadow: 16px -16px 0 0 #000000;
+    }
+    .notch-shoulder.right::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      box-shadow: -16px -16px 0 0 #000000;
+    }
+    .notch-container.panel-active .notch-shoulder,
+    #shell.panel ~ .notch-shoulder {
+      opacity: 0 !important;
+      pointer-events: none;
     }
 
     /* ----------------------------------------------------------- Outer Shell */
     #shell {
-      background: var(--pill);
+      background: #000000;
       color: var(--fg);
-      border: 1px solid var(--line);
-      border-radius: var(--radius-pill);
+      border: none;
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
+      border-bottom-left-radius: 22px;
+      border-bottom-right-radius: 22px;
       display: flex;
       flex-direction: column;
-      width: 112px;
-      min-height: 56px;
+      width: 240px;
+      min-height: 44px;
       position: relative;
       overflow: hidden;
       box-shadow:
-        inset 0 1px 1px 0 rgba(255, 255, 255, 0.22),
-        inset 0 -1px 1px 0 rgba(0, 0, 0, 0.45),
-        0 20px 48px -10px rgba(0, 0, 0, 0.75),
-        0 0 0 1px rgba(0, 0, 0, 0.35);
+        inset 0 1px 1px 0 rgba(255, 255, 255, 0.12),
+        0 20px 48px -10px rgba(0, 0, 0, 0.85);
       transition:
         width 0.36s cubic-bezier(0.16, 1, 0.3, 1),
         height 0.36s cubic-bezier(0.16, 1, 0.3, 1),
@@ -119,10 +169,18 @@
 
     /* Shell Mode Shapes */
     #shell.rest {
-      width: 112px;
-      height: 56px;
-      min-height: 56px;
-      border-radius: 28px;
+      width: 240px;
+      height: 44px;
+      min-height: 44px;
+      border-radius: 0 0 22px 22px;
+      background: #000000;
+    }
+    #shell.dock {
+      width: 264px;
+      height: 64px;
+      min-height: 64px;
+      border-radius: 0 0 22px 22px;
+      background: #000000;
     }
 
     /* 1st Image: Hover Dock */
@@ -454,10 +512,11 @@
       height: 520px;
       max-width: calc(100vw - 40px);
       max-height: calc(100vh - 40px);
-      border-radius: 26px;
-      background: #000000;
+      border-radius: 26px !important;
+      background: #000000 !important;
       border: 1px solid rgba(255, 255, 255, 0.08);
       box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95);
+      margin-top: 6px;
     }
 
     #shell.mini {
@@ -553,10 +612,11 @@
 
     #shell.rest #head {
       width: 100%;
-      height: 56px;
+      height: 44px;
       padding: 0;
       justify-content: center;
       align-items: center;
+      display: flex;
     }
 
     #shell.dock #head,
@@ -625,8 +685,8 @@
     }
 
     #shell.rest #face {
-      width: 104px;
-      height: 52px;
+      width: 88px;
+      height: 44px;
       margin: 0 auto;
     }
 
@@ -3177,7 +3237,9 @@
     Snap to Top Notch
   </div>
 
-  <div id="shell" class="rest breathe">
+  <div id="notchContainer" class="notch-container">
+    <div class="notch-shoulder left" id="notchShoulderLeft"></div>
+    <div id="shell" class="rest breathe">
     <!-- Ambient Reactive Aura Backdrop -->
     <div class="aura-glow" id="auraGlow"></div>
 
@@ -3492,6 +3554,8 @@
       </div>
       <button id="tDismiss" class="toast-close-btn" title="Dismiss">✕</button>
     </div>
+  </div>
+  <div class="notch-shoulder right" id="notchShoulderRight"></div>
   </div>
 
   <script src="face.js"></script>

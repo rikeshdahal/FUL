@@ -388,28 +388,28 @@ function setShape(shape) {
 
   if (shape !== 'state-dictate' && shape !== 'dictate') stopDictateAppWatch();
 
-  let targetW = 240, targetH = 48;
+  let targetW = 240, targetH = 44;
   if (shape === 'rest') {
-    targetW = 240; targetH = 48;
+    targetW = 240; targetH = 44;
   } else if (shape === 'music-card') {
     targetW = 560; targetH = 172;
   } else if (shape === 'pomo-card') {
     targetW = 560; targetH = 168;
   } else if (shape === 'timer-notch') {
-    targetW = 240; targetH = 48;
+    targetW = 240; targetH = 44;
   } else if (shape === 'dock' || shape === 'hover-dock') {
     targetW = 264; targetH = 64;
   } else if (shape === 'state-cursor' || shape === 'cursor') {
-    targetW = 300; targetH = 48;
+    targetW = 300; targetH = 44;
   } else if (shape === 'state-write' || shape === 'write') {
-    targetW = 440; targetH = 48;
+    targetW = 440; targetH = 44;
   } else if (shape === 'state-dictate' || shape === 'dictate') {
-    targetW = 260; targetH = 48;
+    targetW = 260; targetH = 44;
     startDictateAppWatch();
   } else if (shape === 'state-error' || shape === 'error') {
     targetW = 440; targetH = 120;
   } else if (shape === 'capsule') {
-    targetW = 380; targetH = 48;
+    targetW = 380; targetH = 44;
   } else if (shape === 'music') {
     targetW = 560; targetH = 172;
   } else if (shape === 'panel') {
@@ -463,20 +463,21 @@ function setShape(shape) {
     }
   }
 
-  shell.style.removeProperty('width');
-  shell.style.removeProperty('height');
-  if (shape === 'capsule' || shape === 'state-write' || shape === 'write' || isNotchCard) {
-    shell.style.width = targetW + 'px';
-  }
+  shell.style.width = targetW + 'px';
   if (shape === 'panel') {
-    shell.style.width = targetW + 'px';
     shell.style.height = targetH + 'px';
+    const notchContainer = $('notchContainer');
+    if (notchContainer) notchContainer.classList.add('panel-active');
+  } else {
+    shell.style.removeProperty('height');
+    const notchContainer = $('notchContainer');
+    if (notchContainer) notchContainer.classList.remove('panel-active');
   }
 
   if (shape === 'rest') {
     collapseTimer = setTimeout(() => {
       if (currentShape === 'rest') {
-        ipc.send('prepare-size', { w: 240, h: 48, shape: 'rest' });
+        ipc.send('prepare-size', { w: 240, h: 44, shape: 'rest' });
       }
     }, 360);
   }
@@ -4281,7 +4282,7 @@ if (bellBadge) {
 shell.addEventListener('mouseenter', () => {
   S.hovering = true;
   wake();
-  if (!S.panel && !S.capture && !S.busy && currentShape !== 'music' && currentShape !== 'state-cursor' && currentShape !== 'state-write' && currentShape !== 'state-dictate' && currentShape !== 'state-error') {
+  if (!S.panel && !S.capture && !S.busy && currentShape === 'rest') {
     setShape('dock');
   }
 });
