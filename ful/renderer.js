@@ -388,26 +388,32 @@ function setShape(shape) {
 
   if (shape !== 'state-dictate' && shape !== 'dictate') stopDictateAppWatch();
 
-  let targetW = 112, targetH = 56;
+  let targetW = 240, targetH = 48;
   if (shape === 'rest') {
-    targetW = 112; targetH = 56;
+    targetW = 240; targetH = 48;
+  } else if (shape === 'music-card') {
+    targetW = 560; targetH = 172;
+  } else if (shape === 'pomo-card') {
+    targetW = 560; targetH = 168;
+  } else if (shape === 'timer-notch') {
+    targetW = 240; targetH = 48;
   } else if (shape === 'dock' || shape === 'hover-dock') {
-    targetW = 140; targetH = 112;
+    targetW = 264; targetH = 64;
   } else if (shape === 'state-cursor' || shape === 'cursor') {
-    targetW = 184; targetH = 112;
+    targetW = 300; targetH = 48;
   } else if (shape === 'state-write' || shape === 'write') {
-    targetW = 140; targetH = 112;
+    targetW = 440; targetH = 48;
   } else if (shape === 'state-dictate' || shape === 'dictate') {
-    targetW = 140; targetH = 112;
+    targetW = 260; targetH = 48;
     startDictateAppWatch();
   } else if (shape === 'state-error' || shape === 'error') {
-    targetW = 380; targetH = 128;
+    targetW = 440; targetH = 120;
   } else if (shape === 'capsule') {
-    targetW = 380; targetH = 74;
+    targetW = 380; targetH = 48;
   } else if (shape === 'music') {
-    targetW = 390; targetH = 136;
+    targetW = 560; targetH = 172;
   } else if (shape === 'panel') {
-    targetW = 420; targetH = 520;
+    targetW = S.cfg.panelWidth || 460; targetH = S.cfg.panelHeight || 540;
   }
 
   // Update chevron orientation: Up when panel is open, Down when collapsed
@@ -424,6 +430,9 @@ function setShape(shape) {
   ipc.send('prepare-size', { w: targetW, h: targetH, shape });
 
   shell.classList.toggle('rest', shape === 'rest');
+  shell.classList.toggle('music-card', shape === 'music-card');
+  shell.classList.toggle('pomo-card', shape === 'pomo-card');
+  shell.classList.toggle('timer-notch', shape === 'timer-notch');
   shell.classList.toggle('dock', shape === 'dock' || shape === 'hover-dock');
   shell.classList.toggle('state-cursor', shape === 'state-cursor' || shape === 'cursor');
   shell.classList.toggle('state-write', shape === 'state-write' || shape === 'write');
@@ -433,10 +442,41 @@ function setShape(shape) {
   shell.classList.toggle('music', shape === 'music');
   shell.classList.toggle('panel', shape === 'panel');
 
+  const isNotchCard = (shape === 'music-card' || shape === 'pomo-card');
+  const notchWidget = $('notchWidget');
+  const headEl = $('head');
+  const bodyEl = $('body');
+  const miniEl = $('mini');
+
+  if (isNotchCard) {
+    if (notchWidget) notchWidget.style.display = 'flex';
+    if (headEl) headEl.style.display = 'none';
+    if (bodyEl) bodyEl.style.display = 'none';
+    if (miniEl) miniEl.style.display = 'none';
+  } else {
+    if (notchWidget) notchWidget.style.display = 'none';
+    if (headEl) headEl.style.display = 'flex';
+    if (shape === 'panel') {
+      if (bodyEl) bodyEl.style.display = 'flex';
+    } else {
+      if (bodyEl) bodyEl.style.display = 'none';
+    }
+  }
+
+  shell.style.removeProperty('width');
+  shell.style.removeProperty('height');
+  if (shape === 'capsule' || shape === 'state-write' || shape === 'write' || isNotchCard) {
+    shell.style.width = targetW + 'px';
+  }
+  if (shape === 'panel') {
+    shell.style.width = targetW + 'px';
+    shell.style.height = targetH + 'px';
+  }
+
   if (shape === 'rest') {
     collapseTimer = setTimeout(() => {
       if (currentShape === 'rest') {
-        ipc.send('prepare-size', { w: 112, h: 56, shape: 'rest' });
+        ipc.send('prepare-size', { w: 240, h: 48, shape: 'rest' });
       }
     }, 360);
   }
@@ -1034,7 +1074,7 @@ async function renderMemoryTab() {
                 ${entries.map(([k, v]) => `
                   <div style="display:flex;justify-content:space-between;align-items:center;font-size:11.5px">
                     <span><strong style="color:rgba(255,255,255,0.85)">${k}:</strong> <span style="color:rgba(255,255,255,0.65)">${String(v)}</span></span>
-                    <button class="wf-site-btn" style="background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:#fca5a5;padding:2px 6px" data-del-cat="${cat}" data-del-key="${k}">✕</button>
+                    <button class="wf-del-btn" data-del-cat="${cat}" data-del-key="${k}" title="Delete fact">✕</button>
                   </div>
                 `).join('')}
               </div>
@@ -1103,6 +1143,234 @@ function closePanel() {
 function afterPanel() {
   bindPanel();
   if (S.panel === 'music') { pollMedia(); renderMusic(); }
+}
+
+
+/* --------------------------------------------------- Notch System (Music, Pomodoro, Timer) */
+function updateNotchClock() {
+  const clockEl = $('nvClock');
+  if (!clockEl) return;
+  const now = new Date();
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const day = days[now.getDay()];
+  const date = String(now.getDate()).padStart(2, '0');
+  const month = months[now.getMonth()];
+  const h = String(now.getHours()).padStart(2, '0');
+  const m = String(now.getMinutes()).padStart(2, '0');
+  clockEl.textContent = `${day} ${date} ${month} ${h}:${m}`;
+}
+
+function initNotchSystem() {
+  updateNotchClock();
+  setInterval(updateNotchClock, 1000);
+
+  // Tab buttons: pointer, mic, pen
+  const tabDefs = [
+    { id: 'nvTabPointer', mode: 'pointer' },
+    { id: 'nvTabMic', mode: 'mic' },
+    { id: 'nvTabPen', mode: 'pen' }
+  ];
+
+  tabDefs.forEach(({ id, mode }) => {
+    const btn = $(id);
+    if (!btn) return;
+    btn.onclick = () => {
+      tabDefs.forEach(t => $(t.id)?.classList.remove('on'));
+      btn.classList.add('on');
+      if (mode === 'pointer') {
+        collapse();
+        askScreenWithFollowUps();
+      } else if (mode === 'mic') {
+        beginCapture('cmd');
+      } else if (mode === 'pen') {
+        togglePanel();
+        $('chatInput')?.focus();
+      }
+    };
+  });
+
+  // Small utility icons: Notes/Tray, Timer/Pomodoro, Sliders/Expand
+  const trayBtn = $('nvTrayBtn');
+  if (trayBtn) {
+    trayBtn.onclick = () => {
+      togglePanel();
+      openTab('lists');
+    };
+  }
+
+  const timerBtn = $('nvTimerBtn');
+  if (timerBtn) {
+    timerBtn.onclick = () => {
+      showNotchPomodoro();
+    };
+  }
+
+  const expandBtn = $('nvExpandBtn');
+  if (expandBtn) {
+    expandBtn.onclick = () => {
+      togglePanel();
+    };
+  }
+}
+
+// Screenshot 1: Music Player Card (Real-time seconds, Cover Art, Song Title, Progress Scrubber)
+function showNotchMusic(media = S.media) {
+  const card = $('nvCard');
+  if (!card) return;
+  const m = media || S.media || { title: 'Music Playing', artist: 'Media Player', duration: 180, position: 0 };
+  const title = (m.title && m.title.trim()) || 'Music Playing';
+  const artist = (m.artist && m.artist.trim() && m.artist !== title) ? m.artist.trim() : (m.app || 'Media Player');
+  const fallbackCover = getMediaAppIcon(m.app || '', title);
+  const coverSrc = (m.thumbnail && m.thumbnail.trim()) ? m.thumbnail : fallbackCover;
+  const isPlaying = (m.status === 'playing' || (m.playing && m.status !== 'paused'));
+  const dur = Number(m.duration) || liveDur || 180;
+  const pos = Number(m.position) || livePos || 0;
+  const remain = Math.max(0, dur - pos);
+  const pct = dur > 0 ? Math.min(100, Math.max(0, (pos / dur) * 100)) : 0;
+
+  card.innerHTML = `
+    <div class="nv-music-card">
+      <img src="${coverSrc}" class="nv-music-cover" id="notchMusicCover" alt="Album Art" />
+      <div class="nv-music-details">
+        <p class="nv-music-title" id="notchMusicTitle" title="${esc(title)}">${esc(title)}</p>
+        <small class="nv-music-artist" id="notchMusicArtist" title="${esc(artist)}">${esc(artist)}</small>
+        <div class="nv-music-scrubber" id="notchMusicScrubber" title="Click to seek">
+          <div class="nv-music-scrubber-fill" id="notchMusicFill" style="width: ${pct}%;"></div>
+        </div>
+        <div class="nv-music-times">
+          <span id="notchMusicElapsed">${formatSec(pos)}</span>
+          <span id="notchMusicRemaining">-${formatSec(remain)}</span>
+        </div>
+        <div class="nv-music-controls">
+          <button class="nv-music-btn" id="notchMusicPrev" title="Previous Track">
+            <svg viewBox="0 0 24 24"><path d="m11 19-9-7 9-7v14zm11 0-9-7 9-7v14z"/></svg>
+          </button>
+          <button class="nv-music-btn play-pause" id="notchMusicPlayPause" title="Play / Pause">
+            <svg viewBox="0 0 24 24" id="notchPlayPauseIcon">
+              ${isPlaying ? '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>' : '<path d="M8 5v14l11-7z"/>'}
+            </svg>
+          </button>
+          <button class="nv-music-btn" id="notchMusicNext" title="Next Track">
+            <svg viewBox="0 0 24 24"><path d="m4 5 9 7-9 7V5zm11 0 9 7-9 7V5z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  setShape('music-card');
+
+  // Wire buttons
+  $('notchMusicPrev')?.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    await ipc.invoke('media-action', 'prev');
+    setTimeout(() => pollMedia(true), 150);
+  });
+  $('notchMusicPlayPause')?.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    await ipc.invoke('media-action', 'playpause');
+    setTimeout(() => pollMedia(true), 150);
+  });
+  $('notchMusicNext')?.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    await ipc.invoke('media-action', 'next');
+    setTimeout(() => pollMedia(true), 150);
+  });
+  $('notchMusicScrubber')?.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const seekPos = Math.round(ratio * (liveDur || 180));
+    await ipc.invoke('media-seek', seekPos);
+    livePos = seekPos;
+    renderProgress(livePos, liveDur);
+  });
+}
+
+// Screenshots 3 & 4: Focus & Break Pomodoro Mode
+let pomoInterval = null;
+let pomoSec = 1429; // 23:49 default for focus
+let pomoPhase = 'Focus'; // 'Focus' or 'Break'
+
+function showNotchPomodoro(seconds = null, phase = null) {
+  const card = $('nvCard');
+  if (!card) return;
+  clearInterval(pomoInterval);
+  if (seconds !== null) pomoSec = seconds;
+  if (phase !== null) pomoPhase = phase;
+
+  function renderPomoState() {
+    const isBreak = (pomoPhase === 'Break');
+    const total = isBreak ? 300 : 1500;
+    const progress = Math.max(0, Math.min(1, pomoSec / total));
+    const m = Math.floor(pomoSec / 60);
+    const s = pomoSec % 60;
+    const timeStr = `${m}:${s < 10 ? '0' : ''}${s}`;
+    const strokeCircumference = 132;
+    const strokeOffset = strokeCircumference * (1 - progress);
+    const ringColor = isBreak ? '#34C759' : '#FF453A';
+
+    card.innerHTML = `
+      <div class="nv-pomo">
+        <div class="nv-cardface">
+          <div class="nv-face-capsule">
+            <i class="eye ${isBreak ? 'arch' : ''}"></i>
+            <i class="eye ${isBreak ? 'arch' : ''}"></i>
+          </div>
+        </div>
+        <div class="nv-pomo-content">
+          <div class="nv-ring-wrap">
+            <svg class="nv-ring" viewBox="0 0 48 48">
+              <circle cx="24" cy="24" r="21" fill="none" stroke="#25272C" stroke-width="3"></circle>
+              <circle class="on" cx="24" cy="24" r="21" fill="none" stroke="${ringColor}" stroke-width="3" style="stroke-dasharray:${strokeCircumference};stroke-dashoffset:${strokeOffset};transition:stroke-dashoffset 0.5s linear;"></circle>
+            </svg>
+            <span class="nv-ring-icon">
+              <svg viewBox="0 0 24 24" style="width:20px;height:20px;"><circle cx="12" cy="13" r="7.5" fill="none" stroke="${ringColor}" stroke-width="1.8"/><path d="M12 13V8m-3-5h6m1.5 3.5L18 5" fill="none" stroke="${ringColor}" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </span>
+          </div>
+          <div class="nv-pomo-time">
+            <strong>${timeStr}</strong>
+            <small>${isBreak ? 'Break' : 'Focus time'}</small>
+          </div>
+          <div class="nv-pomo-actions">
+            <button class="nv-pomo-toggle" id="btnPomoPhaseToggle">${isBreak ? 'Focus' : 'Break'}</button>
+            <button class="nv-pomo-stop ${isBreak ? 'green' : ''}" id="btnPomoStop">■</button>
+          </div>
+        </div>
+      </div>
+    `;
+    setShape('pomo-card');
+    feel(isBreak ? 'happy' : 'concentrate', 3000);
+
+    $('btnPomoPhaseToggle')?.addEventListener('click', () => {
+      pomoPhase = (pomoPhase === 'Break') ? 'Focus' : 'Break';
+      pomoSec = (pomoPhase === 'Break') ? 300 : 1500;
+      renderPomoState();
+    });
+
+    $('btnPomoStop')?.addEventListener('click', () => {
+      clearInterval(pomoInterval);
+      pomoInterval = null;
+      collapse();
+    });
+  }
+
+  renderPomoState();
+  pomoInterval = setInterval(() => {
+    if (pomoSec > 0) {
+      pomoSec--;
+      renderPomoState();
+    } else {
+      clearInterval(pomoInterval);
+      pomoInterval = null;
+      playSound('win');
+      if (pomoPhase === 'Focus') {
+        showNotchPomodoro(300, 'Break');
+      } else {
+        showNotchPomodoro(1500, 'Focus');
+      }
+    }
+  }, 1000);
 }
 
 /* --------------------------------------------------- Live Timers & Lists */
@@ -4620,4 +4888,5 @@ initCompanionQuips();
 initBatteryWatcher();
 loadChatStore();
 renderChatFromStore();
+initNotchSystem();
 console.log('[RENDERER] renderer.js fully initialized!');

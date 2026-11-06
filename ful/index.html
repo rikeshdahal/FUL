@@ -2490,90 +2490,178 @@
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 14px;
-      padding: 12px;
+      padding: 14px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 11px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
     }
     .wf-card h4 {
       margin: 0;
-      font-size: 13px;
-      font-weight: 650;
+      font-size: 13.5px;
+      font-weight: 700;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 7px;
       color: #fff;
+      letter-spacing: -0.01em;
+    }
+    .wf-row-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      width: 100%;
+      box-sizing: border-box;
     }
     .wf-input {
-      background: rgba(0, 0, 0, 0.4);
+      background: rgba(0, 0, 0, 0.45);
       border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 8px;
-      padding: 8px 12px;
+      border-radius: 9px;
+      padding: 9px 12px;
       color: #fff;
       font-size: 12px;
       outline: none;
       width: 100%;
       box-sizing: border-box;
+      transition: all 0.18s ease;
+      font-family: inherit;
     }
     .wf-input:focus {
       border-color: #3b82f6;
+      background: rgba(0, 0, 0, 0.65);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
     }
     .wf-select {
       background: #141721;
       border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 8px;
-      padding: 8px 10px;
+      border-radius: 9px;
+      padding: 9px 30px 9px 11px;
       color: #fff;
       font-size: 12px;
       outline: none;
       cursor: pointer;
       width: 100%;
+      box-sizing: border-box;
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.6)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 14px;
+      font-family: inherit;
+      transition: all 0.18s ease;
+    }
+    .wf-select:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
     }
     .wf-btn {
+      width: 100% !important;
+      height: 40px !important;
+      min-height: 40px;
       background: linear-gradient(135deg, #3b82f6, #6366f1);
       border: none;
       color: #fff;
-      border-radius: 8px;
-      padding: 9px 14px;
-      font-size: 12px;
+      border-radius: 10px;
+      padding: 0 16px;
+      font-size: 13px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.15s ease;
-      display: flex;
+      opacity: 1 !important;
+      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex !important;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
+      box-sizing: border-box;
+      white-space: nowrap;
     }
     .wf-btn:hover {
       filter: brightness(1.15);
       transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+    }
+    .wf-btn:active {
+      transform: translateY(0);
+    }
+    .wf-btn:disabled {
+      opacity: 0.6 !important;
+      cursor: not-allowed;
+      transform: none;
     }
     .wf-site-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 8px 10px;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.025);
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      transition: background 0.15s ease, border-color 0.15s ease;
+      gap: 12px;
+    }
+    .wf-site-item:hover {
+      background: rgba(255, 255, 255, 0.055);
+      border-color: rgba(255, 255, 255, 0.12);
     }
     .wf-site-name {
-      font-size: 12px;
+      font-size: 12.5px;
       font-weight: 600;
       color: #f0f3fa;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .wf-site-meta {
-      font-size: 10px;
+      font-size: 11px;
       color: rgba(255, 255, 255, 0.45);
+      margin-top: 2px;
     }
     .wf-site-btn {
-      background: rgba(59, 130, 246, 0.2);
-      border: 1px solid rgba(59, 130, 246, 0.4);
+      width: auto !important;
+      height: 30px !important;
+      min-width: 68px;
+      background: rgba(59, 130, 246, 0.18);
+      border: 1px solid rgba(59, 130, 246, 0.35);
       color: #93c5fd;
-      border-radius: 6px;
-      padding: 4px 8px;
-      font-size: 10.5px;
+      border-radius: 7px;
+      padding: 0 12px;
+      font-size: 11.5px;
+      font-weight: 600;
       cursor: pointer;
+      opacity: 1 !important;
+      display: inline-flex !important;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .wf-site-btn:hover {
+      background: rgba(59, 130, 246, 0.35);
+      color: #ffffff;
+      border-color: #3b82f6;
+    }
+    .wf-del-btn {
+      width: 24px !important;
+      height: 24px !important;
+      min-width: 24px;
+      border-radius: 6px;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+      font-size: 11px;
+      display: inline-flex !important;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      cursor: pointer;
+      opacity: 1 !important;
+      transition: all 0.15s ease;
+    }
+    .wf-del-btn:hover {
+      background: rgba(239, 68, 68, 0.35);
+      color: #fff;
+      border-color: #ef4444;
     }
     .ram-bar-container {
       width: 100%;
@@ -2596,7 +2684,492 @@
       border-bottom: 1px solid rgba(255, 255, 255, 0.04);
       color: rgba(255, 255, 255, 0.85);
     }
-  </style>
+  
+
+
+
+    /* ================================================================
+       MARK-LVI NOTCH SYSTEM (Music Card, Focus/Break Card, Compact Timer)
+       ================================================================ */
+
+    /* Concave ear fillets connecting notch to screen top edge */
+    #shell.notch-ears::before,
+    #shell.notch-ears::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      width: 16px;
+      height: 16px;
+      background: transparent;
+      pointer-events: none;
+      z-index: 50;
+      transition: opacity 0.25s ease;
+    }
+    #shell.notch-ears::before {
+      left: -16px;
+      border-top-right-radius: 16px;
+      box-shadow: 6px -6px 0 6px #000000;
+    }
+    #shell.notch-ears::after {
+      right: -16px;
+      border-top-left-radius: 16px;
+      box-shadow: -6px -6px 0 6px #000000;
+    }
+    #shell.panel.notch-ears::before,
+    #shell.panel.notch-ears::after {
+      opacity: 0;
+    }
+
+    /* Notch Sizing Modes */
+    #shell.music-card,
+    #shell.state-music {
+      width: 560px !important;
+      height: 172px !important;
+      min-height: 172px !important;
+      border-radius: 26px !important;
+      background: #000000 !important;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.95) !important;
+      overflow: hidden !important;
+    }
+    #shell.pomo-card,
+    #shell.state-pomo {
+      width: 560px !important;
+      height: 168px !important;
+      min-height: 168px !important;
+      border-radius: 26px !important;
+      background: #000000 !important;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.95) !important;
+      overflow: hidden !important;
+    }
+    #shell.timer-notch,
+    #shell.state-timer {
+      width: 240px !important;
+      height: 48px !important;
+      min-height: 48px !important;
+      border-radius: 24px !important;
+      background: #000000 !important;
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.85) !important;
+    }
+
+    /* Element toggles when notch card is active */
+    #shell.music-card #head,
+    #shell.music-card #body,
+    #shell.music-card #mini,
+    #shell.music-card #fallbackErrorCard,
+    #shell.music-card #musicPlayer,
+    #shell.pomo-card #head,
+    #shell.pomo-card #body,
+    #shell.pomo-card #mini,
+    #shell.pomo-card #fallbackErrorCard,
+    #shell.pomo-card #musicPlayer {
+      display: none !important;
+    }
+    #shell.music-card #notchWidget,
+    #shell.pomo-card #notchWidget {
+      display: flex !important;
+    }
+
+    /* Notch Card Shell (.nv-open) */
+    .nv-open {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: 10px 14px 14px;
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    /* Top Bar (.nv-head) */
+    .nv-head {
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 4px;
+    }
+    .nv-tabs {
+      display: flex;
+      gap: 8px;
+    }
+    .nv-tabs b {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #26282D;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .nv-tabs b.on {
+      background: #F5F6F8;
+    }
+    .nv-tabs b svg {
+      width: 16px;
+      height: 16px;
+      stroke: #F5F6F8;
+      stroke-width: 1.8;
+      fill: none;
+    }
+    .nv-tabs b.on svg {
+      stroke: #141518;
+    }
+    .nv-tabs b.on svg path[fill="currentColor"] {
+      fill: #141518 !important;
+      stroke: none;
+    }
+    .nv-tabs b:not(.on) svg path[fill="currentColor"] {
+      fill: #F5F6F8 !important;
+      stroke: none;
+    }
+    .nv-tabs b.on svg rect[fill="currentColor"] {
+      fill: #141518 !important;
+      stroke: none;
+    }
+    .nv-tabs b:not(.on) svg rect[fill="currentColor"] {
+      fill: #F5F6F8 !important;
+      stroke: none;
+    }
+
+    .nv-clock {
+      font-size: 13px;
+      font-weight: 500;
+      color: #9CA3AF;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .nv-small {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .nv-small span {
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      opacity: 0.75;
+      transition: opacity 0.15s ease, transform 0.15s ease;
+    }
+    .nv-small span:hover {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+    .nv-small svg {
+      width: 18px;
+      height: 18px;
+      stroke: #F5F6F8;
+      stroke-width: 1.8;
+      fill: none;
+    }
+
+    /* Inner Card (.nv-card) */
+    .nv-card {
+      flex: 1;
+      background: #141518;
+      border-radius: 20px;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      box-sizing: border-box;
+      gap: 16px;
+      position: relative;
+    }
+
+    /* Mascot Capsule (.nv-cardface) */
+    .nv-cardface {
+      flex: none;
+      width: 96px;
+      height: 52px;
+      background: #18191E;
+      border-radius: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.04), 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+    .nv-face-capsule {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+    }
+    .nv-face-capsule .eye {
+      width: 9px;
+      height: 16px;
+      background: #FFFFFF;
+      border-radius: 5px;
+      display: inline-block;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.85), 0 0 20px rgba(255, 255, 255, 0.4);
+      transition: all 0.25s ease;
+    }
+    .nv-face-capsule .eye.arch {
+      height: 9px;
+      border-radius: 6px 6px 2px 2px;
+    }
+    .nv-face-capsule .eye.dash {
+      height: 4px;
+      border-radius: 2px;
+    }
+
+    /* ================================================================
+       MUSIC CARD (Image 1 Matching)
+       ================================================================ */
+    .nv-music-card {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .nv-music-cover {
+      width: 86px;
+      height: 86px;
+      border-radius: 14px;
+      object-fit: cover;
+      flex: none;
+      background: #1E2025;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+    }
+    .nv-music-details {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .nv-music-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #FFFFFF;
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: -0.01em;
+    }
+    .nv-music-artist {
+      font-size: 13px;
+      color: #8E939C;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .nv-music-scrubber {
+      height: 4px;
+      background: #2A2C31;
+      border-radius: 2px;
+      margin: 8px 0 4px;
+      position: relative;
+      cursor: pointer;
+      overflow: hidden;
+    }
+    .nv-music-scrubber-fill {
+      height: 100%;
+      background: #FFFFFF;
+      border-radius: 2px;
+      transition: width 0.15s linear;
+    }
+    .nv-music-times {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 500;
+      color: #8E939C;
+      font-variant-numeric: tabular-nums;
+    }
+    .nv-music-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 22px;
+      margin-top: 4px;
+    }
+    .nv-music-btn {
+      background: none !important;
+      border: none !important;
+      color: #FFFFFF !important;
+      cursor: pointer !important;
+      display: grid !important;
+      place-items: center !important;
+      padding: 0 !important;
+      width: auto !important;
+      height: auto !important;
+      opacity: 0.85;
+      transition: all 0.15s ease;
+    }
+    .nv-music-btn:hover {
+      opacity: 1;
+      transform: scale(1.12);
+    }
+    .nv-music-btn svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+    .nv-music-btn.play-pause {
+      width: 36px !important;
+      height: 36px !important;
+      border-radius: 50% !important;
+      background: #FFFFFF !important;
+      color: #141518 !important;
+      opacity: 1 !important;
+      box-shadow: 0 2px 10px rgba(255, 255, 255, 0.25);
+    }
+    .nv-music-btn.play-pause:hover {
+      transform: scale(1.08);
+    }
+    .nv-music-btn.play-pause svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* ================================================================
+       FOCUS / POMODORO CARD (Images 3 & 4 Matching)
+       ================================================================ */
+    .nv-pomo {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .nv-pomo-content {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .nv-ring-wrap {
+      position: relative;
+      width: 78px;
+      height: 78px;
+      display: grid;
+      place-items: center;
+      flex: none;
+    }
+    .nv-ring {
+      width: 78px;
+      height: 78px;
+      transform: rotate(-90deg);
+      display: block;
+    }
+    .nv-ring-icon {
+      position: absolute;
+      display: grid;
+      place-items: center;
+    }
+    .nv-pomo-time {
+      min-width: 90px;
+      display: flex;
+      flex-direction: column;
+    }
+    .nv-pomo-time strong {
+      font-size: 32px;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums;
+      color: #FFFFFF;
+    }
+    .nv-pomo-time small {
+      margin-top: 4px;
+      font-size: 12px;
+      color: #8E939C;
+      font-weight: 500;
+    }
+    .nv-pomo-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: auto;
+    }
+    .nv-pomo-toggle {
+      height: 34px !important;
+      padding: 0 18px !important;
+      width: auto !important;
+      border-radius: 17px !important;
+      background: #2A2C31 !important;
+      color: #FFFFFF !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      border: none !important;
+      cursor: pointer !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      transition: all 0.15s ease !important;
+    }
+    .nv-pomo-toggle:hover {
+      background: #34373E !important;
+    }
+    .nv-pomo-stop {
+      width: 44px !important;
+      height: 36px !important;
+      display: grid !important;
+      place-items: center !important;
+      border-radius: 18px !important;
+      background: #FF453A !important;
+      color: #FFFFFF !important;
+      font-size: 13px !important;
+      border: none !important;
+      cursor: pointer !important;
+      transition: all 0.15s ease !important;
+    }
+    .nv-pomo-stop.green {
+      background: #34C759 !important;
+    }
+    .nv-pomo-stop:hover {
+      filter: brightness(1.12);
+      transform: scale(1.04);
+    }
+
+    /* ================================================================
+       COMPACT TIMER NOTCH (Image 5 Matching)
+       ================================================================ */
+    #shell.timer-notch #head {
+      height: 48px !important;
+      padding: 0 14px !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+    }
+    #shell.timer-notch #face {
+      width: 74px !important;
+      height: 44px !important;
+      margin: 0 !important;
+    }
+    #shell.timer-notch .head-lower-row {
+      display: flex !important;
+      flex: 1 !important;
+      justify-content: flex-end !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    #shell.timer-notch #mid {
+      display: none !important;
+    }
+    #shell.timer-notch #actions {
+      display: none !important;
+    }
+    #shell.timer-notch #timerPillBadge {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 7px !important;
+      background: transparent !important;
+      border: none !important;
+      font-size: 14px !important;
+      font-weight: 700 !important;
+      color: #FF9F0A !important;
+      font-family: var(--font) !important;
+    }
+    #shell.timer-notch #timerPillBadge .timer-ring-svg {
+      width: 18px !important;
+      height: 18px !important;
+      transform: rotate(-90deg) !important;
+      flex: none !important;
+    }
+
+</style>
 </head>
 
 <body>
@@ -2629,7 +3202,13 @@
             <div id="status">Ready — say Hey FUL</div>
             <div class="pill-badges" id="pillBadges">
               <span id="bellBadge" class="badge-bell" style="display:none" title="Reminders active">🔔</span>
-              <span id="timerPillBadge" class="badge-timer" style="display:none" title="Active timer">⏱ <span id="timerPillDigits">00:00</span></span>
+              <span id="timerPillBadge" class="badge-timer" style="display:none" title="Active timer">
+              <svg class="timer-ring-svg" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="8" fill="none" stroke="#3D2914" stroke-width="2.5"></circle>
+                <circle id="timerRingProgress" class="on" cx="12" cy="12" r="8" fill="none" stroke="#FF9F0A" stroke-width="2.5" stroke-dasharray="50.26" stroke-dashoffset="0"></circle>
+              </svg>
+              <span id="timerPillDigits">00:00</span>
+            </span>
             </div>
             <button id="bCancelAction" class="cancel-btn" style="display:none" title="Cancel">✕</button>
           </div>
@@ -2783,7 +3362,34 @@
       <div id="cameraStatusText" class="camera-status-bar">Camera active · Ask FUL to look at anything</div>
     </div>
 
-    <!-- Mini Bar Section -->
+    
+    <!-- Notch Interactive Card Widget (Music Player, Focus/Break Pomodoro, Timer) -->
+    <div id="notchWidget" class="nv-open" style="display:none">
+      <div class="nv-head">
+        <span class="nv-tabs">
+          <b class="nv-tab-btn on" id="nvTabPointer" data-mode="pointer" title="Cursor Mode">
+            <svg viewBox="0 0 24 24"><path d="M7 4v14l4-3.6 2.6 5.6 2.4-1.1-2.6-5.5H19z" fill="currentColor"/></svg>
+          </b>
+          <b class="nv-tab-btn" id="nvTabMic" data-mode="mic" title="Voice Mode">
+            <svg viewBox="0 0 24 24"><rect x="9" y="3.5" width="6" height="11" rx="3" fill="currentColor"/><path d="M6 11.5a6 6 0 0 0 12 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </b>
+          <b class="nv-tab-btn" id="nvTabPen" data-mode="pen" title="Write Mode">
+            <svg viewBox="0 0 24 24"><path d="M14.5 5.5l4 4L9 19H5v-4zM12.5 7.5l4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </b>
+        </span>
+        <span class="nv-clock" id="nvClock">Sat 1 Nov 9:41</span>
+        <span class="nv-small">
+          <span title="Tasks / Notes" id="nvTrayBtn"><svg viewBox="0 0 24 24"><path d="M4 13h4l1.5 2.5h5L16 13h4M5.5 6h13L20 13v5H4v-5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span title="Timers / Focus" id="nvTimerBtn"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 8v4.5l3 1.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <span title="Expand Companion Panel" id="nvExpandBtn"><svg viewBox="0 0 24 24"><path d="M5 7h9M18 7h1M5 12h3M12 12h7M5 17h10M19 17h0M16 5v4M10 10v4M17 15v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+        </span>
+      </div>
+      <div class="nv-card" id="nvCard">
+        <!-- Dynamic state inserted here: Music / Pomodoro / Ask / Lists -->
+      </div>
+    </div>
+
+<!-- Mini Bar Section -->
     <div id="mini">
       <button id="mUp" title="Expand">
         <svg viewBox="0 0 24 24">
