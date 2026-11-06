@@ -1,5 +1,5 @@
 <#
-  FUL "now playing" reader.
+  Nixi "now playing" reader.
 
   Uses the Windows SMTC (GlobalSystemMediaTransportControlsSessionManager) API to
   read the title, artist, album, app and playback position of whatever music
@@ -114,12 +114,29 @@ try {
     $status = [int]$playback.PlaybackStatus
     $result.status = if ($statusNames.ContainsKey($status)) { $statusNames[$status] } else { 'none' }
 
-    $pos = $timeline.Position
     try {
-      $result.position = [double]$pos.TotalSeconds
-      if ($timeline.MaxSeekTime -and $timeline.MaxSeekTime.TotalSeconds -gt 0) {
-        $result.duration = [double]$timeline.MaxSeekTime.TotalSeconds
+      $pos = [double]$timeline.Position.TotalSeconds
+      $dur = 0.0
+      if ($timeline.EndTime -and $timeline.EndTime.TotalSeconds -gt 0) {
+        $dur = [double]$timeline.EndTime.TotalSeconds
+      } elseif ($timeline.MaxSeekTime -and $timeline.MaxSeekTime.TotalSeconds -gt 0) {
+        $dur = [double]$timeline.MaxSeekTime.TotalSeconds
       }
+
+      if ($result.status -eq 'playing' -and $timeline.LastUpdatedTime) {
+        try {
+          $lastUpdated = $timeline.LastUpdatedTime.LocalDateTime
+          $elapsed = ((Get-Date) - $lastUpdated).TotalSeconds
+          if ($elapsed -gt 0 -and $elapsed -lt 86400) {
+            $pos += $elapsed
+          }
+        } catch { }
+      }
+      if ($dur -gt 0 -and $pos -gt $dur) {
+        $pos = $dur
+      }
+      $result.position = [Math]::Max(0.0, [double]$pos)
+      $result.duration = [Math]::Max(0.0, [double]$dur)
     } catch { }
 
     $result.playing = ($result.status -eq 'playing' -and [bool]($result.title -and $result.title.Trim()))

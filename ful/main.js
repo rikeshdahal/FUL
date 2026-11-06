@@ -17,7 +17,7 @@ const intents = require('./intents');
 const browserRunner = require('./scripts/browser_runner');
 const { MsEdgeTTS, OUTPUT_FORMAT } = require('msedge-tts');
 const { FileController, ComputerSettings, DevAgent, getWeatherReport, executeUndo, memoryEngine, SystemMonitor, WebsiteBuilder, CameraVision } = require('./actions_engine');
-const { echoGuard, splitSentences, speakSystemSapi, speakElevenLabs, transcribeHostedWhisper, languageGuard } = require('./voice_engine');
+const { echoGuard, splitSentences, speakSystemSapi, stopSystemSapi, speakElevenLabs, transcribeHostedWhisper, languageGuard } = require('./voice_engine');
 
 const systemMonitor = new SystemMonitor({
   ramThresholdPercent: 85,
@@ -904,7 +904,19 @@ function toggleHotkey(id) {
 }
 
 async function nowPlaying(force) {
-  if (!force && mediaCache.value && Date.now() - mediaCache.at < 2500) return mediaCache.value;
+  if (!force && mediaCache.value && Date.now() - mediaCache.at < 2500) {
+    if (mediaCache.value.status === 'playing' || mediaCache.value.playing) {
+      const elapsedSec = (Date.now() - mediaCache.at) / 1000;
+      const copy = { ...mediaCache.value };
+      if (copy.duration > 0) {
+        copy.position = Math.min(copy.duration, (copy.position || 0) + elapsedSec);
+      } else {
+        copy.position = (copy.position || 0) + elapsedSec;
+      }
+      return copy;
+    }
+    return mediaCache.value;
+  }
   const value = await psJson(path.join(ROOT, 'media.ps1'));
   mediaCache = { at: Date.now(), value: value || { playing: false, title: '', artist: '', status: 'none' } };
   return mediaCache.value;
@@ -1989,6 +2001,19 @@ ipcMain.handle('whisper-transcribe', async (_e, { audioPath, base64Wav, model = 
 /* -------------------------------------------------------- mark-lvi voice & echo guard handlers */
 ipcMain.handle('system-tts', async (_e, { text, voice } = {}) => {
   return speakSystemSapi(text, voice);
+});
+
+ipcMain.handle('stop-speech', async () => {
+  stopSystemSapi();
+  echoGuard.stop();
+  speechState({});
+  return { ok: true };
+});
+
+ipcMain.on('speech-stop', () => {
+  stopSystemSapi();
+  echoGuard.stop();
+  speechState({});
 });
 
 ipcMain.handle('elevenlabs-tts', async (_e, { text, apiKey, voiceId, model } = {}) => {

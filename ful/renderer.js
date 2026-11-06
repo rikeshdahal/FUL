@@ -1224,8 +1224,10 @@ function showNotchMusic(media = S.media) {
   const fallbackCover = getMediaAppIcon(m.app || '', title);
   const coverSrc = (m.thumbnail && m.thumbnail.trim()) ? m.thumbnail : fallbackCover;
   const isPlaying = (m.status === 'playing' || (m.playing && m.status !== 'paused'));
-  const dur = Number(m.duration) || liveDur || 180;
-  const pos = Number(m.position) || livePos || 0;
+  if (m.duration) liveDur = Number(m.duration);
+  if (m.position !== undefined) livePos = Number(m.position);
+  const dur = liveDur || 180;
+  const pos = livePos || 0;
   const remain = Math.max(0, dur - pos);
   const pct = dur > 0 ? Math.min(100, Math.max(0, (pos / dur) * 100)) : 0;
 
@@ -1244,7 +1246,7 @@ function showNotchMusic(media = S.media) {
         </div>
         <div class="nv-music-controls">
           <button class="nv-music-btn" id="notchMusicPrev" title="Previous Track">
-            <svg viewBox="0 0 24 24"><path d="m11 19-9-7 9-7v14zm11 0-9-7 9-7v14z"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6 8.5 6V6l-8.5 6z"/></svg>
           </button>
           <button class="nv-music-btn play-pause" id="notchMusicPlayPause" title="Play / Pause">
             <svg viewBox="0 0 24 24" id="notchPlayPauseIcon">
@@ -1252,7 +1254,7 @@ function showNotchMusic(media = S.media) {
             </svg>
           </button>
           <button class="nv-music-btn" id="notchMusicNext" title="Next Track">
-            <svg viewBox="0 0 24 24"><path d="m4 5 9 7-9 7V5zm11 0 9 7-9 7V5z"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
           </button>
         </div>
       </div>
@@ -1285,6 +1287,7 @@ function showNotchMusic(media = S.media) {
     livePos = seekPos;
     renderProgress(livePos, liveDur);
   });
+  renderProgress(livePos, liveDur);
 }
 
 // Screenshots 3 & 4: Focus & Break Pomodoro Mode
@@ -2056,6 +2059,27 @@ function sanitizeSpeech(raw) {
   return str;
 }
 
+function interruptSpeech() {
+  activeSpeechToken++;
+  if (currentTtsAudio) {
+    try { currentTtsAudio.pause(); currentTtsAudio.currentTime = 0; } catch {}
+    currentTtsAudio = null;
+    ttsAnalyser = null;
+  }
+  if (currentTtsBlobUrl) {
+    try { URL.revokeObjectURL(currentTtsBlobUrl); } catch {}
+    currentTtsBlobUrl = null;
+  }
+  try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch {}
+  try { ipc.invoke('stop-speech'); } catch {}
+  try { ipc.send('speech-stop'); } catch {}
+  try { ipc.send('agent-speech-event', { type: 'speaking', value: false }); } catch {}
+  try { ipc.send('echo-guard-stop'); } catch {}
+  try { face.poke(); } catch {}
+  feel('surprised', 1200);
+  setStatus('Speech stopped');
+}
+
 async function speak(text) {
   if (!text) return;
   const cleanStr = sanitizeSpeech(text);
@@ -2073,7 +2097,7 @@ async function speak(text) {
   };
 
   // 1) Mark-LVI ElevenLabs Multilingual Neural TTS (if key provided in cfg)
-  if (S.cfg.elevenlabsKey || S.cfg.ttsEngine === 'elevenlabs') {
+  if (S.cfg.ttsEngine === 'elevenlabs' && S.cfg.elevenlabsKey) {
     try {
       const res = await ipc.invoke('elevenlabs-tts', {
         text: cleanStr,
@@ -2183,7 +2207,7 @@ async function speakAgentPayload(payload) {
     };
 
     // 1) ElevenLabs
-    if (S.cfg.elevenlabsKey || S.cfg.ttsEngine === 'elevenlabs') {
+    if (S.cfg.ttsEngine === 'elevenlabs' && S.cfg.elevenlabsKey) {
       try {
         const res = await ipc.invoke('elevenlabs-tts', {
           text,
@@ -2895,6 +2919,10 @@ async function startCamera() {
   try {
     const videoEl = $('cameraVideo');
     if (!videoEl) return false;
+    if (currentShape !== 'panel') {
+      window._prevShapeBeforeCamera = currentShape;
+      setShape('panel');
+    }
     cameraStream = await navigator.mediaDevices.getUserMedia({
       video: { width: { ideal: 1280 }, height: { ideal: 720 } }
     });
@@ -2922,6 +2950,10 @@ function stopCamera() {
   if (modal) modal.classList.remove('active');
   const shellEl = $('shell');
   if (shellEl) shellEl.classList.remove('camera-active');
+  if (window._prevShapeBeforeCamera && window._prevShapeBeforeCamera !== 'panel') {
+    setShape(window._prevShapeBeforeCamera);
+  }
+  window._prevShapeBeforeCamera = null;
 }
 
 async function captureCameraBase64() {
@@ -3781,13 +3813,10 @@ let lastMediaStatus = 'none';
 
 function showMusicIslandBriefly(duration = 7000) {
   if (S.panel) return;
-  if (currentShape !== 'music') {
-    setShape('music');
-  }
+  showNotchMusic(S.media);
   clearTimeout(musicIslandTimer);
-  // Auto-collapse only while playing so user can always see & control paused tracks
   musicIslandTimer = setTimeout(() => {
-    if (!isMusicHovered && !isDraggingScrubber && currentShape === 'music' && isAudioPlaying) {
+    if (!isMusicHovered && !isDraggingScrubber && (currentShape === 'music' || currentShape === 'music-card') && isAudioPlaying) {
       setShape('rest');
     }
   }, duration);
@@ -3811,6 +3840,25 @@ function renderProgress(pos, dur) {
   if (fillEl) {
     const pct = dur > 0 ? clamp(pos / dur, 0, 1) * 100 : 0;
     fillEl.style.width = pct + '%';
+  }
+
+  // Live real-time updates for Notch Music Card (Screenshot 1 & 6)
+  const notchFill = $('notchMusicFill');
+  const notchElapsed = $('notchMusicElapsed');
+  const notchRemaining = $('notchMusicRemaining');
+
+  if (notchElapsed) notchElapsed.textContent = formatSec(pos);
+  if (notchRemaining) {
+    if (dur > 0) {
+      const remain = Math.max(0, dur - pos);
+      notchRemaining.textContent = '-' + formatSec(remain);
+    } else {
+      notchRemaining.textContent = '0:00';
+    }
+  }
+  if (notchFill) {
+    const pct = dur > 0 ? clamp(pos / dur, 0, 1) * 100 : 0;
+    notchFill.style.width = pct + '%';
   }
 }
 
@@ -3873,20 +3921,49 @@ function updateMusicUI(m) {
     iconPlay.style.display = isAudioPlaying ? 'none' : 'block';
   }
 
+  // Notch Card Play/Pause icon
+  const notchPlayPauseIcon = $('notchPlayPauseIcon');
+  if (notchPlayPauseIcon) {
+    notchPlayPauseIcon.innerHTML = isAudioPlaying
+      ? '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'
+      : '<path d="M8 5v14l11-7z"/>';
+  }
+
+  // Update notch card title & artist & cover if present
+  const notchTitle = $('notchMusicTitle');
+  if (notchTitle && m.title) notchTitle.textContent = m.title;
+  const notchArtist = $('notchMusicArtist');
+  if (notchArtist && m.artist) notchArtist.textContent = m.artist;
+  const notchCover = $('notchMusicCover');
+  if (notchCover && m.thumbnail) notchCover.src = m.thumbnail;
+
   liveDur = Number(m.duration) || 0;
+  const incomingPos = Number(m.position) || 0;
   if (!isDraggingScrubber) {
-    livePos = Number(m.position) || 0;
+    if (isAudioPlaying && livePos > 0 && Math.abs(livePos - incomingPos) < 2.0) {
+      livePos = livePos * 0.75 + incomingPos * 0.25;
+    } else {
+      livePos = incomingPos;
+    }
     renderProgress(livePos, liveDur);
   }
 }
 
-// Live real-time ticker updating elapsed and remaining time every 250ms
+// High-precision live real-time ticker updating elapsed and remaining time every 200ms
+let lastTickerTime = performance.now();
 setInterval(() => {
-  if (isAudioPlaying && !isDraggingScrubber && liveDur > 0) {
-    livePos = Math.min(liveDur, livePos + 0.25);
+  const now = performance.now();
+  const delta = (now - lastTickerTime) / 1000;
+  lastTickerTime = now;
+  if (isAudioPlaying && !isDraggingScrubber) {
+    if (liveDur > 0) {
+      livePos = Math.min(liveDur, livePos + delta);
+    } else {
+      livePos = livePos + delta;
+    }
     renderProgress(livePos, liveDur);
   }
-}, 250);
+}, 200);
 
 async function pollMedia(force) {
   try {
@@ -4222,6 +4299,7 @@ let faceHoldFired = false;
 let faceDownScreenX = 0;
 let faceDownScreenY = 0;
 let faceHasDragged = false;
+let lastFaceClickTime = 0;
 
 function finishFacePress(tap) {
   if (!facePressed) return;
@@ -4229,8 +4307,16 @@ function finishFacePress(tap) {
   clearTimeout(facePressTimer);
   facePressTimer = null;
   if (tap && !faceHoldFired && !faceHasDragged) {
+    const now = Date.now();
+    if (now - lastFaceClickTime < 420) {
+      lastFaceClickTime = 0;
+      interruptSpeech();
+      return;
+    }
+    lastFaceClickTime = now;
+
     if (S.media && S.media.title && (isAudioPlaying || S.media.status === 'playing' || S.media.status === 'paused') && currentShape === 'rest') {
-      setShape('music');
+      showNotchMusic(S.media);
       return;
     }
     face.poke();
@@ -4259,6 +4345,16 @@ faceCanvas.addEventListener('pointerdown', (e) => {
   }, 650);
 });
 faceCanvas.addEventListener('pointerup', () => finishFacePress(true));
+faceCanvas.addEventListener('dblclick', (e) => {
+  e.preventDefault();
+  interruptSpeech();
+});
+document.addEventListener('dblclick', (e) => {
+  if (e.target && e.target.closest && (e.target.closest('#face') || e.target.closest('#musicFace') || e.target.closest('.nv-cardface') || e.target.closest('.nv-face-capsule'))) {
+    e.preventDefault();
+    interruptSpeech();
+  }
+});
 faceCanvas.addEventListener('pointercancel', () => finishFacePress(false));
 faceCanvas.addEventListener('pointerleave', () => finishFacePress(false));
 

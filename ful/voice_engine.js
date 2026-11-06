@@ -1,5 +1,5 @@
 /**
- * FUL Voice Engine
+ * Nixi Voice Engine
  * Complete Port of Mark-LVI TTS, STT, EchoGuard, VAD & Viseme Architectures.
  * Supports:
  *  - TTS: Gemini Preview Audio, ElevenLabs Multilingual, MS Edge Neural, SAPI5 UTF-8 Progressive System Voice
@@ -20,7 +20,7 @@ const http = require('http');
 const SENTENCE_END = /(?<=[.!?…])\s+|(?<=[。！？؟۔।])\s*/;
 
 /* =========================================================================
-   1. EchoGuard: Prevents FUL from hearing and transcribing its own voice
+   1. EchoGuard: Prevents Nixi from hearing and transcribing its own voice
    ========================================================================= */
 class EchoGuard {
   constructor(latencyMs = 250, tailMarginMs = 350) {
@@ -68,8 +68,18 @@ function splitSentences(text) {
 /* =========================================================================
    3. System SAPI5 Speech via UTF-8 Temp File (Zero Codepage Crash)
    ========================================================================= */
+let currentSapiProc = null;
+
+function stopSystemSapi() {
+  if (currentSapiProc) {
+    try { currentSapiProc.kill(); } catch {}
+    currentSapiProc = null;
+  }
+}
+
 function speakSystemSapi(text, voiceName = '') {
   return new Promise((resolve) => {
+    stopSystemSapi();
     if (!text || !text.trim()) return resolve({ ok: false, error: 'Empty text' });
 
     const clean = text.replace(/[<>:"/\\|?*]/g, ' ').trim();
@@ -102,13 +112,16 @@ function speakSystemSapi(text, voiceName = '') {
       windowsHide: true,
       stdio: ['ignore', 'ignore', 'ignore']
     });
+    currentSapiProc = proc;
 
     proc.on('exit', (code) => {
+      if (currentSapiProc === proc) currentSapiProc = null;
       try { fs.unlinkSync(tempFile); } catch {}
       resolve({ ok: code === 0, engine: 'sapi5' });
     });
 
     proc.on('error', (err) => {
+      if (currentSapiProc === proc) currentSapiProc = null;
       try { fs.unlinkSync(tempFile); } catch {}
       resolve({ ok: false, error: err.message });
     });
@@ -310,6 +323,7 @@ module.exports = {
   echoGuard,
   splitSentences,
   speakSystemSapi,
+  stopSystemSapi,
   speakElevenLabs,
   transcribeHostedWhisper,
   LanguageStabilityGuard,
