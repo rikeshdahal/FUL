@@ -382,52 +382,32 @@ let currentShape = 'rest';
 let collapseTimer = null;
 let fallbackTimer = null;
 
-function lineWidth(text, max = 560) {
-  return Math.max(300, Math.min(max, 74 + String(text || '').length * 8 + 14 + 44 + 16));
-}
-
 function setShape(shape) {
   if (currentShape === shape) return;
   currentShape = shape;
 
   if (shape !== 'state-dictate' && shape !== 'dictate') stopDictateAppWatch();
 
-  let targetW = 240, targetH = 48;
+  let targetW = 112, targetH = 56;
   if (shape === 'rest') {
-    targetW = 240; targetH = 48;
-  } else if (shape === 'listen' || shape === 'listening') {
-    targetW = 440; targetH = 48;
-  } else if (shape === 'working' || shape === 'done') {
-    targetW = 300; targetH = 48;
-  } else if (shape === 'timer' || shape === 'timer-notch' || shape === 'stopwatch') {
-    targetW = 240; targetH = 48;
-  } else if (shape === 'water') {
-    targetW = 480; targetH = 48;
-  } else if (shape === 'ask') {
-    targetW = 560; targetH = 168;
-  } else if (shape === 'list' || shape === 'notes' || shape === 'todo') {
-    targetW = 560; targetH = 196;
-  } else if (shape === 'pomodoro' || shape === 'pomo') {
-    targetW = 560; targetH = 168;
-  } else if (shape === 'shelf' || shape === 'music-card') {
-    targetW = 560; targetH = 196;
+    targetW = 112; targetH = 56;
   } else if (shape === 'dock' || shape === 'hover-dock') {
-    targetW = 264; targetH = 64;
+    targetW = 140; targetH = 112;
   } else if (shape === 'state-cursor' || shape === 'cursor') {
-    targetW = 300; targetH = 48;
+    targetW = 184; targetH = 112;
   } else if (shape === 'state-write' || shape === 'write') {
-    targetW = lineWidth($('status')?.textContent || '', 560); targetH = 48;
+    targetW = 140; targetH = 112;
   } else if (shape === 'state-dictate' || shape === 'dictate') {
-    targetW = 120; targetH = 48;
+    targetW = 140; targetH = 112;
     startDictateAppWatch();
   } else if (shape === 'state-error' || shape === 'error') {
-    targetW = 440; targetH = 120;
+    targetW = 380; targetH = 128;
   } else if (shape === 'capsule') {
-    targetW = lineWidth($('status')?.textContent || '', 560); targetH = 48;
+    targetW = 380; targetH = 74;
   } else if (shape === 'music') {
-    targetW = 480; targetH = 150;
+    targetW = 390; targetH = 136;
   } else if (shape === 'panel') {
-    targetW = S.cfg.panelWidth || 460; targetH = S.cfg.panelHeight || 520;
+    targetW = 420; targetH = 520;
   }
 
   // Update chevron orientation: Up when panel is open, Down when collapsed
@@ -443,14 +423,7 @@ function setShape(shape) {
   clearTimeout(collapseTimer);
   ipc.send('prepare-size', { w: targetW, h: targetH, shape });
 
-  // Mode toggles on #shell
   shell.classList.toggle('rest', shape === 'rest');
-  shell.classList.toggle('listening', shape === 'listen' || shape === 'listening');
-  shell.classList.toggle('ask', shape === 'ask');
-  shell.classList.toggle('list', shape === 'list' || shape === 'notes');
-  shell.classList.toggle('todo', shape === 'todo');
-  shell.classList.toggle('pomodoro', shape === 'pomodoro' || shape === 'pomo');
-  shell.classList.toggle('timer-notch', shape === 'timer' || shape === 'timer-notch');
   shell.classList.toggle('dock', shape === 'dock' || shape === 'hover-dock');
   shell.classList.toggle('state-cursor', shape === 'state-cursor' || shape === 'cursor');
   shell.classList.toggle('state-write', shape === 'state-write' || shape === 'write');
@@ -460,48 +433,10 @@ function setShape(shape) {
   shell.classList.toggle('music', shape === 'music');
   shell.classList.toggle('panel', shape === 'panel');
 
-  // Control visibility of Notch Widget vs Head / Body
-  const isNotchCard = ['ask', 'list', 'notes', 'todo', 'pomodoro', 'pomo', 'shelf', 'music-card'].includes(shape);
-  const notchWidget = $('notchWidget');
-  const headEl = $('head');
-  const bodyEl = $('body');
-  const miniEl = $('mini');
-
-  if (isNotchCard) {
-    if (notchWidget) notchWidget.style.display = 'flex';
-    if (headEl) headEl.style.display = 'none';
-    if (bodyEl) bodyEl.style.display = 'none';
-    if (miniEl) miniEl.style.display = 'none';
-  } else {
-    if (notchWidget) notchWidget.style.display = 'none';
-    if (headEl) headEl.style.display = 'flex';
-    if (shape === 'panel') {
-      if (bodyEl) bodyEl.style.display = 'flex';
-    } else {
-      if (bodyEl) bodyEl.style.display = 'none';
-    }
-  }
-
-  // Listening mode wave bars
-  const waveBars = $('waveBars');
-  if (waveBars) {
-    waveBars.style.display = (shape === 'listen' || shape === 'listening') ? 'flex' : 'none';
-  }
-
-  shell.style.removeProperty('width');
-  shell.style.removeProperty('height');
-  if (shape === 'capsule' || shape === 'state-write' || shape === 'write' || isNotchCard) {
-    shell.style.width = targetW + 'px';
-  }
-  if (shape === 'panel') {
-    shell.style.width = targetW + 'px';
-    shell.style.height = targetH + 'px';
-  }
-
   if (shape === 'rest') {
     collapseTimer = setTimeout(() => {
       if (currentShape === 'rest') {
-        ipc.send('prepare-size', { w: 240, h: 48, shape: 'rest' });
+        ipc.send('prepare-size', { w: 112, h: 56, shape: 'rest' });
       }
     }, 360);
   }
@@ -534,21 +469,13 @@ function hideFallbackError() {
 
 function setStatus(text, dim) {
   const el = $('status');
-  const next = text || '';
-  const changed = el.textContent !== next;
-  el.textContent = next;
-  el.title = next;
+  el.textContent = text || '';
+  el.title = text || '';
   el.classList.toggle('dim', !!dim);
 
   const cancelBtn = $('bCancelAction');
   if (cancelBtn) {
     cancelBtn.style.display = (S.busy || S.capture) ? 'inline-flex' : 'none';
-  }
-
-  if (changed && (currentShape === 'capsule' || currentShape === 'state-write' || currentShape === 'write')) {
-    const w = lineWidth(next, 560);
-    shell.style.width = w + 'px';
-    ipc.send('prepare-size', { w, h: 48, shape: currentShape });
   }
 }
 
@@ -1178,244 +1105,6 @@ function afterPanel() {
   if (S.panel === 'music') { pollMedia(); renderMusic(); }
 }
 
-/* --------------------------------------------------- Notch System (Mark-LVI/temp) */
-function updateNotchClock() {
-  const clockEl = $('nvClock');
-  if (!clockEl) return;
-  const now = new Date();
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const day = days[now.getDay()];
-  const date = now.getDate();
-  const month = months[now.getMonth()];
-  const h = now.getHours();
-  const m = now.getMinutes();
-  clockEl.textContent = `${day} ${date} ${month} ${h}:${m < 10 ? '0' : ''}${m}`;
-}
-
-function initNotchSystem() {
-  updateNotchClock();
-  setInterval(updateNotchClock, 1000);
-
-  // Tab buttons: pointer, mic, pen
-  const tabDefs = [
-    { id: 'nvTabPointer', mode: 'pointer' },
-    { id: 'nvTabMic', mode: 'mic' },
-    { id: 'nvTabPen', mode: 'pen' }
-  ];
-
-  tabDefs.forEach(({ id, mode }) => {
-    const btn = $(id);
-    if (!btn) return;
-    btn.onclick = () => {
-      tabDefs.forEach(t => $(t.id)?.classList.remove('on'));
-      btn.classList.add('on');
-      if (mode === 'pointer') {
-        collapse();
-        askScreenWithFollowUps();
-      } else if (mode === 'mic') {
-        beginCapture('cmd');
-      } else if (mode === 'pen') {
-        togglePanel();
-        $('chatInput')?.focus();
-      }
-    };
-  });
-
-  // Small utility icons: Notes/Tray, Timer/Pomodoro, Sliders/Expand
-  const trayBtn = $('nvTrayBtn');
-  if (trayBtn) {
-    trayBtn.onclick = () => {
-      showNotchList('Notes', [
-        { text: 'Wi-Fi password is on the fridge', done: false },
-        { text: 'Call the bank on Monday', done: false },
-        { text: 'Gift ideas: book, plant', done: false }
-      ]);
-    };
-  }
-
-  const timerBtn = $('nvTimerBtn');
-  if (timerBtn) {
-    timerBtn.onclick = () => {
-      showNotchPomodoro(293, 'Break');
-    };
-  }
-
-  const expandBtn = $('nvExpandBtn');
-  if (expandBtn) {
-    expandBtn.onclick = () => {
-      togglePanel();
-    };
-  }
-}
-
-// Screenshot 2: "It asks first" Card (560x168)
-function showNotchAsk(question, onYes, onNo) {
-  const card = $('nvCard');
-  if (!card) return;
-  card.innerHTML = `
-    <div class="nv-cardface">
-      <div class="nv-face-capsule"><i class="eye"></i><i class="eye"></i></div>
-    </div>
-    <div class="nv-text">
-      <p>${esc(question)}</p>
-    </div>
-    <span class="nv-buttons">
-      <button class="nv-btn" id="nvBtnNotNow">Not now</button>
-      <button class="nv-btn nv-blue" id="nvBtnYes">Yes</button>
-    </span>`;
-  setShape('ask');
-  feel('hover', 5000);
-
-  const btnNo = $('nvBtnNotNow');
-  const btnYes = $('nvBtnYes');
-  if (btnNo) {
-    btnNo.onclick = () => {
-      if (onNo) onNo();
-      collapse();
-    };
-  }
-  if (btnYes) {
-    btnYes.onclick = async () => {
-      if (onYes) await onYes();
-      showNotchDone('Confirmed');
-    };
-  }
-}
-
-// Screenshot 3: "Lists at a glance" Card (560x196)
-function showNotchList(title, items, onToggle) {
-  const card = $('nvCard');
-  if (!card) return;
-  const listItems = items || [
-    { text: 'Wi-Fi password is on the fridge', done: false },
-    { text: 'Call the bank on Monday', done: false },
-    { text: 'Gift ideas: book, plant', done: false }
-  ];
-  card.innerHTML = `
-    <div class="nv-cardface">
-      <div class="nv-face-capsule"><i class="eye"></i><i class="eye"></i></div>
-    </div>
-    <div class="nv-list">
-      <p>${esc(title || 'Notes')}</p>
-      ${listItems.map((it, idx) => `
-        <div class="nv-item-row" data-idx="${idx}" style="display:flex;align-items:center;gap:10px;margin-bottom:6px;cursor:pointer;">
-          <b style="width:16px;height:16px;border-radius:50%;border:2px solid ${it.done ? '#3882F6' : '#5A5D66'};background:${it.done ? '#3882F6' : 'transparent'};display:inline-block;flex:none;transition:all 0.2s ease;"></b>
-          <span style="font-size:14px;color:${it.done ? '#8E939C' : '#F5F6F8'};text-decoration:${it.done ? 'line-through' : 'none'};">${esc(it.text || it)}</span>
-        </div>
-      `).join('')}
-    </div>`;
-  setShape('list');
-
-  card.querySelectorAll('.nv-item-row').forEach(row => {
-    row.onclick = () => {
-      const idx = parseInt(row.dataset.idx, 10);
-      listItems[idx].done = !listItems[idx].done;
-      showNotchList(title, listItems, onToggle);
-      if (onToggle) onToggle(listItems[idx], idx);
-    };
-  });
-}
-
-// Screenshot 5: "Focus, then take a break" Card (560x168)
-let pomoInterval = null;
-function showNotchPomodoro(seconds = 293, phase = 'Break', onToggle, onStop) {
-  const card = $('nvCard');
-  if (!card) return;
-  clearInterval(pomoInterval);
-  let currentSec = seconds;
-  let currentPhase = phase;
-
-  function renderPomo() {
-    const isBreak = currentPhase === 'Break';
-    const total = isBreak ? 300 : 1500;
-    const progress = Math.max(0, Math.min(1, currentSec / total));
-    const m = Math.floor(currentSec / 60);
-    const s = currentSec % 60;
-    const timeStr = `${m}:${s < 10 ? '0' : ''}${s}`;
-    const strokeCircumference = 132;
-    const strokeOffset = strokeCircumference * (1 - progress);
-    const ringColor = isBreak ? '#34C759' : '#3882F6';
-
-    card.innerHTML = `
-      <div class="nv-cardface">
-        <div class="nv-face-capsule"><i class="eye arch"></i><i class="eye arch"></i></div>
-      </div>
-      <div class="nv-pomo">
-        <div class="nv-pomo-content">
-          <div class="nv-ring-wrap large" style="position:relative;width:78px;height:78px;display:grid;place-items:center;">
-            <svg class="nv-ring large" viewBox="0 0 48 48">
-              <circle cx="24" cy="24" r="21" fill="none" stroke="#25272C" stroke-width="3"></circle>
-              <circle class="on" cx="24" cy="24" r="21" fill="none" stroke="${ringColor}" stroke-width="3" style="stroke-dasharray:${strokeCircumference};stroke-dashoffset:${strokeOffset};transition:stroke-dashoffset 0.5s linear;"></circle>
-            </svg>
-            <span class="nv-ring-icon" style="position:absolute;display:grid;place-items:center;">
-              <svg viewBox="0 0 24 24" style="width:20px;height:20px;"><circle cx="12" cy="13" r="7.5" fill="none" stroke="${ringColor}" stroke-width="1.8"/><path d="M12 13V8m-3-5h6m1.5 3.5L18 5" fill="none" stroke="${ringColor}" stroke-width="1.8" stroke-linecap="round"/></svg>
-            </span>
-          </div>
-          <div class="nv-pomo-time">
-            <strong>${timeStr}</strong>
-            <small>${isBreak ? 'Break' : 'Focus'}</small>
-          </div>
-          <div class="nv-pomo-actions">
-            <button class="nv-btn" id="nvPomoToggle">${isBreak ? 'Focus' : 'Break'}</button>
-            <button class="nv-stop ${isBreak ? 'green' : ''}" id="nvPomoStop">■</button>
-          </div>
-        </div>
-      </div>`;
-    setShape('pomodoro');
-    feel(isBreak ? 'happy' : 'concentrate', 3000);
-
-    const toggleBtn = $('nvPomoToggle');
-    if (toggleBtn) {
-      toggleBtn.onclick = () => {
-        currentPhase = currentPhase === 'Break' ? 'Focus' : 'Break';
-        currentSec = currentPhase === 'Break' ? 300 : 1500;
-        renderPomo();
-        if (onToggle) onToggle(currentPhase);
-      };
-    }
-
-    const stopBtn = $('nvPomoStop');
-    if (stopBtn) {
-      stopBtn.onclick = () => {
-        clearInterval(pomoInterval);
-        if (onStop) onStop();
-        collapse();
-      };
-    }
-  }
-
-  renderPomo();
-  pomoInterval = setInterval(() => {
-    if (currentSec > 0) {
-      currentSec--;
-      renderPomo();
-    } else {
-      clearInterval(pomoInterval);
-      showNotchDone(currentPhase + ' finished!');
-    }
-  }, 1000);
-}
-
-// Notch Quick Tasks (Feature 02: Working on it. Done.)
-function showNotchWorking(message = 'Working on it') {
-  setShape('working');
-  setStatus(message);
-  feel('thinking', 2000);
-}
-
-function showNotchDone(message = 'Done') {
-  setShape('done');
-  setStatus(message);
-  feel('happy', 1400);
-  setTimeout(() => {
-    if (currentShape === 'done' || currentShape === 'working') {
-      collapse();
-    }
-  }, 1400);
-}
-
-
 /* --------------------------------------------------- Live Timers & Lists */
 function updateTimers() {
   ipc.invoke('data-get').then(data => {
@@ -1443,20 +1132,8 @@ function updateTimers() {
         badge.style.display = 'inline-flex';
         digits.textContent = str;
       }
-      const ring = $('timerRingProgress');
-      if (ring) {
-        const total = nearest.duration || 600;
-        const progress = Math.max(0, Math.min(1, remainingSec / total));
-        ring.style.strokeDashoffset = 50.26 * (1 - progress);
-      }
-      if (currentShape === 'rest' && !S.panel) {
-        setShape('timer-notch');
-      }
     } else {
       if (badge) badge.style.display = 'none';
-      if (currentShape === 'timer-notch') {
-        collapse();
-      }
     }
 
     // If lists tab is currently open, re-render it smoothly
@@ -1713,7 +1390,7 @@ function bindPanel() {
     S.cfg.polished = $('polished') ? $('polished').checked : c.polished;
     S.cfg.speak = $('speak') ? $('speak').checked : c.speak;
     S.cfg.wake = $('wake') ? $('wake').checked : c.wake;
-    S.cfg.wakePhrase = ($('wp') ? $('wp').value : c.wakePhrase).trim() || 'hey nixi';
+    S.cfg.wakePhrase = ($('wp') ? $('wp').value : c.wakePhrase).trim() || 'hey ful';
     S.cfg.userName = ($('un') ? $('un').value : c.userName).trim() || 'Rikesh';
     S.cfg.hotkeys = $('hotkeys') ? $('hotkeys').checked : c.hotkeys;
     S.cfg.glow = $('glow') ? $('glow').checked : c.glow;
@@ -1748,8 +1425,6 @@ function bindPanel() {
       S.cfg.panelHeight = h;
       shell.style.setProperty('--panel-w', w + 'px');
       shell.style.setProperty('--panel-h', h + 'px');
-      shell.style.width = w + 'px';
-      shell.style.height = h + 'px';
       ipc.send('window-resize-panel', { width: w, height: h });
       ipc.invoke('cfg-set', { panelWidth: w, panelHeight: h });
       setStatus(`Resized to ${w}×${h}`);
@@ -2339,20 +2014,14 @@ ipc.on('agent-speech-cancel', () => {
 /* --------------------------------------------------------- confirmation */
 function askConfirm(question, intent) {
   S.confirm = intent;
-  showNotchAsk(
-    question,
-    async () => {
-      const it = S.confirm;
-      S.confirm = null;
-      await runIntent(it, true);
-    },
-    () => {
-      S.confirm = null;
-      setStatus('Okay.');
-      showNotchWorking('Cancelled');
-      setTimeout(collapse, 900);
-    }
-  );
+  showPanel('confirm', `
+    <div style="font-size:13.5px;line-height:1.55">${esc(question)}</div>
+    <div class="acts">
+      <button class="btn primary" id="cYes">Yes, do it</button>
+      <button class="btn" id="cNo">No thanks</button>
+    </div>`);
+  $('cYes').onclick = async () => { const it = S.confirm; S.confirm = null; closePanel(); await runIntent(it, true); };
+  $('cNo').onclick = () => { S.confirm = null; closePanel(); setStatus('Okay.'); };
 }
 
 async function runIntent(intent, confirmed, opts = {}) {
@@ -2804,7 +2473,7 @@ async function handleInspectVideo() {
 }
 
 /* --------------------------------------------------------- cloud model */
-const SYS = 'You are FUL, an advanced AI-powered desktop companion with FULL AUTONOMOUS CONTROL over the user\'s Windows PC, possessing the combined power of Mark-LVI and Nixi. ' +
+const SYS = 'You are FUL, an advanced AI-powered desktop companion with FULL AUTONOMOUS CONTROL over the user\'s Windows PC, possessing the combined power of Mark-LVI and F.U.L. ' +
   'You are the devoted, intelligent companion to Rikesh Dahal ("Boss"). You can think and execute ANY desktop action, software engineering task, or multi-step workflow fast and accurately: ' +
   '1) AUTONOMOUS SOFTWARE ENGINEERING: Use `dev_agent` to scaffold entire software projects (React, Node, Python, C++, etc.), auto-install npm/pip packages, run projects, and self-heal syntax/import errors in a loop. ' +
   '2) WEBFORGE WEBSITE BUILDER: Use `build_website` to generate modern, responsive, animated HTML5/CSS3/JS websites (dark, light, glassmorphism, gaming, futuristic_neon, ai_startup, portfolio, corporate, ecommerce) and instantly launch a live preview server in the browser. Use `preview_website` and `list_websites` to inspect. ' +
@@ -2950,7 +2619,7 @@ async function callGeminiAudio(base64Webm, promptText, mimeType) {
   }
 }
 
-/* --------------------------------------------------- Nixi Live Camera Vision */
+/* --------------------------------------------------- FUL Live Camera Vision */
 let cameraStream = null;
 
 async function startCamera() {
@@ -3178,7 +2847,7 @@ async function askModel(text, opts = {}) {
         appendChatMessage('ful', out.trim());
         setStatus(out.slice(0, 60));
       } else {
-        say(out.trim(), opts.intent === 'write' ? 'Draft' : 'Nixi');
+        say(out.trim(), opts.intent === 'write' ? 'Draft' : 'FUL');
       }
       feel('happy', 1800);
     }
@@ -3599,13 +3268,8 @@ async function beginCapture(mode) {
   vadSpeechStarted = false;
   vadLastSpeech = 0;
   S.capture = mode;
-  if (mode === 'cmd') {
-    setShape('listen');
-    setStatus('Listening…');
-  } else {
-    setShape('state-dictate');
-    setStatus('Dictating… (click mic or ✕ to finish)');
-  }
+  setShape('state-dictate');
+  setStatus(mode === 'dict' ? 'Dictating… (click mic or ✕ to finish)' : 'Listening…');
   $('bMic').classList.add('rec');
   $('bCancelAction').style.display = 'inline-flex';
   await startMeter();
@@ -4565,8 +4229,6 @@ function initPanelResizing() {
         S.cfg.panelHeight = nh;
         shell.style.setProperty('--panel-w', nw + 'px');
         shell.style.setProperty('--panel-h', nh + 'px');
-        shell.style.width = nw + 'px';
-        shell.style.height = nh + 'px';
 
         if (!raf) {
           raf = requestAnimationFrame(() => {
@@ -4613,8 +4275,6 @@ function initQuickPresets() {
       S.cfg.panelHeight = nh;
       shell.style.setProperty('--panel-w', nw + 'px');
       shell.style.setProperty('--panel-h', nh + 'px');
-      shell.style.width = nw + 'px';
-      shell.style.height = nh + 'px';
       ipc.send('window-resize-panel', { width: nw, height: nh });
       ipc.invoke('cfg-set', { panelWidth: nw, panelHeight: nh });
       feel('happy', 800);
@@ -4944,11 +4604,9 @@ preloadSounds();
 ipc.invoke('cfg-get').then(c => {
   S.cfg = { ...DEFAULTS, ...c };
   applyTheme();
-  if ((S.cfg.placement || 'top-center') === 'top-center') {
-    $('shell')?.classList.add('notch-ears');
-  }
   setTimeout(() => playSound('startup'), 600);
   if (!S.cfg.key) setTimeout(openSettings, 1200);
+  setTimeout(() => sayTimeGreeting(), 1400);
 });
 ipc.invoke('data-get').then(() => {
   updateTimers();
@@ -4962,5 +4620,4 @@ initCompanionQuips();
 initBatteryWatcher();
 loadChatStore();
 renderChatFromStore();
-initNotchSystem();
 console.log('[RENDERER] renderer.js fully initialized!');
