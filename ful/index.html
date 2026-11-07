@@ -153,17 +153,13 @@
       box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8) !important;
     }
 
-    /* Ambient Reactive Aura */
+    /* Ambient Reactive Aura - Completely Disabled to Remove Border Glow */
     .aura-glow {
-      position: absolute;
-      inset: -6px;
-      border-radius: inherit;
-      background: radial-gradient(circle at 50% 25%, var(--aura-color) 0%, transparent 72%);
-      filter: blur(14px);
-      opacity: var(--aura-opacity);
-      pointer-events: none;
-      z-index: -1;
-      transition: opacity 0.5s ease, background 0.5s ease;
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+      filter: none !important;
     }
 
     /* Idle Breathing / Float Animation */
@@ -2531,22 +2527,16 @@
       padding: 2px 0;
     }
 
-    /* Glowing borders for Camera active & High RAM alert */
+    /* Clean Non-Glowing borders for Camera active & High RAM alert */
     #shell.camera-active {
-      box-shadow: 0 0 0 2px rgba(0, 242, 254, 0.6), 0 0 30px rgba(0, 242, 254, 0.4) !important;
-      animation: cameraNeonPulse 2s ease-in-out infinite alternate !important;
-    }
-    @keyframes cameraNeonPulse {
-      0% { box-shadow: 0 0 0 1px rgba(0, 242, 254, 0.5), 0 0 18px rgba(0, 242, 254, 0.3); }
-      100% { box-shadow: 0 0 0 2.5px rgba(0, 242, 254, 0.9), 0 0 35px rgba(0, 242, 254, 0.6); }
+      box-shadow: none !important;
+      animation: none !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
     }
     #shell.ram-warning {
-      box-shadow: 0 0 0 2.5px rgba(255, 46, 67, 0.9), 0 0 35px rgba(255, 46, 67, 0.6) !important;
-      animation: ramWarningPulse 1.2s ease-in-out infinite !important;
-    }
-    @keyframes ramWarningPulse {
-      0%, 100% { box-shadow: 0 0 0 2px rgba(255, 46, 67, 0.6), 0 0 20px rgba(255, 46, 67, 0.3); }
-      50% { box-shadow: 0 0 0 3.5px rgba(255, 46, 67, 1), 0 0 45px rgba(255, 46, 67, 0.8); }
+      box-shadow: none !important;
+      animation: none !important;
+      border: 1px solid #ef4444 !important;
     }
 
     /* WebForge, System Guardian & Memory Tabs Styling */
@@ -3497,6 +3487,144 @@
       display: none !important;
     }
 
+
+    /* ================================================================
+       SETTINGS PANEL (In-App Companion Settings)
+       ================================================================ */
+    .settings-container {
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+      padding: 12px 14px;
+      overflow-y: auto;
+      height: 100%;
+      box-sizing: border-box;
+    }
+    .settings-card {
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-sizing: border-box;
+    }
+    .settings-card h4 {
+      margin: 0;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: -0.01em;
+    }
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .settings-row.wrap {
+      flex-wrap: wrap;
+    }
+    .settings-label {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.72);
+      font-weight: 500;
+    }
+    .settings-swatch {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+      box-sizing: border-box;
+    }
+    .settings-swatch:hover {
+      transform: scale(1.15);
+    }
+    .settings-swatch.active {
+      border-color: #FFFFFF !important;
+      box-shadow: 0 0 6px rgba(255, 255, 255, 0.7) !important;
+    }
+    .settings-input {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 9px;
+      padding: 8px 12px;
+      color: #FFFFFF;
+      font-size: 12px;
+      width: 100%;
+      box-sizing: border-box;
+      outline: none;
+      transition: border-color 0.18s ease;
+      font-family: inherit;
+    }
+    .settings-input:focus {
+      border-color: #3b82f6;
+    }
+    .settings-select {
+      background: #141721;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 9px;
+      padding: 8px 12px;
+      color: #FFFFFF;
+      font-size: 12px;
+      outline: none;
+      cursor: pointer;
+      box-sizing: border-box;
+      font-family: inherit;
+    }
+    .settings-btn {
+      padding: 7px 14px;
+      border-radius: 9px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.06);
+      color: #FFFFFF;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .settings-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+    .settings-btn.primary {
+      background: #2563EB;
+      border-color: #3B82F6;
+      color: #FFFFFF;
+    }
+    .settings-btn.primary:hover {
+      background: #1D4ED8;
+    }
+    .settings-btn.on {
+      background: #3B82F6;
+      border-color: #60A5FA;
+      color: #FFFFFF;
+    }
+    .settings-chk {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.8);
+      cursor: pointer;
+      user-select: none;
+    }
+    .settings-chk input[type="checkbox"] {
+      accent-color: #3B82F6;
+      cursor: pointer;
+      width: 14px;
+      height: 14px;
+    }
+
 </style>
 </head>
 
@@ -3751,6 +3879,7 @@
           <button data-tab="webforge">WebForge</button>
           <button data-tab="system">Guardian</button>
           <button data-tab="memory">Memory</button>
+          <button data-tab="settings">Settings</button>
         </div>
         <div class="panel-quick-actions">
           <button id="btnSizePreset" class="icon-btn-subtle" title="Toggle size: Compact / Standard / Wide">

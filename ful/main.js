@@ -67,7 +67,7 @@ const DEFAULT_CFG = {
   customPos: null,
   panelWidth: 460,
   panelHeight: 520,
-  glow: true,
+  glow: false,
   breathe: true,
   sounds: true,
   userName: 'Rikesh',

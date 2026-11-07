@@ -250,18 +250,11 @@ function loop(t) {
 requestAnimationFrame(loop);
 
 function updateAuraColor(mood) {
-  const auraColors = {
-    angry: 'rgba(239, 68, 68, 0.85)',
-    listening: 'rgba(56, 189, 248, 0.65)',
-    thinking: 'rgba(245, 158, 11, 0.65)',
-    talking: 'rgba(168, 85, 247, 0.65)',
-    happy: 'rgba(244, 63, 94, 0.7)',
-    hover: 'rgba(77, 141, 255, 0.45)',
-    surprised: 'rgba(6, 182, 212, 0.65)',
-    sleepy: 'rgba(99, 102, 241, 0.25)',
-    idle: 'rgba(59, 130, 246, 0.28)'
-  };
-  shell.style.setProperty('--aura-color', auraColors[mood] || auraColors.idle);
+  // Border glow removed per user request for ultra-clean matte hardware notch design
+  if (shell) {
+    shell.style.setProperty('--aura-opacity', '0');
+    shell.style.setProperty('--aura-color', 'transparent');
+  }
 }
 
 function feel(mood, ms = 1800) {
@@ -660,7 +653,7 @@ function applyTheme() {
   shell.style.setProperty('--panel-w', (c.panelWidth || 460) + 'px');
   shell.style.setProperty('--panel-h', (c.panelHeight || 520) + 'px');
   shell.classList.toggle('breathe', c.breathe !== false);
-  shell.style.setProperty('--aura-opacity', c.glow !== false ? '0.65' : '0');
+  shell.style.setProperty('--aura-opacity', '0');
 
   const hex = String(c.pill).replace('#', '');
   const r = parseInt(hex.slice(0, 2), 16) || 0, g = parseInt(hex.slice(2, 4), 16) || 0, b = parseInt(hex.slice(4, 6), 16) || 0;
@@ -1449,7 +1442,7 @@ function initNotchSystem() {
   if (expandBtn) {
     expandBtn.onclick = (e) => {
       e.stopPropagation();
-      togglePanel();
+      openSettingsTab();
     };
   }
 }
@@ -1802,95 +1795,306 @@ function renderMusic() {
   bindPanel();
 }
 
+function openSettingsTab() {
+  S.panel = 'settings';
+  setShape('panel');
+  openTab('settings');
+}
+
+function openSettings() {
+  openSettingsTab();
+}
+
 function renderSettings() {
-  const c = S.cfg;
+  const container = $('tab-settings');
+  if (!container) return;
+  const c = S.cfg || {};
   const p = c.placement || 'top-center';
-  $('tab-settings').innerHTML = `
-    <div class="glass-card">
-      <h4>📌 Placement & Display</h4>
-      <div class="row wrap" style="gap:6px">
-        <button class="btn ${p === 'top-center' ? 'primary' : ''}" data-setdock="top-center">🏝 Notch (Top Center)</button>
-        <button class="btn ${p === 'top-right' ? 'primary' : ''}" data-setdock="top-right">↗ Top Right</button>
-        <button class="btn ${p === 'bottom-right' ? 'primary' : ''}" data-setdock="bottom-right">↘ Bottom Right</button>
-        <button class="btn ${p === 'custom' ? 'primary' : ''}" data-setdock="custom">🪟 Free Floating</button>
-      </div>
-      <div class="row wrap" style="margin-top:12px;gap:6px">
-        <span class="muted">Size:</span>
-        <button class="small-btn" data-setsize="380,440">Compact (380×440)</button>
-        <button class="small-btn" data-setsize="460,520">Standard (460×520)</button>
-        <button class="small-btn" data-setsize="600,580">Wide (600×580)</button>
-      </div>
-      <div class="row wrap" style="margin-top:10px">
-        <label class="chk"><input type="checkbox" id="glow" ${c.glow !== false ? 'checked' : ''}> Ambient aura glow</label>
-        <label class="chk"><input type="checkbox" id="breathe" ${c.breathe !== false ? 'checked' : ''}> Idle breathing float</label>
-      </div>
-    </div>
+  const currentEye = (c.eye || '#FFFFFF').toUpperCase();
+  const currentOutfit = c.outfit || 'none';
+  const currentModel = c.model || 'gemini-2.5-flash';
+  const currentVoice = c.voice || 'Kore';
+  const currentEdgeVoice = c.edgeVoice || 'en-US-AriaNeural';
 
-    <div class="glass-card">
-      <h4>🧠 Brain & AI Model</h4>
-      <input id="k" type="password" placeholder="Gemini API key (aistudio.google.com/apikey)" value="${esc(c.key)}">
-      <div class="row" style="margin-top:8px">
-        <select id="m" style="flex:1">
-          ${['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro', 'gemini-2.0-flash'].map(m => `<option ${m === c.model ? 'selected' : ''}>${m}</option>`).join('')}
-        </select>
-      </div>
-      <div class="row wrap" style="margin-top:8px">
-        <label class="chk"><input type="checkbox" id="think" ${c.think ? 'checked' : ''}> Deep think</label>
-        <label class="chk"><input type="checkbox" id="polished" ${c.polished ? 'checked' : ''}> Polished dictation</label>
-        <label class="chk"><input type="checkbox" id="speak" ${c.speak ? 'checked' : ''}> Read answers aloud</label>
-      </div>
-    </div>
+  const swatches = [
+    { name: 'Pure White', color: '#FFFFFF' },
+    { name: 'Arctic Cyan', color: '#38BDF8' },
+    { name: 'Emerald Neon', color: '#34D399' },
+    { name: 'Cyber Violet', color: '#A78BFA' },
+    { name: 'Electric Rose', color: '#FB7185' },
+    { name: 'Golden Amber', color: '#FBBF24' }
+  ];
 
-    <div class="glass-card">
-      <h4>🎙 Voice & Interaction</h4>
-      <div class="row">
-        <span class="muted">Your name:</span>
-        <input id="un" type="text" value="${esc(c.userName || '')}" placeholder="e.g. Rikesh" style="width:160px">
-      </div>
-      <div class="row">
-        <label class="chk"><input type="checkbox" id="wake" ${c.wake ? 'checked' : ''}> Wake phrase</label>
-        <input id="wp" type="text" value="${esc(c.wakePhrase)}" style="width:160px">
-      </div>
-      <div class="row">
-        <label class="chk"><input type="checkbox" id="hotkeys" ${c.hotkeys ? 'checked' : ''}> Global hotkeys active</label>
-      </div>
-    </div>
+  container.innerHTML = `
+    <div class="settings-container">
+      <!-- 🎨 Appearance & Nixi Face Customization -->
+      <div class="settings-card">
+        <h4>🎨 Appearance & Nixi Customization</h4>
 
-    <div class="glass-card">
-      <h4>🎨 Appearance & Outfits</h4>
-      <div class="row wrap">
-        <div style="display:flex;align-items:center;gap:6px">
-          <span class="muted">Pill:</span><input type="color" id="cp" value="${esc(c.pill)}">
+        <div class="settings-row wrap">
+          <span class="settings-label">Eye Color Theme:</span>
+          <div style="display:flex;align-items:center;gap:8px" id="settingsEyeSwatches">
+            ${swatches.map(s => `
+              <span class="settings-swatch ${currentEye === s.color ? 'active' : ''}"
+                    style="background:${s.color}"
+                    data-color="${s.color}"
+                    title="${s.name}"></span>
+            `).join('')}
+            <input type="color" id="settingsCustomEye" value="${c.eye || '#FFFFFF'}" title="Pick custom eye color" style="width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;background:none;padding:0;">
+          </div>
         </div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span class="muted">Eyes:</span><input type="color" id="ce" value="${esc(c.eye)}">
-        </div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span class="muted">Outfit:</span>
-          <select id="o" style="width:120px;margin:0">
-            ${['none', 'headphones', 'shades', 'glasses', 'bow'].map(x => `<option ${x === c.outfit ? 'selected' : ''}>${x}</option>`).join('')}
+
+        <div class="settings-row">
+          <span class="settings-label">Outfit Accessory:</span>
+          <select id="settingsOutfit" class="settings-select" style="min-width:180px">
+            <option value="none" ${currentOutfit === 'none' ? 'selected' : ''}>None (Sleek Clean)</option>
+            <option value="headphones" ${currentOutfit === 'headphones' ? 'selected' : ''}>🎧 Wireless Headphones</option>
+            <option value="shades" ${currentOutfit === 'shades' ? 'selected' : ''}>🕶 Cyber Sunglasses</option>
+            <option value="glasses" ${currentOutfit === 'glasses' ? 'selected' : ''}>👓 Smart Glasses</option>
           </select>
         </div>
+
+        <div class="settings-row wrap">
+          <label class="settings-chk">
+            <input type="checkbox" id="settingsBreathe" ${c.breathe ? 'checked' : ''}>
+            Float breathing motion
+          </label>
+          <label class="settings-chk">
+            <input type="checkbox" id="settingsSounds" ${c.sounds !== false ? 'checked' : ''}>
+            Sound effects (Chimes, Clicks)
+          </label>
+        </div>
+      </div>
+
+      <!-- 🏝️ Notch & Island Behavior -->
+      <div class="settings-card">
+        <h4>🏝️ Notch & Island Behavior</h4>
+
+        <div class="settings-row">
+          <span class="settings-label">Screen Placement:</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="settings-btn ${p === 'top-center' ? 'on' : ''}" data-placement="top-center">Top Notch</button>
+            <button class="settings-btn ${p === 'top-right' ? 'on' : ''}" data-placement="top-right">Top Right</button>
+            <button class="settings-btn ${p === 'custom' ? 'on' : ''}" data-placement="custom">Floating Pill</button>
+          </div>
+        </div>
+
+        <div class="settings-row">
+          <span class="settings-label">Auto-Tuck Inactivity:</span>
+          <select id="settingsAutoTuck" class="settings-select" style="min-width:180px">
+            <option value="3500">3.5 seconds (Quick)</option>
+            <option value="5500" selected>5.5 seconds (Default)</option>
+            <option value="9000">9 seconds (Relaxed)</option>
+            <option value="15000">15 seconds</option>
+            <option value="0">Never (Always visible)</option>
+          </select>
+        </div>
+
+        <div class="settings-row">
+          <span class="settings-label">Companion Panel Size:</span>
+          <div style="display:flex;gap:6px">
+            <button class="settings-btn" data-panel-size="380,460">Compact</button>
+            <button class="settings-btn" data-panel-size="460,540">Standard</button>
+            <button class="settings-btn" data-panel-size="600,600">Wide</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🧠 AI Brain & Model -->
+      <div class="settings-card">
+        <h4>🧠 AI Brain & Intelligence</h4>
+
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span class="settings-label">Gemini API Key:</span>
+            <a href="https://aistudio.google.com/apikey" target="_blank" style="font-size:11px;color:#60A5FA;text-decoration:none">Get Free Key ↗</a>
+          </div>
+          <div style="display:flex;gap:8px">
+            <input type="password" id="settingsGeminiKey" class="settings-input" placeholder="AIzaSy..." value="${esc(c.key || '')}" style="flex:1">
+            <button class="settings-btn" id="btnToggleKeyEye" type="button" title="Show/Hide">👁</button>
+          </div>
+        </div>
+
+        <div class="settings-row">
+          <span class="settings-label">AI Model:</span>
+          <select id="settingsModel" class="settings-select" style="min-width:210px">
+            <option value="gemini-2.5-flash" ${currentModel === 'gemini-2.5-flash' ? 'selected' : ''}>gemini-2.5-flash (Fast & Smart)</option>
+            <option value="gemini-2.5-flash-lite" ${currentModel === 'gemini-2.5-flash-lite' ? 'selected' : ''}>gemini-2.5-flash-lite (Ultra Fast)</option>
+            <option value="gemini-2.5-pro" ${currentModel === 'gemini-2.5-pro' ? 'selected' : ''}>gemini-2.5-pro (Deep Reasoning)</option>
+            <option value="gemini-2.0-flash" ${currentModel === 'gemini-2.0-flash' ? 'selected' : ''}>gemini-2.0-flash</option>
+          </select>
+        </div>
+
+        <div class="settings-row wrap">
+          <label class="settings-chk">
+            <input type="checkbox" id="settingsThink" ${c.think ? 'checked' : ''}>
+            Deep Think reasoning before answer
+          </label>
+          <label class="settings-chk">
+            <input type="checkbox" id="settingsSpeak" ${c.speak ? 'checked' : ''}>
+            Read AI answers aloud
+          </label>
+        </div>
+      </div>
+
+      <!-- 🎙️ Voice & TTS Audio -->
+      <div class="settings-card">
+        <h4>🎙️ Voice & TTS Audio</h4>
+
+        <div class="settings-row">
+          <span class="settings-label">TTS Priority:</span>
+          <span style="font-size:11.5px;color:#93c5fd;font-weight:600">1. Gemini TTS → 2. Edge Neural → 3. System SAPI</span>
+        </div>
+
+        <div class="settings-row">
+          <span class="settings-label">Gemini Voice:</span>
+          <select id="settingsGeminiVoice" class="settings-select" style="min-width:180px">
+            <option value="Kore" ${currentVoice === 'Kore' ? 'selected' : ''}>Kore (Firm & Confident)</option>
+            <option value="Aoede" ${currentVoice === 'Aoede' ? 'selected' : ''}>Aoede (Warm & Breezy)</option>
+            <option value="Fenrir" ${currentVoice === 'Fenrir' ? 'selected' : ''}>Fenrir (Deep & Resonant)</option>
+            <option value="Puck" ${currentVoice === 'Puck' ? 'selected' : ''}>Puck (Playful & Upbeat)</option>
+          </select>
+        </div>
+
+        <div class="settings-row">
+          <span class="settings-label">Edge Neural Voice:</span>
+          <select id="settingsEdgeVoice" class="settings-select" style="min-width:180px">
+            <option value="en-US-AriaNeural" ${currentEdgeVoice === 'en-US-AriaNeural' ? 'selected' : ''}>en-US-Aria (English US)</option>
+            <option value="en-US-GuyNeural" ${currentEdgeVoice === 'en-US-GuyNeural' ? 'selected' : ''}>en-US-Guy (English Male)</option>
+            <option value="en-GB-SoniaNeural" ${currentEdgeVoice === 'en-GB-SoniaNeural' ? 'selected' : ''}>en-GB-Sonia (British)</option>
+            <option value="ne-NP-HemkalaNeural" ${currentEdgeVoice === 'ne-NP-HemkalaNeural' ? 'selected' : ''}>ne-NP-Hemkala (Nepali)</option>
+          </select>
+        </div>
+
+        <div class="settings-row">
+          <span class="settings-label">Wake Phrase:</span>
+          <input type="text" id="settingsWakePhrase" class="settings-input" style="width:160px" value="${esc(c.wakePhrase || 'Hey Nixi')}">
+        </div>
+      </div>
+
+      <!-- Save Actions -->
+      <div style="display:flex;gap:10px;margin-top:6px;margin-bottom:12px">
+        <button class="settings-btn primary" id="btnSaveAllSettings" style="flex:1;height:40px;font-size:13px">
+          💾 Save Settings
+        </button>
+        <button class="settings-btn" id="btnCollapsePanelSettings" style="height:40px">
+          ✕ Back to Notch
+        </button>
+      </div>
+      <div id="settingsSaveToast" style="display:none;text-align:center;font-size:12px;color:#34D399;font-weight:600;padding:4px 0">
+        ✓ Settings saved and applied!
       </div>
     </div>
+  `;
 
-    <div class="glass-card">
-      <h4>⌨ Shortcuts</h4>
-      <div class="hintrow">
-        <kbd>Ctrl</kbd>+<kbd>Space</kbd> hold (or <kbd>Right Ctrl</kbd>) - talk a command<br>
-        <kbd>Right Alt</kbd> hold - dictate directly into any app<br>
-        <kbd>Ctrl</kbd>+<kbd>Space</kbd> talk &nbsp; <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>D</kbd> dictate &nbsp; <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>W</kbd> write<br>
-        Drag top bar - move FUL anywhere on screen<br>
-        Drag bottom-right corner - resize panel
-      </div>
-    </div>
+  // Bind Eye Swatches
+  container.querySelectorAll('.settings-swatch').forEach(swatch => {
+    swatch.addEventListener('click', () => {
+      container.querySelectorAll('.settings-swatch').forEach(s => s.classList.remove('active'));
+      swatch.classList.add('active');
+      const chosenColor = swatch.dataset.color;
+      S.cfg.eye = chosenColor;
+      face.setPalette(chosenColor, S.cfg.pill || '#000000');
+    });
+  });
 
-    <div class="acts" style="margin-top:14px">
-      <button class="btn primary" id="sv">Save Settings</button>
-      <button class="btn" id="miniBtn">Mini bar</button>
-      <button class="btn danger" id="quit">Quit FUL</button>
-    </div>`;
-  bindPanel();
+  const customEye = $('settingsCustomEye');
+  if (customEye) {
+    customEye.addEventListener('input', (e) => {
+      container.querySelectorAll('.settings-swatch').forEach(s => s.classList.remove('active'));
+      S.cfg.eye = e.target.value;
+      face.setPalette(e.target.value, S.cfg.pill || '#000000');
+    });
+  }
+
+  // Bind Outfit
+  const outfitSelect = $('settingsOutfit');
+  if (outfitSelect) {
+    outfitSelect.addEventListener('change', (e) => {
+      S.cfg.outfit = e.target.value;
+    });
+  }
+
+  // Bind Key Eye toggle
+  const keyEye = $('btnToggleKeyEye');
+  const keyInput = $('settingsGeminiKey');
+  if (keyEye && keyInput) {
+    keyEye.addEventListener('click', () => {
+      keyInput.type = (keyInput.type === 'password') ? 'text' : 'password';
+      keyEye.textContent = (keyInput.type === 'password') ? '👁' : '🔒';
+    });
+  }
+
+  // Bind Placement
+  container.querySelectorAll('[data-placement]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      container.querySelectorAll('[data-placement]').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+      const plc = btn.dataset.placement;
+      S.cfg.placement = plc;
+      ipc.send('window-set-placement', plc);
+      setStatus('Placement: ' + btn.textContent.trim());
+      feel('happy', 800);
+    });
+  });
+
+  // Bind Size Presets
+  container.querySelectorAll('[data-panel-size]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const [w, h] = btn.dataset.panelSize.split(',').map(Number);
+      S.cfg.panelWidth = w;
+      S.cfg.panelHeight = h;
+      shell.style.setProperty('--panel-w', w + 'px');
+      shell.style.setProperty('--panel-h', h + 'px');
+      ipc.send('window-resize-panel', { width: w, height: h });
+      ipc.invoke('cfg-set', { panelWidth: w, panelHeight: h });
+      setStatus(`Resized to ${w}×${h}`);
+      feel('happy', 800);
+    });
+  });
+
+  // Bind Collapse
+  $('btnCollapsePanelSettings')?.addEventListener('click', () => {
+    collapse();
+  });
+
+  // Bind Save
+  $('btnSaveAllSettings')?.addEventListener('click', async () => {
+    const key = $('settingsGeminiKey') ? $('settingsGeminiKey').value.trim() : (c.key || '');
+    const model = $('settingsModel') ? $('settingsModel').value : (c.model || 'gemini-2.5-flash');
+    const outfit = $('settingsOutfit') ? $('settingsOutfit').value : (c.outfit || 'none');
+    const voice = $('settingsGeminiVoice') ? $('settingsGeminiVoice').value : (c.voice || 'Kore');
+    const edgeVoice = $('settingsEdgeVoice') ? $('settingsEdgeVoice').value : (c.edgeVoice || 'en-US-AriaNeural');
+    const wakePhrase = $('settingsWakePhrase') ? $('settingsWakePhrase').value.trim() : (c.wakePhrase || 'Hey Nixi');
+    const think = $('settingsThink') ? $('settingsThink').checked : !!c.think;
+    const speak = $('settingsSpeak') ? $('settingsSpeak').checked : !!c.speak;
+    const breathe = $('settingsBreathe') ? $('settingsBreathe').checked : !!c.breathe;
+    const sounds = $('settingsSounds') ? $('settingsSounds').checked : (c.sounds !== false);
+
+    S.cfg.key = key;
+    S.cfg.model = model;
+    S.cfg.outfit = outfit;
+    S.cfg.voice = voice;
+    S.cfg.edgeVoice = edgeVoice;
+    S.cfg.wakePhrase = wakePhrase;
+    S.cfg.think = think;
+    S.cfg.speak = speak;
+    S.cfg.breathe = breathe;
+    S.cfg.sounds = sounds;
+    S.cfg.glow = false; // Border glow disabled
+
+    applyTheme();
+    await ipc.invoke('cfg-set', S.cfg);
+
+    const toast = $('settingsSaveToast');
+    if (toast) {
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 2400);
+    }
+    setStatus('Settings saved!');
+    feel('happy', 1400);
+    playSound('win');
+  });
 }
 
 function bindPanel() {
