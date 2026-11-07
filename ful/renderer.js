@@ -1,3 +1,31 @@
+
+function updateLiveTranscription(text) {
+  const notchBar = $('liveTranscribeBar');
+  const notchText = $('liveTranscribeText');
+  const chatPill = $('chatLiveTranscriptPill');
+  const chatText = $('chatLiveTranscriptText');
+  const chatInp = $('chatInput');
+
+  if (notchBar && currentShape !== 'panel') {
+    notchBar.style.display = 'flex';
+    if (notchText) notchText.textContent = text || 'Listening…';
+  }
+  if (chatPill && currentShape === 'panel') {
+    chatPill.style.display = 'flex';
+    if (chatText) chatText.textContent = text || 'Listening…';
+    if (chatInp && text) chatInp.placeholder = text;
+  }
+}
+
+function hideLiveTranscription() {
+  const notchBar = $('liveTranscribeBar');
+  const chatPill = $('chatLiveTranscriptPill');
+  const chatInp = $('chatInput');
+  if (notchBar) notchBar.style.display = 'none';
+  if (chatPill) chatPill.style.display = 'none';
+  if (chatInp) chatInp.placeholder = 'Ask FUL...';
+}
+
 /* ================================================================
    NOTCH GEOMETRY & CONTINUOUS SPRING PHYSICS (hello.html Exact Spec)
    ================================================================ */
@@ -464,6 +492,8 @@ function setShape(shape) {
     targetW = 240; targetH = 48;
   } else if (shape === 'dock' || shape === 'hover-dock') {
     targetW = 264; targetH = 64;
+  } else if (shape === 'state-listen' || shape === 'listen') {
+    targetW = 440; targetH = 48;
   } else if (shape === 'state-cursor' || shape === 'cursor') {
     targetW = 300; targetH = 48;
   } else if (shape === 'state-write' || shape === 'write') {
@@ -3962,11 +3992,7 @@ ipc.on('placement-snapped', (_e, p) => {
 ipc.on('system-alert', (_e, alert) => {
   feel('surprised', 2500);
   playSound('sad');
-  const shellEl = $('shell');
-  if (shellEl) {
-    shellEl.classList.add('ram-warning');
-    setTimeout(() => shellEl.classList.remove('ram-warning'), 15000);
-  }
+  // Red border removed per user request - clean stealth look maintained
   const statusMsg = `⚠️ High RAM: ${alert.usedPercent}% (${alert.usedGb}GB/${alert.totalGb}GB)`;
   setStatus(statusMsg);
   
@@ -4032,18 +4058,40 @@ async function beginCapture(mode) {
   await startMeter();
   feel(mode === 'dict' ? 'talking' : 'listening', 12000);
 
-  // Web Speech API fallback if available
+  // Web Speech API with Real-Time Live Streaming Interim Results
+  updateLiveTranscription(mode === 'dict' ? 'Dictate your thoughts…' : 'Listening…');
+  if (currentShape !== 'panel') {
+    setShape('state-listen');
+  }
+
   if (SpeechRec) {
     try {
       if (speechRecognizer) { try { speechRecognizer.abort(); } catch {} }
       speechRecognizer = new SpeechRec();
-      speechRecognizer.continuous = false;
-      speechRecognizer.interimResults = false;
+      speechRecognizer.continuous = true;
+      speechRecognizer.interimResults = true;
       speechRecognizer.lang = 'en-US';
+
       speechRecognizer.onresult = async (ev) => {
-        const transcript = ev?.results?.[0]?.[0]?.transcript?.trim();
-        if (transcript) {
-          await handleUtterance(transcript, mode);
+        let interimText = '';
+        let finalText = '';
+        for (let i = 0; i < ev.results.length; ++i) {
+          if (ev.results[i].isFinal) {
+            finalText += ev.results[i][0].transcript;
+          } else {
+            interimText += ev.results[i][0].transcript;
+          }
+        }
+        const liveText = (finalText + ' ' + interimText).trim();
+        if (liveText) {
+          updateLiveTranscription(liveText);
+        }
+        if (ev.results[ev.results.length - 1].isFinal) {
+          const finalUtterance = finalText.trim() || liveText;
+          if (finalUtterance) {
+            hideLiveTranscription();
+            await handleUtterance(finalUtterance, mode);
+          }
         }
       };
       speechRecognizer.onerror = () => {};
@@ -4081,6 +4129,7 @@ async function endCapture(cancelled) {
   vadLastSpeech = 0;
   const was = S.capture;
   S.capture = null;
+  hideLiveTranscription();
   $('bMic').classList.remove('rec');
   $('bCancelAction').style.display = 'none';
 
