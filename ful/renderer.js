@@ -1,3 +1,68 @@
+/* ================================================================
+   NOTCH GEOMETRY & CONTINUOUS SPRING PHYSICS (hello.html Exact Spec)
+   ================================================================ */
+const NOTCH_TOT = 592;
+const NOTCH_FL = 16;
+const NOTCH_K = 330;
+const NOTCH_DMP = 2 * 0.74 * Math.sqrt(NOTCH_K);
+
+let notchSpring = { w: 240, h: 48, vw: 0, vh: 0 };
+let targetNotchW = 240;
+let targetNotchH = 48;
+
+function shapePath(w, h, br, fl) {
+  const o = Math.max(0, Math.min(fl, h / 2));
+  const i = 0.5523;
+  const l = fl;
+  const s = fl + w;
+  const a = Math.max(0, Math.min(br, w / 2, h - o));
+  const u = d => d.toFixed(2);
+  return 'M' + u(l - o) + ' -1L' + u(s + o) + ' -1L' + u(s + o) + ' 0' +
+    (o > 0 ? ('C' + u(s + o - o * i) + ' 0 ' + u(s) + ' ' + u(o - o * i) + ' ' + u(s) + ' ' + u(o)) : '') +
+    'L' + u(s) + ' ' + u(h - a) + 'C' + u(s) + ' ' + u(h - a + a * i) + ' ' + u(s - a + a * i) + ' ' + u(h) + ' ' + u(s - a) + ' ' + u(h) +
+    'L' + u(l + a) + ' ' + u(h) + 'C' + u(l + a - a * i) + ' ' + u(h) + ' ' + u(l) + ' ' + u(h - a + a * i) + ' ' + u(l) + ' ' + u(h - a) +
+    'L' + u(l) + ' ' + u(o) +
+    (o > 0 ? ('C' + u(l) + ' ' + u(o - o * i) + ' ' + u(l - o + o * i) + ' 0 ' + u(l - o) + ' 0') : '') + 'Z';
+}
+
+function updateNotchGeometry(dt) {
+  if (currentShape === 'panel') return;
+  const isCustomFloating = (S.cfg && S.cfg.placement === 'custom') || (shell && shell.classList.contains('floating-pill'));
+  const notchSvg = $('notchSvg');
+  if (isCustomFloating) {
+    if (notchSvg) notchSvg.style.display = 'none';
+    return;
+  }
+  if (notchSvg) notchSvg.style.display = 'block';
+
+  const sub = Math.min(dt, 1 / 30) / 2;
+  for (let i = 0; i < 2; i++) {
+    notchSpring.vw += (NOTCH_K * (targetNotchW - notchSpring.w) - NOTCH_DMP * notchSpring.vw) * sub;
+    notchSpring.w += notchSpring.vw * sub;
+    notchSpring.vh += (NOTCH_K * (targetNotchH - notchSpring.h) - NOTCH_DMP * notchSpring.vh) * sub;
+    notchSpring.h += notchSpring.vh * sub;
+  }
+
+  const R = Math.max(40, notchSpring.w);
+  const Q = Math.max(3, notchSpring.h);
+  const B = Math.min(Q < 20 ? Q / 2 : Q <= 52 ? 22 : 24, Q / 2 + 4);
+  const fl = Q < 15 ? 4 : NOTCH_FL;
+  const Ye = (NOTCH_TOT - R) / 2;
+
+  const notchPath = $('notchPath');
+  if (notchPath) {
+    notchPath.setAttribute('d', shapePath(R, Q, B, fl));
+    notchPath.setAttribute('transform', 'translate(' + (Ye - fl).toFixed(2) + ' 0)');
+  }
+
+  if (shell) {
+    shell.style.width = R.toFixed(2) + 'px';
+    shell.style.height = Q.toFixed(2) + 'px';
+    shell.style.borderBottomLeftRadius = B.toFixed(2) + 'px';
+    shell.style.borderBottomRightRadius = B.toFixed(2) + 'px';
+  }
+}
+
 /*
   FUL renderer.
 
@@ -148,6 +213,7 @@ function loop(t) {
   const isMusicActive = (isAudioPlaying && S.media && S.media.title);
   const currentOutfit = isMusicActive ? 'headphones' : (S.cfg.outfit || null);
   const isTalking = (mood === 'talking' || isFULSpeaking());
+  try { updateNotchGeometry(dt); } catch (e) {}
   try {
     face.paint(fctx, 0, 0, 112, 56, {
       outfit: currentOutfit,
@@ -388,7 +454,42 @@ function setShape(shape) {
 
   if (shape !== 'state-dictate' && shape !== 'dictate') stopDictateAppWatch();
 
-  let targetW = 240, targetH = 44;
+  let targetW = 240, targetH = 48;
+  if (shape === 'hidden') {
+    targetW = 184; targetH = 5;
+  } else if (shape === 'rest') {
+    targetW = 240; targetH = 48;
+  } else if (shape === 'music-card') {
+    targetW = 560; targetH = 196;
+  } else if (shape === 'pomo-card') {
+    targetW = 560; targetH = 196;
+  } else if (shape === 'todo-card') {
+    targetW = 560; targetH = 196;
+  } else if (shape === 'open-tab') {
+    targetW = 560; targetH = 168;
+  } else if (shape === 'timer-notch') {
+    targetW = 240; targetH = 48;
+  } else if (shape === 'dock' || shape === 'hover-dock') {
+    targetW = 264; targetH = 64;
+  } else if (shape === 'state-cursor' || shape === 'cursor') {
+    targetW = 300; targetH = 48;
+  } else if (shape === 'state-write' || shape === 'write') {
+    targetW = 440; targetH = 48;
+  } else if (shape === 'state-dictate' || shape === 'dictate') {
+    targetW = 260; targetH = 48;
+    startDictateAppWatch();
+  } else if (shape === 'state-error' || shape === 'error') {
+    targetW = 440; targetH = 120;
+  } else if (shape === 'capsule') {
+    targetW = 380; targetH = 48;
+  } else if (shape === 'music') {
+    targetW = 560; targetH = 196;
+  } else if (shape === 'panel') {
+    targetW = S.cfg.panelWidth || 460; targetH = S.cfg.panelHeight || 540;
+  }
+
+  targetNotchW = targetW;
+  targetNotchH = targetH;
   if (shape === 'hidden') {
     targetW = 184; targetH = 6;
   } else if (shape === 'rest') {
@@ -4743,10 +4844,53 @@ function untuck() {
   }
 }
 
-window.addEventListener('pointermove', recordUserActivity, { passive: true });
 window.addEventListener('pointerdown', recordUserActivity, { passive: true });
 window.addEventListener('keydown', recordUserActivity, { passive: true });
 window.addEventListener('wheel', recordUserActivity, { passive: true });
+
+let isIgnoringMouse = false;
+window.addEventListener('pointermove', (e) => {
+  recordUserActivity();
+  const shellEl = $('shell');
+  if (!shellEl) return;
+  if (currentShape === 'panel') {
+    if (isIgnoringMouse) {
+      ipc.send('set-ignore-mouse-events', false);
+      isIgnoringMouse = false;
+    }
+    return;
+  }
+
+  const rect = shellEl.getBoundingClientRect();
+  const isOverShell = (
+    e.clientX >= rect.left - 12 &&
+    e.clientX <= rect.right + 12 &&
+    e.clientY >= rect.top &&
+    e.clientY <= rect.bottom + 8
+  );
+  const isOverTuckZone = (
+    (currentShape === 'hidden' || isTuckedAway) &&
+    e.clientX >= rect.left - 40 &&
+    e.clientX <= rect.right + 40 &&
+    e.clientY <= 38
+  );
+  const shouldCapture = (isOverShell || isOverTuckZone || isDragging || isDraggingScrubber);
+
+  if (shouldCapture) {
+    if (isIgnoringMouse) {
+      ipc.send('set-ignore-mouse-events', false);
+      isIgnoringMouse = false;
+    }
+    if (currentShape === 'hidden' || isTuckedAway) {
+      untuck();
+    }
+  } else {
+    if (!isIgnoringMouse) {
+      ipc.send('set-ignore-mouse-events', true, { forward: true });
+      isIgnoringMouse = true;
+    }
+  }
+}, { passive: true });
 
 const shellElem = $('shell');
 if (shellElem) {
@@ -4760,6 +4904,28 @@ if (shellElem) {
     }
   });
 }
+
+const tuckHz = $('tuckHoverZone');
+if (tuckHz) {
+  tuckHz.addEventListener('pointerenter', () => {
+    if (currentShape === 'hidden' || isTuckedAway) untuck();
+  });
+  tuckHz.addEventListener('click', (e) => {
+    e.stopPropagation();
+    untuck();
+  });
+}
+
+function updateTopBarClock() {
+  const e = $('nvClock');
+  if (!e) return;
+  const d = new Date();
+  e.textContent = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ' ' +
+    d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+setInterval(updateTopBarClock, 1000);
+updateTopBarClock();
+
 
 setInterval(() => {
   if (currentShape === 'panel' || S.busy || S.capture || isDragging || isDraggingScrubber || S.hovering) {

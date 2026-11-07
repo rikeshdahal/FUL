@@ -238,28 +238,27 @@ function getActiveWorkArea() {
   return screen.getDisplayNearestPoint(pt).workArea;
 }
 
+let currentAppShape = 'rest';
+
 function calculateWindowBounds(w, h) {
   const area = getActiveWorkArea();
-  const isTucked = (h <= 10);
-  const padY = isTucked ? 0 : PAD;
-  const width = Math.max(60, Math.min(Math.round(w) + PAD * 2, area.width));
-  const height = isTucked ? Math.max(6, Math.round(h)) : Math.max(40, Math.min(Math.round(h) + padY * 2, area.height));
-  let x, y;
+  let x, y, width, height;
   const placement = cfg.placement || 'top-center';
 
   if (placement === 'top-center') {
+    if (currentAppShape === 'panel') {
+      width = Math.max(340, Math.min(cfg.panelWidth || 460, area.width));
+      height = Math.max(260, Math.min(cfg.panelHeight || 540, area.height));
+    } else {
+      // Keep transparent window at 592x210 for notch mode to enable 100% fluid 120fps CSS transitions without OS resize lag
+      width = 592;
+      height = 210;
+    }
     x = Math.round(area.x + (area.width - width) / 2);
     y = Math.round(area.y);
-  } else if (placement === 'top-right') {
-    x = Math.round(area.x + area.width - width - 16);
-    y = Math.round(area.y + 12);
-  } else if (placement === 'top-left') {
-    x = Math.round(area.x + 16);
-    y = Math.round(area.y + 12);
-  } else if (placement === 'bottom-right') {
-    x = Math.round(area.x + area.width - width - 16);
-    y = Math.round(area.y + area.height - height - 12);
   } else if (placement === 'custom' && cfg.customPos) {
+    width = Math.max(60, Math.min(Math.round(w) + PAD * 2, area.width));
+    height = Math.max(40, Math.min(Math.round(h) + PAD * 2, area.height));
     if (win && !win.isDestroyed()) {
       const cur = win.getBounds();
       const centerX = cur.x + cur.width / 2;
@@ -274,8 +273,10 @@ function calculateWindowBounds(w, h) {
       y = Math.round(cfg.customPos.y);
     }
   } else {
+    width = Math.max(60, Math.min(Math.round(w) + PAD * 2, area.width));
+    height = Math.max(40, Math.min(Math.round(h) + PAD * 2, area.height));
     x = Math.round(area.x + (area.width - width) / 2);
-    y = Math.round(area.y + 4);
+    y = Math.round(area.y);
   }
 
   x = Math.max(area.x, Math.min(area.x + area.width - width, x));
@@ -1517,8 +1518,18 @@ const ACTIONS = {
 /* ------------------------------------------------------------------ ipc */
 ipcMain.on('size', (_e, w, h) => placeWindow(w, h));
 ipcMain.on('prepare-size', (_e, data) => {
-  if (data && typeof data === 'object') placeWindow(data.w, data.h);
-  else if (data != null) placeWindow(data, arguments[2]);
+  if (data && typeof data === 'object') {
+    if (data.shape) currentAppShape = data.shape;
+    placeWindow(data.w, data.h);
+  } else if (data != null) {
+    placeWindow(data, arguments[2]);
+  }
+});
+ipcMain.on('set-ignore-mouse-events', (event, ignore, options) => {
+  const targetWin = BrowserWindow.fromWebContents(event.sender);
+  if (targetWin && !targetWin.isDestroyed()) {
+    targetWin.setIgnoreMouseEvents(ignore, options);
+  }
 });
 ipcMain.on('window-move-delta', (_e, data, maybeDy) => moveWindowByDelta(data, maybeDy));
 ipcMain.on('window-drag-end', () => handleDragEnd());
