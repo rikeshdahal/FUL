@@ -110,8 +110,8 @@
       top: 0;
       left: 50%;
       transform: translateX(-50%);
-      width: 260px;
-      height: 38px;
+      width: 320px;
+      height: 44px;
       z-index: 999999;
       cursor: pointer;
       display: none;
@@ -3489,26 +3489,45 @@
 
 
     /* ================================================================
-       SETTINGS PANEL (In-App Companion Settings)
+       SETTINGS PANEL (Ultra-Responsive & Modern Apple/Hardware Styled)
        ================================================================ */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
     .settings-container {
       display: flex;
       flex-direction: column;
-      gap: 13px;
-      padding: 12px 14px;
+      gap: 14px;
+      padding: 14px 16px 24px;
       overflow-y: auto;
       height: 100%;
       box-sizing: border-box;
     }
     .settings-card {
       background: rgba(255, 255, 255, 0.035);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.07);
       border-radius: 14px;
-      padding: 14px;
+      padding: 14px 16px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 13px;
       box-sizing: border-box;
+      transition: border-color 0.2s ease;
+    }
+    .settings-card:hover {
+      border-color: rgba(255, 255, 255, 0.12);
     }
     .settings-card h4 {
       margin: 0;
@@ -3524,96 +3543,209 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
+      gap: 12px;
+      width: 100%;
+      box-sizing: border-box;
     }
     .settings-row.wrap {
       flex-wrap: wrap;
     }
     .settings-label {
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.72);
+      font-size: 12.5px;
+      color: rgba(255, 255, 255, 0.75);
       font-weight: 500;
+      flex: none;
+    }
+    .settings-swatch-list {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
     }
     .settings-swatch {
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      border: 2px solid transparent;
-      cursor: pointer;
-      transition: transform 0.15s ease, border-color 0.15s ease;
-      box-sizing: border-box;
+      width: 26px !important;
+      height: 26px !important;
+      min-width: 26px !important;
+      min-height: 26px !important;
+      border-radius: 50% !important;
+      border: 2px solid transparent !important;
+      cursor: pointer !important;
+      box-sizing: border-box !important;
+      padding: 0 !important;
+      transition: transform 0.15s ease, border-color 0.15s ease !important;
+      display: inline-block !important;
+      flex: none !important;
     }
     .settings-swatch:hover {
-      transform: scale(1.15);
+      transform: scale(1.15) !important;
     }
     .settings-swatch.active {
       border-color: #FFFFFF !important;
-      box-shadow: 0 0 6px rgba(255, 255, 255, 0.7) !important;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.8) !important;
     }
-    .settings-input {
-      background: rgba(0, 0, 0, 0.5);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 9px;
-      padding: 8px 12px;
-      color: #FFFFFF;
-      font-size: 12px;
-      width: 100%;
-      box-sizing: border-box;
-      outline: none;
-      transition: border-color 0.18s ease;
-      font-family: inherit;
+    .settings-swatch-custom {
+      position: relative;
+      width: 26px !important;
+      height: 26px !important;
+      min-width: 26px !important;
+      min-height: 26px !important;
+      border-radius: 50% !important;
+      background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red) !important;
+      cursor: pointer !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      border: 2px solid transparent !important;
+      box-sizing: border-box !important;
+      flex: none !important;
+      overflow: hidden !important;
+      transition: transform 0.15s ease !important;
     }
-    .settings-input:focus {
-      border-color: #3b82f6;
+    .settings-swatch-custom:hover {
+      transform: scale(1.15) !important;
     }
-    .settings-select {
-      background: #141721;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 9px;
-      padding: 8px 12px;
-      color: #FFFFFF;
-      font-size: 12px;
-      outline: none;
-      cursor: pointer;
-      box-sizing: border-box;
-      font-family: inherit;
+    .settings-swatch-custom input[type="color"] {
+      position: absolute !important;
+      inset: -10px !important;
+      width: 200% !important;
+      height: 200% !important;
+      opacity: 0 !important;
+      cursor: pointer !important;
+      border: none !important;
+      padding: 0 !important;
     }
-    .settings-btn {
-      padding: 7px 14px;
-      border-radius: 9px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      background: rgba(255, 255, 255, 0.06);
-      color: #FFFFFF;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
+
+    /* Segmented Button Groups (Prevents Button Collisions) */
+    .settings-segmented {
       display: inline-flex;
       align-items: center;
-      justify-content: center;
-      gap: 6px;
-      transition: all 0.15s ease;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 10px;
+      padding: 3px;
+      gap: 3px;
+      box-sizing: border-box;
+      flex-wrap: nowrap;
     }
-    .settings-btn:hover {
-      background: rgba(255, 255, 255, 0.12);
+    .settings-segmented button,
+    button.settings-seg-btn {
+      width: auto !important;
+      min-width: fit-content !important;
+      max-width: none !important;
+      height: 28px !important;
+      min-height: 28px !important;
+      padding: 0 12px !important;
+      margin: 0 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      white-space: nowrap !important;
+      font-size: 11.5px !important;
+      font-weight: 500 !important;
+      border-radius: 7px !important;
+      box-sizing: border-box !important;
+      border: none !important;
+      background: transparent !important;
+      color: rgba(255, 255, 255, 0.65) !important;
+      cursor: pointer !important;
+      flex: none !important;
+      line-height: normal !important;
+      opacity: 1 !important;
+      transition: all 0.15s ease !important;
     }
-    .settings-btn.primary {
-      background: #2563EB;
-      border-color: #3B82F6;
-      color: #FFFFFF;
+    .settings-segmented button:hover,
+    button.settings-seg-btn:hover {
+      color: #FFFFFF !important;
+      background: rgba(255, 255, 255, 0.08) !important;
     }
-    .settings-btn.primary:hover {
-      background: #1D4ED8;
+    .settings-segmented button.on,
+    button.settings-seg-btn.on {
+      background: #2563EB !important;
+      color: #FFFFFF !important;
+      font-weight: 600 !important;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4) !important;
     }
-    .settings-btn.on {
-      background: #3B82F6;
-      border-color: #60A5FA;
-      color: #FFFFFF;
+
+    /* Input Groups */
+    .settings-input-group {
+      display: flex;
+      position: relative;
+      width: 100%;
+      align-items: center;
+      box-sizing: border-box;
     }
+    .settings-input {
+      background: rgba(0, 0, 0, 0.5) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      border-radius: 9px !important;
+      padding: 8px 12px !important;
+      color: #FFFFFF !important;
+      font-size: 12px !important;
+      width: 100% !important;
+      height: 36px !important;
+      box-sizing: border-box !important;
+      outline: none !important;
+      transition: border-color 0.18s ease !important;
+      font-family: inherit !important;
+    }
+    .settings-input:focus {
+      border-color: #3B82F6 !important;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+    }
+    .settings-input-group input {
+      padding-right: 42px !important;
+    }
+    .settings-eye-btn {
+      position: absolute !important;
+      right: 5px !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      width: 28px !important;
+      height: 28px !important;
+      min-width: 28px !important;
+      min-height: 28px !important;
+      border-radius: 6px !important;
+      background: transparent !important;
+      border: none !important;
+      color: rgba(255, 255, 255, 0.6) !important;
+      cursor: pointer !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 0 !important;
+      opacity: 1 !important;
+      transition: color 0.15s ease, background 0.15s ease !important;
+    }
+    .settings-eye-btn:hover {
+      color: #FFFFFF !important;
+      background: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    .settings-select {
+      background: #141721 !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      border-radius: 9px !important;
+      padding: 7px 12px !important;
+      color: #FFFFFF !important;
+      font-size: 12px !important;
+      outline: none !important;
+      cursor: pointer !important;
+      box-sizing: border-box !important;
+      font-family: inherit !important;
+      height: 36px !important;
+      min-height: 36px !important;
+      max-width: 100% !important;
+      transition: border-color 0.15s ease !important;
+    }
+    .settings-select:focus {
+      border-color: #3B82F6 !important;
+    }
+
     .settings-chk {
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 12px;
+      font-size: 12.5px;
       color: rgba(255, 255, 255, 0.8);
       cursor: pointer;
       user-select: none;
@@ -3621,93 +3753,69 @@
     .settings-chk input[type="checkbox"] {
       accent-color: #3B82F6;
       cursor: pointer;
-      width: 14px;
-      height: 14px;
+      width: 15px;
+      height: 15px;
+      margin: 0;
     }
 
-
-    /* Real-Time Live Audio Transcription Bar (Exact hello.html Spec) */
-    .nv-bar {
-      position: absolute;
-      left: 68px;
-      right: 14px;
-      top: 0;
-      height: 48px;
+    /* Action Buttons in Footer */
+    .settings-actions-footer {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      font-size: 14.5px;
-      letter-spacing: -0.01em;
-      white-space: nowrap;
-      line-height: 1.15;
-      z-index: 100;
-      pointer-events: none;
+      gap: 10px;
+      margin-top: 6px;
+      margin-bottom: 12px;
+      width: 100%;
+      box-sizing: border-box;
     }
-    .nv-line {
-      flex: 1;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      font-weight: 600;
-      color: #F5F6F8;
-      text-align: left;
+    .settings-btn-primary {
+      flex: 1 !important;
+      width: auto !important;
+      height: 40px !important;
+      min-height: 40px !important;
+      background: linear-gradient(135deg, #2563EB, #4F46E5) !important;
+      border: none !important;
+      border-radius: 11px !important;
+      color: #FFFFFF !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 8px !important;
+      cursor: pointer !important;
+      opacity: 1 !important;
+      padding: 0 16px !important;
+      box-sizing: border-box !important;
+      transition: all 0.18s ease !important;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35) !important;
     }
-    .nv-caret {
-      display: inline-block;
-      width: 2px;
-      height: 1.05em;
-      margin-left: 2px;
-      vertical-align: -0.15em;
-      background: #38BDF8;
-      animation: nvCaretBlink 1s steps(2) infinite;
+    .settings-btn-primary:hover {
+      filter: brightness(1.12);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.45) !important;
     }
-    @keyframes nvCaretBlink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0; }
+    .settings-btn-secondary {
+      width: auto !important;
+      height: 40px !important;
+      min-height: 40px !important;
+      padding: 0 16px !important;
+      background: rgba(255, 255, 255, 0.06) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      border-radius: 11px !important;
+      color: rgba(255, 255, 255, 0.8) !important;
+      font-size: 13px !important;
+      font-weight: 500 !important;
+      cursor: pointer !important;
+      opacity: 1 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      box-sizing: border-box !important;
+      transition: all 0.15s ease !important;
     }
-    .nv-wave {
-      display: flex;
-      align-items: center;
-      gap: 3px;
-      height: 22px;
-      flex: none;
-    }
-    .nv-wave i {
-      display: block;
-      width: 3px;
-      height: 6px;
-      background: #38BDF8;
-      border-radius: 2px;
-      animation: nvWaveBounce 1.2s ease-in-out infinite;
-    }
-    .nv-wave i:nth-child(1) { animation-delay: 0.0s; }
-    .nv-wave i:nth-child(2) { animation-delay: 0.15s; }
-    .nv-wave i:nth-child(3) { animation-delay: 0.3s; }
-    .nv-wave i:nth-child(4) { animation-delay: 0.45s; }
-    .nv-wave i:nth-child(5) { animation-delay: 0.6s; }
-    @keyframes nvWaveBounce {
-      0%, 100% { height: 4px; opacity: 0.4; }
-      50% { height: 18px; opacity: 1; }
-    }
-
-    #shell.state-listen,
-    #shell.state-dictate {
-      width: 440px !important;
-      height: 48px !important;
-      min-height: 48px !important;
-    }
-    #shell.state-listen #face,
-    #shell.state-dictate #face {
-      position: absolute !important;
-      left: 0px !important;
-      top: -4px !important;
-      width: 68px !important;
-      height: 48px !important;
-    }
-    #shell.state-listen #headLowerRow,
-    #shell.state-dictate #headLowerRow {
-      display: none !important;
+    .settings-btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.12) !important;
+      color: #FFFFFF !important;
     }
 
 </style>

@@ -1525,12 +1525,61 @@ ipcMain.on('prepare-size', (_e, data) => {
     placeWindow(data, arguments[2]);
   }
 });
+let isIgnoringMouse = false;
+
 ipcMain.on('set-ignore-mouse-events', (event, ignore, options) => {
   const targetWin = BrowserWindow.fromWebContents(event.sender);
   if (targetWin && !targetWin.isDestroyed()) {
+    isIgnoringMouse = !!ignore;
     targetWin.setIgnoreMouseEvents(ignore, options);
   }
 });
+
+// Proactive Hardware Cursor Polling (Fixes broken / stuck tucked notch & smooth hover wake on Windows)
+setInterval(() => {
+  if (!win || win.isDestroyed()) return;
+  const placement = cfg.placement || 'top-center';
+  if (placement === 'top-center' && currentAppShape !== 'panel') {
+    try {
+      const cursor = screen.getCursorScreenPoint();
+      const b = win.getBounds();
+      const area = screen.getDisplayMatching(b).workArea;
+      const centerX = area.x + area.width / 2;
+      
+      const isCard = (currentAppShape === 'music-card' || currentAppShape === 'pomo-card' || currentAppShape === 'todo-card' || currentAppShape === 'open-tab');
+      const maxH = (currentAppShape === 'hidden') ? 44 : (isCard ? 185 : 56);
+      const halfW = (currentAppShape === 'hidden') ? 140 : (isCard ? 265 : 140);
+
+      const isHovering = (
+        cursor.y >= area.y &&
+        cursor.y <= area.y + maxH &&
+        Math.abs(cursor.x - centerX) <= halfW
+      );
+
+      if (isHovering) {
+        if (isIgnoringMouse) {
+          win.setIgnoreMouseEvents(false);
+          isIgnoringMouse = false;
+        }
+        if (currentAppShape === 'hidden') {
+          win.webContents.send('notch-hover-wake');
+        }
+      } else {
+        if (!isIgnoringMouse && currentAppShape !== 'panel') {
+          win.setIgnoreMouseEvents(true, { forward: true });
+          isIgnoringMouse = true;
+        }
+      }
+    } catch {}
+  } else {
+    if (isIgnoringMouse) {
+      try {
+        win.setIgnoreMouseEvents(false);
+      } catch {}
+      isIgnoringMouse = false;
+    }
+  }
+}, 50);
 ipcMain.on('window-move-delta', (_e, data, maybeDy) => moveWindowByDelta(data, maybeDy));
 ipcMain.on('window-drag-end', () => handleDragEnd());
 ipcMain.on('window-set-placement', (_e, placement) => {

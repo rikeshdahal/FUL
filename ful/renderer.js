@@ -481,13 +481,13 @@ function setShape(shape) {
   } else if (shape === 'rest') {
     targetW = 240; targetH = 48;
   } else if (shape === 'music-card') {
-    targetW = 560; targetH = 196;
+    targetW = 500; targetH = 172;
   } else if (shape === 'pomo-card') {
-    targetW = 560; targetH = 196;
+    targetW = 500; targetH = 172;
   } else if (shape === 'todo-card') {
-    targetW = 560; targetH = 196;
+    targetW = 500; targetH = 172;
   } else if (shape === 'open-tab') {
-    targetW = 560; targetH = 168;
+    targetW = 500; targetH = 172;
   } else if (shape === 'timer-notch') {
     targetW = 240; targetH = 48;
   } else if (shape === 'dock' || shape === 'hover-dock') {
@@ -506,7 +506,7 @@ function setShape(shape) {
   } else if (shape === 'capsule') {
     targetW = 380; targetH = 48;
   } else if (shape === 'music') {
-    targetW = 560; targetH = 196;
+    targetW = 500; targetH = 172;
   } else if (shape === 'panel') {
     targetW = S.cfg.panelWidth || 460; targetH = S.cfg.panelHeight || 540;
   }
@@ -518,13 +518,13 @@ function setShape(shape) {
   } else if (shape === 'rest') {
     targetW = 240; targetH = 44;
   } else if (shape === 'music-card') {
-    targetW = 560; targetH = 196;
+    targetW = 500; targetH = 172;
   } else if (shape === 'pomo-card') {
-    targetW = 560; targetH = 196;
+    targetW = 500; targetH = 172;
   } else if (shape === 'todo-card') {
-    targetW = 560; targetH = 196;
+    targetW = 500; targetH = 172;
   } else if (shape === 'open-tab') {
-    targetW = 560; targetH = 168;
+    targetW = 500; targetH = 172;
   } else if (shape === 'timer-notch') {
     targetW = 240; targetH = 44;
   } else if (shape === 'dock' || shape === 'hover-dock') {
@@ -541,7 +541,7 @@ function setShape(shape) {
   } else if (shape === 'capsule') {
     targetW = 380; targetH = 44;
   } else if (shape === 'music') {
-    targetW = 560; targetH = 196;
+    targetW = 500; targetH = 172;
   } else if (shape === 'panel') {
     targetW = S.cfg.panelWidth || 460; targetH = S.cfg.panelHeight || 540;
   }
@@ -1308,18 +1308,9 @@ function updateNotchClock() {
 function cleanMediaTitle(raw) {
   if (!raw) return '';
   let t = String(raw).trim();
-  t = t.replace(/^\(\d+\)\s*/, '');
-  t = t.replace(/^(YouTube\s*-\s*|Spotify\s*-\s*|Instagram\s*-\s*)/i, '');
-  t = t.replace(/\s*-\s*(YouTube|Spotify|Brave|Chrome|Edge|Instagram)$/i, '');
+  t = t.replace(/\s*-\s*(Brave|Google Chrome|Microsoft Edge|Chrome|Edge)$/i, '');
   return t.trim() || String(raw).trim();
 }
-
-const LYRICS_POOL = [
-  'Into paper birds tonight',
-  'And send them through the sky',
-  'To find you by the sea',
-  'I hum along, I’m not alone'
-];
 
 function updateNotchLyrics(pos) {
   const pEl = $('notchLyricPrev');
@@ -1446,9 +1437,8 @@ function initNotchSystem() {
   if (trayBtn) {
     trayBtn.onclick = (e) => {
       e.stopPropagation();
-      if (currentShape === 'todo-card') {
-        if (isAudioPlaying && S.media && S.media.title) showNotchMusic();
-        else setShape('rest');
+      if (currentShape === 'music-card' || currentShape === 'todo-card' || currentShape === 'pomo-card' || currentShape === 'open-tab') {
+        setShape('rest');
       } else {
         showNotchTodo();
       }
@@ -1520,14 +1510,10 @@ function showNotchMusic(media = S.media) {
           </div>
         </div>
       </div>
-      <div class="nv-lines" id="notchMusicLyrics">
-        <p class="prev" id="notchLyricPrev"></p>
-        <p class="now" id="notchLyricNow"></p>
-        <p class="next" id="notchLyricNext"></p>
-      </div>
     </div>
   `;
   setShape('music-card');
+  updateTopBarClock();
 
   // Wire buttons
   $('notchMusicPrev')?.addEventListener('click', async (e) => {
@@ -1563,6 +1549,7 @@ function showNotchMusic(media = S.media) {
   });
   renderProgress(livePos, liveDur);
 }
+
 // Screenshots 3 & 4: Focus & Break Pomodoro Mode
 let pomoInterval = null;
 let pomoSec = 1429; // 23:49 default for focus
@@ -1863,20 +1850,23 @@ function renderSettings() {
 
         <div class="settings-row wrap">
           <span class="settings-label">Eye Color Theme:</span>
-          <div style="display:flex;align-items:center;gap:8px" id="settingsEyeSwatches">
+          <div class="settings-swatch-list">
             ${swatches.map(s => `
               <span class="settings-swatch ${currentEye === s.color ? 'active' : ''}"
                     style="background:${s.color}"
                     data-color="${s.color}"
                     title="${s.name}"></span>
             `).join('')}
-            <input type="color" id="settingsCustomEye" value="${c.eye || '#FFFFFF'}" title="Pick custom eye color" style="width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;background:none;padding:0;">
+            <label class="settings-swatch-custom" title="Pick Custom Color">
+              <input type="color" id="settingsCustomEye" value="${c.eye || '#FFFFFF'}">
+              <span style="font-size:10px;font-weight:800;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.8);">+</span>
+            </label>
           </div>
         </div>
 
         <div class="settings-row">
-          <span class="settings-label">Outfit Accessory:</span>
-          <select id="settingsOutfit" class="settings-select" style="min-width:180px">
+          <span class="settings-label" style="min-width:100px;">Outfit Accessory:</span>
+          <select id="settingsOutfit" class="settings-select" style="flex:1;">
             <option value="none" ${currentOutfit === 'none' ? 'selected' : ''}>None (Sleek Clean)</option>
             <option value="headphones" ${currentOutfit === 'headphones' ? 'selected' : ''}>🎧 Wireless Headphones</option>
             <option value="shades" ${currentOutfit === 'shades' ? 'selected' : ''}>🕶 Cyber Sunglasses</option>
@@ -1884,7 +1874,7 @@ function renderSettings() {
           </select>
         </div>
 
-        <div class="settings-row wrap">
+        <div class="settings-row wrap" style="gap:16px;">
           <label class="settings-chk">
             <input type="checkbox" id="settingsBreathe" ${c.breathe ? 'checked' : ''}>
             Float breathing motion
@@ -1901,17 +1891,17 @@ function renderSettings() {
         <h4>🏝️ Notch & Island Behavior</h4>
 
         <div class="settings-row">
-          <span class="settings-label">Screen Placement:</span>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button class="settings-btn ${p === 'top-center' ? 'on' : ''}" data-placement="top-center">Top Notch</button>
-            <button class="settings-btn ${p === 'top-right' ? 'on' : ''}" data-placement="top-right">Top Right</button>
-            <button class="settings-btn ${p === 'custom' ? 'on' : ''}" data-placement="custom">Floating Pill</button>
+          <span class="settings-label">Placement:</span>
+          <div class="settings-segmented">
+            <button class="settings-seg-btn ${p === 'top-center' ? 'on' : ''}" data-placement="top-center">Top Notch</button>
+            <button class="settings-seg-btn ${p === 'top-right' ? 'on' : ''}" data-placement="top-right">Top Right</button>
+            <button class="settings-seg-btn ${p === 'custom' ? 'on' : ''}" data-placement="custom">Floating Pill</button>
           </div>
         </div>
 
         <div class="settings-row">
-          <span class="settings-label">Auto-Tuck Inactivity:</span>
-          <select id="settingsAutoTuck" class="settings-select" style="min-width:180px">
+          <span class="settings-label" style="min-width:100px;">Auto-Tuck Inactivity:</span>
+          <select id="settingsAutoTuck" class="settings-select" style="flex:1;">
             <option value="3500">3.5 seconds (Quick)</option>
             <option value="5500" selected>5.5 seconds (Default)</option>
             <option value="9000">9 seconds (Relaxed)</option>
@@ -1921,11 +1911,11 @@ function renderSettings() {
         </div>
 
         <div class="settings-row">
-          <span class="settings-label">Companion Panel Size:</span>
-          <div style="display:flex;gap:6px">
-            <button class="settings-btn" data-panel-size="380,460">Compact</button>
-            <button class="settings-btn" data-panel-size="460,540">Standard</button>
-            <button class="settings-btn" data-panel-size="600,600">Wide</button>
+          <span class="settings-label">Companion Size:</span>
+          <div class="settings-segmented">
+            <button class="settings-seg-btn" data-panel-size="380,460">Compact</button>
+            <button class="settings-seg-btn on" data-panel-size="460,540">Standard</button>
+            <button class="settings-seg-btn" data-panel-size="600,600">Wide</button>
           </div>
         </div>
       </div>
@@ -1934,20 +1924,22 @@ function renderSettings() {
       <div class="settings-card">
         <h4>🧠 AI Brain & Intelligence</h4>
 
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="display:flex;flex-direction:column;gap:6px;width:100%;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
             <span class="settings-label">Gemini API Key:</span>
-            <a href="https://aistudio.google.com/apikey" target="_blank" style="font-size:11px;color:#60A5FA;text-decoration:none">Get Free Key ↗</a>
+            <a href="https://aistudio.google.com/apikey" target="_blank" style="font-size:11.5px;color:#60A5FA;text-decoration:none;font-weight:500;">Get Free Key ↗</a>
           </div>
-          <div style="display:flex;gap:8px">
-            <input type="password" id="settingsGeminiKey" class="settings-input" placeholder="AIzaSy..." value="${esc(c.key || '')}" style="flex:1">
-            <button class="settings-btn" id="btnToggleKeyEye" type="button" title="Show/Hide">👁</button>
+          <div class="settings-input-group">
+            <input type="password" id="settingsGeminiKey" class="settings-input" placeholder="AIzaSy... (Paste Gemini API key)" value="${esc(c.key || '')}">
+            <button class="settings-eye-btn" id="btnToggleKeyEye" type="button" title="Show/Hide">
+              <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
           </div>
         </div>
 
         <div class="settings-row">
-          <span class="settings-label">AI Model:</span>
-          <select id="settingsModel" class="settings-select" style="min-width:210px">
+          <span class="settings-label" style="min-width:100px;">AI Model:</span>
+          <select id="settingsModel" class="settings-select" style="flex:1;">
             <option value="gemini-2.5-flash" ${currentModel === 'gemini-2.5-flash' ? 'selected' : ''}>gemini-2.5-flash (Fast & Smart)</option>
             <option value="gemini-2.5-flash-lite" ${currentModel === 'gemini-2.5-flash-lite' ? 'selected' : ''}>gemini-2.5-flash-lite (Ultra Fast)</option>
             <option value="gemini-2.5-pro" ${currentModel === 'gemini-2.5-pro' ? 'selected' : ''}>gemini-2.5-pro (Deep Reasoning)</option>
@@ -1955,7 +1947,7 @@ function renderSettings() {
           </select>
         </div>
 
-        <div class="settings-row wrap">
+        <div class="settings-row wrap" style="gap:16px;">
           <label class="settings-chk">
             <input type="checkbox" id="settingsThink" ${c.think ? 'checked' : ''}>
             Deep Think reasoning before answer
@@ -1973,12 +1965,12 @@ function renderSettings() {
 
         <div class="settings-row">
           <span class="settings-label">TTS Priority:</span>
-          <span style="font-size:11.5px;color:#93c5fd;font-weight:600">1. Gemini TTS → 2. Edge Neural → 3. System SAPI</span>
+          <span style="font-size:11.5px;color:#93c5fd;font-weight:600;">1. Gemini TTS → 2. Edge Neural → 3. System SAPI</span>
         </div>
 
         <div class="settings-row">
-          <span class="settings-label">Gemini Voice:</span>
-          <select id="settingsGeminiVoice" class="settings-select" style="min-width:180px">
+          <span class="settings-label" style="min-width:100px;">Gemini Voice:</span>
+          <select id="settingsGeminiVoice" class="settings-select" style="flex:1;">
             <option value="Kore" ${currentVoice === 'Kore' ? 'selected' : ''}>Kore (Firm & Confident)</option>
             <option value="Aoede" ${currentVoice === 'Aoede' ? 'selected' : ''}>Aoede (Warm & Breezy)</option>
             <option value="Fenrir" ${currentVoice === 'Fenrir' ? 'selected' : ''}>Fenrir (Deep & Resonant)</option>
@@ -1987,8 +1979,8 @@ function renderSettings() {
         </div>
 
         <div class="settings-row">
-          <span class="settings-label">Edge Neural Voice:</span>
-          <select id="settingsEdgeVoice" class="settings-select" style="min-width:180px">
+          <span class="settings-label" style="min-width:100px;">Edge Voice:</span>
+          <select id="settingsEdgeVoice" class="settings-select" style="flex:1;">
             <option value="en-US-AriaNeural" ${currentEdgeVoice === 'en-US-AriaNeural' ? 'selected' : ''}>en-US-Aria (English US)</option>
             <option value="en-US-GuyNeural" ${currentEdgeVoice === 'en-US-GuyNeural' ? 'selected' : ''}>en-US-Guy (English Male)</option>
             <option value="en-GB-SoniaNeural" ${currentEdgeVoice === 'en-GB-SoniaNeural' ? 'selected' : ''}>en-GB-Sonia (British)</option>
@@ -1997,21 +1989,22 @@ function renderSettings() {
         </div>
 
         <div class="settings-row">
-          <span class="settings-label">Wake Phrase:</span>
-          <input type="text" id="settingsWakePhrase" class="settings-input" style="width:160px" value="${esc(c.wakePhrase || 'Hey Nixi')}">
+          <span class="settings-label" style="min-width:100px;">Wake Phrase:</span>
+          <input type="text" id="settingsWakePhrase" class="settings-input" style="flex:1;" value="${esc(c.wakePhrase || 'Hey Nixi')}">
         </div>
       </div>
 
-      <!-- Save Actions -->
-      <div style="display:flex;gap:10px;margin-top:6px;margin-bottom:12px">
-        <button class="settings-btn primary" id="btnSaveAllSettings" style="flex:1;height:40px;font-size:13px">
-          💾 Save Settings
+      <!-- Save Actions Footer -->
+      <div class="settings-actions-footer">
+        <button class="settings-btn-primary" id="btnSaveAllSettings">
+          <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save Settings
         </button>
-        <button class="settings-btn" id="btnCollapsePanelSettings" style="height:40px">
-          ✕ Back to Notch
+        <button class="settings-btn-secondary" id="btnCollapsePanelSettings">
+          Back to Notch
         </button>
       </div>
-      <div id="settingsSaveToast" style="display:none;text-align:center;font-size:12px;color:#34D399;font-weight:600;padding:4px 0">
+      <div id="settingsSaveToast" style="display:none;text-align:center;font-size:12px;color:#34D399;font-weight:600;padding:2px 0 6px;">
         ✓ Settings saved and applied!
       </div>
     </div>
@@ -2051,11 +2044,13 @@ function renderSettings() {
   if (keyEye && keyInput) {
     keyEye.addEventListener('click', () => {
       keyInput.type = (keyInput.type === 'password') ? 'text' : 'password';
-      keyEye.textContent = (keyInput.type === 'password') ? '👁' : '🔒';
+      keyEye.innerHTML = (keyInput.type === 'password')
+        ? '<svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>'
+        : '<svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
     });
   }
 
-  // Bind Placement
+  // Bind Segmented Placement
   container.querySelectorAll('[data-placement]').forEach(btn => {
     btn.addEventListener('click', () => {
       container.querySelectorAll('[data-placement]').forEach(b => b.classList.remove('on'));
@@ -2068,9 +2063,11 @@ function renderSettings() {
     });
   });
 
-  // Bind Size Presets
+  // Bind Segmented Size Presets
   container.querySelectorAll('[data-panel-size]').forEach(btn => {
     btn.addEventListener('click', () => {
+      container.querySelectorAll('[data-panel-size]').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
       const [w, h] = btn.dataset.panelSize.split(',').map(Number);
       S.cfg.panelWidth = w;
       S.cfg.panelHeight = h;
@@ -2111,7 +2108,7 @@ function renderSettings() {
     S.cfg.speak = speak;
     S.cfg.breathe = breathe;
     S.cfg.sounds = sounds;
-    S.cfg.glow = false; // Border glow disabled
+    S.cfg.glow = false;
 
     applyTheme();
     await ipc.invoke('cfg-set', S.cfg);
@@ -5621,3 +5618,11 @@ loadChatStore();
 renderChatFromStore();
 initNotchSystem();
 console.log('[RENDERER] renderer.js fully initialized!');
+
+
+// Hardware Hover Wakeup from Main process
+ipc.on('notch-hover-wake', () => {
+  if (isTuckedAway || currentShape === 'hidden') {
+    untuck();
+  }
+});
