@@ -2821,11 +2821,23 @@
     #shell.pomo-card #body,
     #shell.pomo-card #mini,
     #shell.pomo-card #fallbackErrorCard,
-    #shell.pomo-card #musicPlayer {
+    #shell.pomo-card #musicPlayer,
+    #shell.todo-card #head,
+    #shell.todo-card #body,
+    #shell.todo-card #mini,
+    #shell.todo-card #fallbackErrorCard,
+    #shell.todo-card #musicPlayer,
+    #shell.open-tab #head,
+    #shell.open-tab #body,
+    #shell.open-tab #mini,
+    #shell.open-tab #fallbackErrorCard,
+    #shell.open-tab #musicPlayer {
       display: none !important;
     }
     #shell.music-card #notchWidget,
-    #shell.pomo-card #notchWidget {
+    #shell.pomo-card #notchWidget,
+    #shell.todo-card #notchWidget,
+    #shell.open-tab #notchWidget {
       display: flex !important;
     }
 
@@ -2974,32 +2986,51 @@
     }
 
     /* ================================================================
-       MUSIC CARD (Image 1 Matching)
+       MUSIC CARD (hello.html Exact Spec: 2-column layout + Synced Lines)
        ================================================================ */
-    .nv-music-card {
+    .nv-music-layout {
       width: 100%;
+      min-width: 0;
       display: flex;
       align-items: center;
       gap: 16px;
     }
-    .nv-music-cover {
-      width: 86px;
-      height: 86px;
-      border-radius: 14px;
-      object-fit: cover;
-      flex: none;
-      background: #1E2025;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
-    }
-    .nv-music-details {
-      flex: 1;
+    .nv-music-song {
+      width: 54%;
       min-width: 0;
       display: flex;
-      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding-right: 15px;
+      border-right: 1px solid #303238;
     }
-    .nv-music-title {
-      font-size: 17px;
-      font-weight: 700;
+    .nv-cover {
+      position: relative;
+      flex: none;
+      width: 60px;
+      height: 60px;
+      border-radius: 14px;
+      background: #1E2025;
+      overflow: hidden;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+    }
+    .nv-cover.small {
+      width: 60px;
+      height: 60px;
+    }
+    .nv-cover-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .nv-track {
+      flex: 1;
+      min-width: 0;
+    }
+    .nv-track > p {
+      font-size: 15px;
+      font-weight: 600;
       color: #FFFFFF;
       margin: 0;
       white-space: nowrap;
@@ -3007,80 +3038,106 @@
       text-overflow: ellipsis;
       letter-spacing: -0.01em;
     }
-    .nv-music-artist {
-      font-size: 13px;
-      color: #8E939C;
+    .nv-track > small {
+      display: block;
       margin-top: 2px;
+      font-size: 12px;
+      color: #8E939C;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .nv-music-scrubber {
+    .nv-progress {
+      display: block;
       height: 4px;
-      background: #2A2C31;
+      margin: 6px 0 3px;
       border-radius: 2px;
-      margin: 8px 0 4px;
-      position: relative;
-      cursor: pointer;
+      background: #2A2C31;
       overflow: hidden;
+      cursor: pointer;
     }
-    .nv-music-scrubber-fill {
+    .nv-progress i {
+      display: block;
       height: 100%;
-      background: #FFFFFF;
+      background: #F5F6F8;
       border-radius: 2px;
       transition: width 0.15s linear;
     }
-    .nv-music-times {
+    .nv-times {
       display: flex;
       justify-content: space-between;
-      font-size: 11px;
-      font-weight: 500;
-      color: #8E939C;
       font-variant-numeric: tabular-nums;
     }
-    .nv-music-controls {
+    .nv-times small {
+      font-size: 10px;
+      color: #8E939C;
+    }
+    .nv-controls {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 22px;
-      margin-top: 4px;
+      gap: 16px;
+      margin-top: 5px;
     }
-    .nv-music-btn {
-      background: none !important;
-      border: none !important;
-      color: #FFFFFF !important;
-      cursor: pointer !important;
-      display: grid !important;
-      place-items: center !important;
-      padding: 0 !important;
-      width: auto !important;
-      height: auto !important;
+    .nv-controls svg {
+      width: 16px;
+      height: 16px;
+      fill: #F5F6F8;
+      stroke: #F5F6F8;
+      stroke-width: 2;
+      stroke-linejoin: round;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease;
       opacity: 0.85;
-      transition: all 0.15s ease;
     }
-    .nv-music-btn:hover {
+    .nv-controls svg:hover {
       opacity: 1;
-      transform: scale(1.12);
+      transform: scale(1.15);
     }
-    .nv-music-btn svg {
-      width: 18px;
-      height: 18px;
-      fill: currentColor;
-    }
-    .nv-music-btn.play-pause {
-      background: none !important;
-      color: #FFFFFF !important;
-      opacity: 1 !important;
-      box-shadow: none !important;
-      transform: none !important;
-    }
-    .nv-music-btn.play-pause:hover {
-      transform: scale(1.15) !important;
+    .nv-controls svg.big {
+      width: 20px;
+      height: 20px;
+      stroke: none;
       opacity: 1;
     }
-    .nv-music-btn.play-pause svg {
-      width: 22px;
-      height: 22px;
+    .nv-controls svg.big:hover {
+      transform: scale(1.2);
+    }
+    .nv-lines {
+      flex: 1;
+      min-width: 0;
+      padding-left: 2px;
+      animation: nv-lift .45s cubic-bezier(.2, .8, .2, 1) both;
+    }
+    .nv-lines p {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin: 0;
+    }
+    .nv-lines .prev,
+    .nv-lines .next {
+      font-size: 13px;
+      font-weight: 500;
+      color: #5A5F68;
+    }
+    .nv-lines .now {
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.3;
+      margin: 4px 0;
+      letter-spacing: -.015em;
+      color: #F5F6F8;
+    }
+    @keyframes nv-lift {
+      from {
+        transform: translateY(10px);
+        opacity: .4;
+      }
+      to {
+        transform: none;
+        opacity: 1;
+      }
     }
 
     /* ================================================================
@@ -3226,6 +3283,169 @@
       height: 18px !important;
       transform: rotate(-90deg) !important;
       flex: none !important;
+    }
+
+    /* ================================================================
+       TO-DO CARD (hello.html Spec)
+       ================================================================ */
+    .nv-todo {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 112px minmax(0, 1fr);
+      align-items: center;
+      gap: 16px;
+    }
+    .nv-todo-summary {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+    .nv-todo-summary strong {
+      font-size: 34px;
+      line-height: 1;
+      letter-spacing: -.04em;
+      font-variant-numeric: tabular-nums;
+      color: #FFFFFF;
+    }
+    .nv-todo-summary small {
+      display: block;
+      font-size: 11px;
+      color: #8E939C;
+    }
+    .nv-todo-items {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .nv-todo-items > div {
+      min-width: 0;
+      min-height: 22px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 3px 10px;
+      border-radius: 8px;
+      background: #1D1F23;
+      font-size: 12px;
+      line-height: 1.2;
+      cursor: pointer;
+      color: #F5F6F8;
+      transition: background 0.15s ease;
+    }
+    .nv-todo-items > div:hover {
+      background: #25282F;
+    }
+    .nv-todo-items > div.done {
+      background: rgba(52, 199, 89, 0.16);
+      color: #A7ADB6;
+    }
+    .nv-todo-items > div.done span {
+      text-decoration: line-through;
+    }
+    .nv-todo-items b {
+      width: 14px;
+      height: 14px;
+      flex: none;
+      border: 1.5px solid #747982;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+    }
+    .nv-todo-items .done b {
+      border-color: #34C759;
+      background: #34C759;
+    }
+
+    /* ================================================================
+       OPEN CARD TABS (Command, Dictate, Write - hello.html Spec)
+       ================================================================ */
+    .nv-open-mode {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .nv-open-mode .nv-text {
+      flex: 1;
+      min-width: 0;
+    }
+    .nv-open-mode .nv-text p {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 700;
+      color: #FFFFFF;
+    }
+    .nv-open-mode .nv-text small {
+      display: block;
+      margin-top: 3px;
+      font-size: 12px;
+      color: #8E939C;
+      white-space: normal;
+    }
+    .nv-btn {
+      height: 34px;
+      padding: 0 18px;
+      display: inline-flex;
+      align-items: center;
+      border-radius: 17px;
+      background: #2A2C31;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 0;
+      color: #FFFFFF;
+      transition: transform .15s, filter .15s;
+    }
+    .nv-btn:hover {
+      filter: brightness(1.2);
+      transform: scale(1.03);
+    }
+    .nv-btn.nv-blue {
+      background: #3882F6;
+    }
+
+    /* ================================================================
+       TUCKED AWAY (hello.html hidden state)
+       ================================================================ */
+    #shell.hidden {
+      width: 184px !important;
+      height: 6px !important;
+      min-height: 6px !important;
+      border-radius: 0 0 6px 6px !important;
+      background: #000000 !important;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6) !important;
+      cursor: pointer !important;
+      overflow: hidden !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      opacity: 0.95;
+      transition: width 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), height 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), border-radius 0.3s ease !important;
+    }
+    #shell.hidden:hover {
+      height: 10px !important;
+      opacity: 1;
+    }
+    #shell.hidden > * {
+      display: none !important;
+    }
+    .notch-container.hidden-active .notch-shoulder {
+      opacity: 0.2 !important;
+      height: 6px !important;
+    }
+
+    /* ================================================================
+       FLOATING PILL (Desktop Dragged - hello.html "Take Nixi anywhere")
+       ================================================================ */
+    #shell.floating-pill {
+      border-radius: 28px !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 20px 48px -10px rgba(0, 0, 0, 0.75) !important;
+    }
+    .notch-container.floating-pill .notch-shoulder {
+      display: none !important;
     }
 
 </style>

@@ -30,7 +30,7 @@ function Await-Operation {
 }
 
 
-$statusNames = @{ 0 = 'none'; 1 = 'changing'; 2 = 'stopped'; 3 = 'playing'; 4 = 'paused' }
+$statusNames = @{ 0 = 'none'; 1 = 'opened'; 2 = 'changing'; 3 = 'stopped'; 4 = 'playing'; 5 = 'paused' }
 
 $result = [ordered]@{
   playing   = $false
@@ -77,6 +77,9 @@ try {
       $mediaProps = Await-Operation ($session.TryGetMediaPropertiesAsync()) $mediaPropType
       if ($mediaProps) {
         $result.title = [string]$mediaProps.Title
+        if ($result.title) {
+          $result.title = ($result.title -replace '^\(\d+\)\s*', '').Trim()
+        }
         $result.artist = [string]$mediaProps.Artist
         $result.album = [string]$mediaProps.AlbumTitle
         if ($mediaProps.Thumbnail) {

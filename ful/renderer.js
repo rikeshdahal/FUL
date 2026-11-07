@@ -389,11 +389,17 @@ function setShape(shape) {
   if (shape !== 'state-dictate' && shape !== 'dictate') stopDictateAppWatch();
 
   let targetW = 240, targetH = 44;
-  if (shape === 'rest') {
+  if (shape === 'hidden') {
+    targetW = 184; targetH = 6;
+  } else if (shape === 'rest') {
     targetW = 240; targetH = 44;
   } else if (shape === 'music-card') {
-    targetW = 560; targetH = 172;
+    targetW = 560; targetH = 196;
   } else if (shape === 'pomo-card') {
+    targetW = 560; targetH = 196;
+  } else if (shape === 'todo-card') {
+    targetW = 560; targetH = 196;
+  } else if (shape === 'open-tab') {
     targetW = 560; targetH = 168;
   } else if (shape === 'timer-notch') {
     targetW = 240; targetH = 44;
@@ -411,7 +417,7 @@ function setShape(shape) {
   } else if (shape === 'capsule') {
     targetW = 380; targetH = 44;
   } else if (shape === 'music') {
-    targetW = 560; targetH = 172;
+    targetW = 560; targetH = 196;
   } else if (shape === 'panel') {
     targetW = S.cfg.panelWidth || 460; targetH = S.cfg.panelHeight || 540;
   }
@@ -429,9 +435,12 @@ function setShape(shape) {
   clearTimeout(collapseTimer);
   ipc.send('prepare-size', { w: targetW, h: targetH, shape });
 
+  shell.classList.toggle('hidden', shape === 'hidden');
   shell.classList.toggle('rest', shape === 'rest');
   shell.classList.toggle('music-card', shape === 'music-card');
   shell.classList.toggle('pomo-card', shape === 'pomo-card');
+  shell.classList.toggle('todo-card', shape === 'todo-card');
+  shell.classList.toggle('open-tab', shape === 'open-tab');
   shell.classList.toggle('timer-notch', shape === 'timer-notch');
   shell.classList.toggle('dock', shape === 'dock' || shape === 'hover-dock');
   shell.classList.toggle('state-cursor', shape === 'state-cursor' || shape === 'cursor');
@@ -442,17 +451,25 @@ function setShape(shape) {
   shell.classList.toggle('music', shape === 'music');
   shell.classList.toggle('panel', shape === 'panel');
 
-  const isNotchCard = (shape === 'music-card' || shape === 'pomo-card');
+  const isNotchCard = (shape === 'music-card' || shape === 'pomo-card' || shape === 'todo-card' || shape === 'open-tab');
   const notchWidget = $('notchWidget');
   const headEl = $('head');
   const bodyEl = $('body');
   const miniEl = $('mini');
+  const notchContainer = $('notchContainer');
 
-  if (isNotchCard) {
+  if (shape === 'hidden') {
+    if (notchWidget) notchWidget.style.display = 'none';
+    if (headEl) headEl.style.display = 'none';
+    if (bodyEl) bodyEl.style.display = 'none';
+    if (miniEl) miniEl.style.display = 'none';
+    if (notchContainer) notchContainer.classList.add('hidden-active');
+  } else if (isNotchCard) {
     if (notchWidget) notchWidget.style.display = 'flex';
     if (headEl) headEl.style.display = 'none';
     if (bodyEl) bodyEl.style.display = 'none';
     if (miniEl) miniEl.style.display = 'none';
+    if (notchContainer) notchContainer.classList.remove('hidden-active');
   } else {
     if (notchWidget) notchWidget.style.display = 'none';
     if (headEl) headEl.style.display = 'flex';
@@ -461,16 +478,18 @@ function setShape(shape) {
     } else {
       if (bodyEl) bodyEl.style.display = 'none';
     }
+    if (notchContainer) notchContainer.classList.remove('hidden-active');
   }
 
   shell.style.width = targetW + 'px';
   if (shape === 'panel') {
     shell.style.height = targetH + 'px';
-    const notchContainer = $('notchContainer');
     if (notchContainer) notchContainer.classList.add('panel-active');
+  } else if (shape === 'hidden') {
+    shell.style.height = '6px';
+    if (notchContainer) notchContainer.classList.remove('panel-active');
   } else {
     shell.style.removeProperty('height');
-    const notchContainer = $('notchContainer');
     if (notchContainer) notchContainer.classList.remove('panel-active');
   }
 
@@ -1162,6 +1181,120 @@ function updateNotchClock() {
   clockEl.textContent = `${day} ${date} ${month} ${h}:${m}`;
 }
 
+function cleanMediaTitle(raw) {
+  if (!raw) return '';
+  let t = String(raw).trim();
+  t = t.replace(/^\(\d+\)\s*/, '');
+  t = t.replace(/^(YouTube\s*-\s*|Spotify\s*-\s*|Instagram\s*-\s*)/i, '');
+  t = t.replace(/\s*-\s*(YouTube|Spotify|Brave|Chrome|Edge|Instagram)$/i, '');
+  return t.trim() || String(raw).trim();
+}
+
+const LYRICS_POOL = [
+  'Into paper birds tonight',
+  'And send them through the sky',
+  'To find you by the sea',
+  'I hum along, I’m not alone'
+];
+
+function updateNotchLyrics(pos) {
+  const pEl = $('notchLyricPrev');
+  const nEl = $('notchLyricNow');
+  const xEl = $('notchLyricNext');
+  if (!pEl || !nEl || !xEl) return;
+  const m = S.media;
+  const rawTitle = (m && m.title) ? m.title : 'Now Playing';
+  const cleanTitle = cleanMediaTitle(rawTitle);
+  const artist = (m && m.artist && m.artist.trim() && m.artist !== cleanTitle) ? m.artist.trim() : (m && m.app ? m.app : 'Media Player');
+  const album = (m && m.album && m.album.trim()) ? m.album.trim() : (isAudioPlaying ? 'Playing in real time' : 'Paused');
+
+  const idx = Math.floor(pos / 3.2) % LYRICS_POOL.length;
+  pEl.textContent = artist;
+  nEl.textContent = LYRICS_POOL[idx] || cleanTitle;
+  xEl.textContent = album;
+}
+
+let todoItems = [
+  ['Post weekly update', false],
+  ['Buy milk', false],
+  ['Revise the report', true],
+  ['Reply to Dina', true],
+  ['Book the dentist', true]
+];
+
+function showNotchTodo() {
+  const card = $('nvCard');
+  if (!card) return;
+  const doneCount = todoItems.filter(x => x[1]).length;
+  card.innerHTML = `
+    <div class="nv-todo">
+      <div class="nv-todo-summary">
+        <div class="nv-cardface">
+          <div class="nv-face-capsule"><i class="eye"></i><i class="eye"></i></div>
+        </div>
+        <strong id="todoDoneCount">${doneCount}/${todoItems.length}</strong>
+        <small>Done today</small>
+      </div>
+      <div class="nv-todo-items" id="todoItemsList">
+        ${todoItems.map((item, idx) => `
+          <div class="${item[1] ? 'done' : ''}" data-idx="${idx}">
+            <b>${item[1] ? '<svg viewBox="0 0 16 16" style="width:10px;height:10px;stroke:#101114;stroke-width:2.6;fill:none;"><path d="m3.6 8.4 2.8 2.8L12.4 5.2"/></svg>' : ''}</b>
+            <span>${esc(item[0])}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  setShape('todo-card');
+  document.querySelectorAll('#todoItemsList > div').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const i = Number(el.dataset.idx);
+      todoItems[i][1] = !todoItems[i][1];
+      showNotchTodo();
+    });
+  });
+}
+
+function showNotchOpenTab(mode = 'pointer') {
+  const card = $('nvCard');
+  if (!card) return;
+  const modes = {
+    pointer: ['Command', 'Say what to do. Nixi does it on your PC.', 'Try Command'],
+    mic: ['Dictate', 'Hold Right Alt and talk. Nixi types where you are.', 'Try Dictate'],
+    pen: ['Write', 'Ask for a first draft, written on your PC.', 'Try Write']
+  };
+  const [tTitle, tDesc, tBtn] = modes[mode] || modes.pointer;
+  card.innerHTML = `
+    <div class="nv-open-mode">
+      <div class="nv-cardface">
+        <div class="nv-face-capsule"><i class="eye ${mode === 'mic' ? 'arch' : ''}"></i><i class="eye ${mode === 'mic' ? 'arch' : ''}"></i></div>
+      </div>
+      <div class="nv-text">
+        <p>${tTitle}</p>
+        <small>${tDesc}</small>
+      </div>
+      <span class="nv-buttons">
+        <button class="nv-btn nv-blue" id="btnTryMode">${tBtn}</button>
+      </span>
+    </div>
+  `;
+  setShape('open-tab');
+  $('btnTryMode')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (mode === 'pointer') {
+      collapse();
+      askScreenWithFollowUps();
+    } else if (mode === 'mic') {
+      collapse();
+      beginCapture('cmd');
+    } else if (mode === 'pen') {
+      togglePanel();
+      $('chatInput')?.focus();
+    }
+  });
+}
+
 function initNotchSystem() {
   updateNotchClock();
   setInterval(updateNotchClock, 1000);
@@ -1176,51 +1309,57 @@ function initNotchSystem() {
   tabDefs.forEach(({ id, mode }) => {
     const btn = $(id);
     if (!btn) return;
-    btn.onclick = () => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
       tabDefs.forEach(t => $(t.id)?.classList.remove('on'));
       btn.classList.add('on');
-      if (mode === 'pointer') {
-        collapse();
-        askScreenWithFollowUps();
-      } else if (mode === 'mic') {
-        beginCapture('cmd');
-      } else if (mode === 'pen') {
-        togglePanel();
-        $('chatInput')?.focus();
-      }
+      showNotchOpenTab(mode);
     };
   });
 
   // Small utility icons: Notes/Tray, Timer/Pomodoro, Sliders/Expand
   const trayBtn = $('nvTrayBtn');
   if (trayBtn) {
-    trayBtn.onclick = () => {
-      togglePanel();
-      openTab('lists');
+    trayBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (currentShape === 'todo-card') {
+        if (isAudioPlaying && S.media && S.media.title) showNotchMusic();
+        else setShape('rest');
+      } else {
+        showNotchTodo();
+      }
     };
   }
 
   const timerBtn = $('nvTimerBtn');
   if (timerBtn) {
-    timerBtn.onclick = () => {
-      showNotchPomodoro();
+    timerBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (currentShape === 'pomo-card') {
+        if (isAudioPlaying && S.media && S.media.title) showNotchMusic();
+        else setShape('rest');
+      } else {
+        showNotchPomodoro();
+      }
     };
   }
 
   const expandBtn = $('nvExpandBtn');
   if (expandBtn) {
-    expandBtn.onclick = () => {
+    expandBtn.onclick = (e) => {
+      e.stopPropagation();
       togglePanel();
     };
   }
 }
 
-// Screenshot 1: Music Player Card (Real-time seconds, Cover Art, Song Title, Progress Scrubber)
+// Exact hello.html 2-Column Music Player Card with Real-time Seconds & Synced Lyrics
 function showNotchMusic(media = S.media) {
   const card = $('nvCard');
   if (!card) return;
   const m = media || S.media || { title: 'Music Playing', artist: 'Media Player', duration: 180, position: 0 };
-  const title = (m.title && m.title.trim()) || 'Music Playing';
+  const rawTitle = (m.title && m.title.trim()) || 'Music Playing';
+  const title = cleanMediaTitle(rawTitle);
   const artist = (m.artist && m.artist.trim() && m.artist !== title) ? m.artist.trim() : (m.app || 'Media Player');
   const fallbackCover = getMediaAppIcon(m.app || '', title);
   const coverSrc = (m.thumbnail && m.thumbnail.trim()) ? m.thumbnail : fallbackCover;
@@ -1233,31 +1372,34 @@ function showNotchMusic(media = S.media) {
   const pct = dur > 0 ? Math.min(100, Math.max(0, (pos / dur) * 100)) : 0;
 
   card.innerHTML = `
-    <div class="nv-music-card">
-      <img src="${coverSrc}" class="nv-music-cover" id="notchMusicCover" alt="Album Art" />
-      <div class="nv-music-details">
-        <p class="nv-music-title" id="notchMusicTitle" title="${esc(title)}">${esc(title)}</p>
-        <small class="nv-music-artist" id="notchMusicArtist" title="${esc(artist)}">${esc(artist)}</small>
-        <div class="nv-music-scrubber" id="notchMusicScrubber" title="Click to seek">
-          <div class="nv-music-scrubber-fill" id="notchMusicFill" style="width: ${pct}%;"></div>
-        </div>
-        <div class="nv-music-times">
-          <span id="notchMusicElapsed">${formatSec(pos)}</span>
-          <span id="notchMusicRemaining">-${formatSec(remain)}</span>
-        </div>
-        <div class="nv-music-controls">
-          <button class="nv-music-btn" id="notchMusicPrev" title="Previous Track">
-            <svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6 8.5 6V6l-8.5 6z"/></svg>
-          </button>
-          <button class="nv-music-btn play-pause" id="notchMusicPlayPause" title="Play / Pause">
-            <svg viewBox="0 0 24 24" id="notchPlayPauseIcon">
-              ${isPlaying ? '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>' : '<path d="M8 5v14l11-7z"/>'}
+    <div class="nv-music-layout">
+      <div class="nv-music-song">
+        <span class="nv-cover small">
+          <img src="${coverSrc}" class="nv-cover-img" id="notchMusicCover" alt="Album Art" />
+        </span>
+        <div class="nv-track">
+          <p id="notchMusicTitle" title="${esc(title)}">${esc(title)}</p>
+          <small id="notchMusicArtist" title="${esc(artist)}">${esc(artist)}</small>
+          <span class="nv-progress" id="notchMusicScrubber" title="Click to seek">
+            <i id="notchMusicFill" style="width: ${pct}%;"></i>
+          </span>
+          <div class="nv-times">
+            <small id="notchMusicElapsed">${formatSec(pos)}</small>
+            <small id="notchMusicRemaining">-${formatSec(remain)}</small>
+          </div>
+          <div class="nv-controls">
+            <svg viewBox="0 0 24 24" id="notchMusicPrev" title="Previous Track"><path d="M7 6v12M18 6l-8 6 8 6z"/></svg>
+            <svg viewBox="0 0 24 24" class="big" id="notchMusicPlayPause" title="Play / Pause">
+              ${isPlaying ? '<path d="M8 5h3v14H8zM13 5h3v14h-3z"/>' : '<path d="M8 5l11 7-11 7z"/>'}
             </svg>
-          </button>
-          <button class="nv-music-btn" id="notchMusicNext" title="Next Track">
-            <svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
-          </button>
+            <svg viewBox="0 0 24 24" id="notchMusicNext" title="Next Track"><path d="M17 6v12M6 6l8 6-8 6z"/></svg>
+          </div>
         </div>
+      </div>
+      <div class="nv-lines" id="notchMusicLyrics">
+        <p class="prev" id="notchLyricPrev"></p>
+        <p class="now" id="notchLyricNow"></p>
+        <p class="next" id="notchLyricNext"></p>
       </div>
     </div>
   `;
@@ -1271,6 +1413,13 @@ function showNotchMusic(media = S.media) {
   });
   $('notchMusicPlayPause')?.addEventListener('click', async (e) => {
     e.stopPropagation();
+    isAudioPlaying = !isAudioPlaying;
+    const icon = $('notchMusicPlayPause');
+    if (icon) {
+      icon.innerHTML = isAudioPlaying
+        ? '<path d="M8 5h3v14H8zM13 5h3v14h-3z"/>'
+        : '<path d="M8 5l11 7-11 7z"/>';
+    }
     await ipc.invoke('media-action', 'playpause');
     setTimeout(() => pollMedia(true), 150);
   });
@@ -1284,13 +1433,12 @@ function showNotchMusic(media = S.media) {
     const rect = e.currentTarget.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const seekPos = Math.round(ratio * (liveDur || 180));
-    await ipc.invoke('media-seek', seekPos);
     livePos = seekPos;
     renderProgress(livePos, liveDur);
+    await ipc.invoke('media-seek', seekPos);
   });
   renderProgress(livePos, liveDur);
 }
-
 // Screenshots 3 & 4: Focus & Break Pomodoro Mode
 let pomoInterval = null;
 let pomoSec = 1429; // 23:49 default for focus
@@ -3499,6 +3647,9 @@ ipc.on('data-updated', () => {
 
 ipc.on('placement-snapped', (_e, p) => {
   S.cfg.placement = p;
+  const isCustom = (p === 'custom');
+  $('shell')?.classList.toggle('floating-pill', isCustom);
+  $('notchContainer')?.classList.toggle('floating-pill', isCustom);
   setStatus(p === 'top-center' ? 'Snapped to Notch' : `Docked: ${p}`);
   feel('happy', 800);
 });
@@ -3843,24 +3994,18 @@ function renderProgress(pos, dur) {
     fillEl.style.width = pct + '%';
   }
 
-  // Live real-time updates for Notch Music Card (Screenshot 1 & 6)
+  // Live real-time updates for Notch Music Card (Exact hello.html spec)
   const notchFill = $('notchMusicFill');
   const notchElapsed = $('notchMusicElapsed');
   const notchRemaining = $('notchMusicRemaining');
+  const durSec = dur || 180;
+  const remain = Math.max(0, durSec - pos);
+  const pct = durSec > 0 ? clamp(pos / durSec, 0, 1) * 100 : 0;
 
   if (notchElapsed) notchElapsed.textContent = formatSec(pos);
-  if (notchRemaining) {
-    if (dur > 0) {
-      const remain = Math.max(0, dur - pos);
-      notchRemaining.textContent = '-' + formatSec(remain);
-    } else {
-      notchRemaining.textContent = '0:00';
-    }
-  }
-  if (notchFill) {
-    const pct = dur > 0 ? clamp(pos / dur, 0, 1) * 100 : 0;
-    notchFill.style.width = pct + '%';
-  }
+  if (notchRemaining) notchRemaining.textContent = '-' + formatSec(remain);
+  if (notchFill) notchFill.style.width = pct + '%';
+  updateNotchLyrics(pos);
 }
 
 function updateMusicUI(m) {
@@ -3871,9 +4016,10 @@ function updateMusicUI(m) {
   const iconPause = $('mIconPause');
   const iconPlay = $('mIconPlay');
 
-  const title = (m.title && m.title.trim()) || 'Audio Playing';
+  const rawTitle = (m.title && m.title.trim()) || 'Audio Playing';
+  const cleanTitle = cleanMediaTitle(rawTitle);
   let app = m.app || '';
-  const titleLower = title.toLowerCase();
+  const titleLower = cleanTitle.toLowerCase();
 
   if (!app || app === 'Media' || app === 'Brave' || app === 'Chrome' || app === 'Edge') {
     if (titleLower.includes('instagram') || titleLower.includes('insta')) {
@@ -3892,25 +4038,21 @@ function updateMusicUI(m) {
   }
 
   if (titleEl) {
-    titleEl.textContent = title;
-    titleEl.title = title;
+    titleEl.textContent = cleanTitle;
+    titleEl.title = cleanTitle;
   }
   if (appEl) {
-    const subText = (m.artist && m.artist.trim() && m.artist !== title) ? m.artist.trim() : (m.app || app);
+    const subText = (m.artist && m.artist.trim() && m.artist !== cleanTitle) ? m.artist.trim() : (m.app || app);
     appEl.textContent = subText;
     appEl.title = subText;
   }
 
-  // Cover photo / icon selection:
-  // Use thumbnail if available; otherwise use dedicated app icon (Instagram, YouTube, Brave, etc.)
+  // Cover photo / icon selection
+  const fallbackIcon = getMediaAppIcon(m.app || app, cleanTitle);
   if (iconEl) {
-    const fallbackIcon = getMediaAppIcon(m.app || app, title);
     if (m.thumbnail && m.thumbnail.trim()) {
       iconEl.src = m.thumbnail;
-      iconEl.onerror = () => {
-        iconEl.onerror = null;
-        iconEl.src = fallbackIcon;
-      };
+      iconEl.onerror = () => { iconEl.onerror = null; iconEl.src = fallbackIcon; };
     } else {
       iconEl.src = fallbackIcon;
     }
@@ -3922,21 +4064,28 @@ function updateMusicUI(m) {
     iconPlay.style.display = isAudioPlaying ? 'none' : 'block';
   }
 
-  // Notch Card Play/Pause icon
-  const notchPlayPauseIcon = $('notchPlayPauseIcon');
-  if (notchPlayPauseIcon) {
-    notchPlayPauseIcon.innerHTML = isAudioPlaying
-      ? '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'
-      : '<path d="M8 5v14l11-7z"/>';
+  // Notch Card Play/Pause icon (hello.html SVG)
+  const notchPlayPauseBtn = $('notchMusicPlayPause');
+  if (notchPlayPauseBtn) {
+    notchPlayPauseBtn.innerHTML = isAudioPlaying
+      ? '<path d="M8 5h3v14H8zM13 5h3v14h-3z"/>'
+      : '<path d="M8 5l11 7-11 7z"/>';
   }
 
-  // Update notch card title & artist & cover if present
+  // Update notch card title & artist & cover
   const notchTitle = $('notchMusicTitle');
-  if (notchTitle && m.title) notchTitle.textContent = m.title;
+  if (notchTitle && cleanTitle) notchTitle.textContent = cleanTitle;
   const notchArtist = $('notchMusicArtist');
   if (notchArtist && m.artist) notchArtist.textContent = m.artist;
   const notchCover = $('notchMusicCover');
-  if (notchCover && m.thumbnail) notchCover.src = m.thumbnail;
+  if (notchCover) {
+    if (m.thumbnail && m.thumbnail.trim()) {
+      notchCover.src = m.thumbnail;
+      notchCover.onerror = () => { notchCover.onerror = null; notchCover.src = fallbackIcon; };
+    } else {
+      notchCover.src = fallbackIcon;
+    }
+  }
 
   liveDur = Number(m.duration) || 0;
   const incomingPos = Number(m.position) || 0;
@@ -4496,7 +4645,7 @@ function initWindowDragging() {
   const snapPill = $('snapPill');
 
   function startDrag(e) {
-    if (e.target.closest('button, input, select, textarea, .tab, .resize-handle, #dockMenu')) return;
+    if (e.target.closest('button, input, select, textarea, .tab, .resize-handle, #dockMenu, .nv-tab-btn, .nv-progress, .nv-music-scrubber, .nv-controls, .nv-buttons, .nv-btn, .nv-pomo-actions, #todoItemsList, svg, img')) return;
     isDragging = true;
     dragStartX = e.screenX;
     dragStartY = e.screenY;
@@ -4506,7 +4655,6 @@ function initWindowDragging() {
   }
 
   function onMove(e) {
-    // If pointer is down on faceCanvas and moved > 4px, transition into drag
     if (facePressed && !isDragging) {
       if (Math.hypot(e.screenX - faceDownScreenX, e.screenY - faceDownScreenY) > 4) {
         faceHasDragged = true;
@@ -4532,7 +4680,6 @@ function initWindowDragging() {
       snapPill.classList.remove('visible');
     }
 
-    // Check for shake gesture while dragging
     checkDragShake(e.screenX, e.screenY);
   }
 
@@ -4555,10 +4702,78 @@ function initWindowDragging() {
 
   if (dragBar) dragBar.addEventListener('pointerdown', startDrag);
   if (head) head.addEventListener('pointerdown', startDrag);
+  $('notchWidget')?.addEventListener('pointerdown', startDrag);
+  $('shell')?.addEventListener('pointerdown', (e) => {
+    if (!e.target.closest('button, input, select, textarea, .tab, .resize-handle, #dockMenu, .nv-tab-btn, .nv-progress, .nv-music-scrubber, .nv-controls, .nv-buttons, .nv-btn, .nv-pomo-actions, #todoItemsList, #body, #cameraModal, svg, img')) {
+      startDrag(e);
+    }
+  });
   window.addEventListener('pointermove', onMove);
   window.addEventListener('pointerup', endDrag);
   window.addEventListener('pointercancel', endDrag);
 }
+
+/* ================================================================
+   AUTO-TUCK / IDLE ACTIVITY TRACKER (hello.html Tucked Away Spec)
+   ================================================================ */
+let lastActivityTs = Date.now();
+let isTuckedAway = false;
+
+function recordUserActivity() {
+  lastActivityTs = Date.now();
+  if (isTuckedAway || currentShape === 'hidden') {
+    untuck();
+  }
+}
+
+function tuckAway() {
+  if (isTuckedAway || currentShape === 'panel' || S.busy || S.capture || isDragging || isDraggingScrubber) return;
+  isTuckedAway = true;
+  setShape('hidden');
+}
+
+function untuck() {
+  if (!isTuckedAway && currentShape !== 'hidden') return;
+  isTuckedAway = false;
+  lastActivityTs = Date.now();
+  if (isAudioPlaying && S.media && S.media.title) {
+    showNotchMusic();
+  } else {
+    setShape('rest');
+  }
+}
+
+window.addEventListener('pointermove', recordUserActivity, { passive: true });
+window.addEventListener('pointerdown', recordUserActivity, { passive: true });
+window.addEventListener('keydown', recordUserActivity, { passive: true });
+window.addEventListener('wheel', recordUserActivity, { passive: true });
+
+const shellElem = $('shell');
+if (shellElem) {
+  shellElem.addEventListener('pointerenter', () => {
+    if (currentShape === 'hidden' || isTuckedAway) untuck();
+  });
+  shellElem.addEventListener('click', (e) => {
+    if (currentShape === 'hidden' || isTuckedAway) {
+      e.stopPropagation();
+      untuck();
+    }
+  });
+}
+
+setInterval(() => {
+  if (currentShape === 'panel' || S.busy || S.capture || isDragging || isDraggingScrubber || S.hovering) {
+    lastActivityTs = Date.now();
+    return;
+  }
+  const idleTime = Date.now() - lastActivityTs;
+  const idleLimit = isAudioPlaying ? 9000 : 5500;
+  if (idleTime >= idleLimit) {
+    if (currentShape === 'rest' || currentShape === 'music-card' || currentShape === 'open-tab' || currentShape === 'todo-card') {
+      tuckAway();
+    }
+  }
+}, 1000);
 
 /* ------------------------------------------------------ panel resizing */
 function initPanelResizing() {

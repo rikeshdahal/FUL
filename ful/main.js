@@ -240,14 +240,16 @@ function getActiveWorkArea() {
 
 function calculateWindowBounds(w, h) {
   const area = getActiveWorkArea();
+  const isTucked = (h <= 10);
+  const padY = isTucked ? 0 : PAD;
   const width = Math.max(60, Math.min(Math.round(w) + PAD * 2, area.width));
-  const height = Math.max(40, Math.min(Math.round(h) + PAD * 2, area.height));
+  const height = isTucked ? Math.max(6, Math.round(h)) : Math.max(40, Math.min(Math.round(h) + padY * 2, area.height));
   let x, y;
   const placement = cfg.placement || 'top-center';
 
   if (placement === 'top-center') {
     x = Math.round(area.x + (area.width - width) / 2);
-    y = Math.round(area.y + 4);
+    y = Math.round(area.y);
   } else if (placement === 'top-right') {
     x = Math.round(area.x + area.width - width - 16);
     y = Math.round(area.y + 12);
