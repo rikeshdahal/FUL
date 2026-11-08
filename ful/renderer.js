@@ -481,13 +481,13 @@ function setShape(shape) {
   } else if (shape === 'rest') {
     targetW = 240; targetH = 48;
   } else if (shape === 'music-card') {
-    targetW = 500; targetH = 172;
+    targetW = 500; targetH = 176;
   } else if (shape === 'pomo-card') {
-    targetW = 500; targetH = 172;
+    targetW = 500; targetH = 176;
   } else if (shape === 'todo-card') {
-    targetW = 500; targetH = 172;
+    targetW = 500; targetH = 176;
   } else if (shape === 'open-tab') {
-    targetW = 500; targetH = 172;
+    targetW = 500; targetH = 176;
   } else if (shape === 'timer-notch') {
     targetW = 240; targetH = 48;
   } else if (shape === 'dock' || shape === 'hover-dock') {
@@ -506,7 +506,7 @@ function setShape(shape) {
   } else if (shape === 'capsule') {
     targetW = 380; targetH = 48;
   } else if (shape === 'music') {
-    targetW = 500; targetH = 172;
+    targetW = 500; targetH = 176;
   } else if (shape === 'panel') {
     targetW = S.cfg.panelWidth || 460; targetH = S.cfg.panelHeight || 540;
   }
@@ -518,13 +518,13 @@ function setShape(shape) {
   } else if (shape === 'rest') {
     targetW = 240; targetH = 44;
   } else if (shape === 'music-card') {
-    targetW = 500; targetH = 172;
+    targetW = 500; targetH = 176;
   } else if (shape === 'pomo-card') {
-    targetW = 500; targetH = 172;
+    targetW = 500; targetH = 176;
   } else if (shape === 'todo-card') {
-    targetW = 500; targetH = 172;
+    targetW = 500; targetH = 176;
   } else if (shape === 'open-tab') {
-    targetW = 500; targetH = 172;
+    targetW = 500; targetH = 176;
   } else if (shape === 'timer-notch') {
     targetW = 240; targetH = 44;
   } else if (shape === 'dock' || shape === 'hover-dock') {
@@ -541,7 +541,7 @@ function setShape(shape) {
   } else if (shape === 'capsule') {
     targetW = 380; targetH = 44;
   } else if (shape === 'music') {
-    targetW = 500; targetH = 172;
+    targetW = 500; targetH = 176;
   } else if (shape === 'panel') {
     targetW = S.cfg.panelWidth || 460; targetH = S.cfg.panelHeight || 540;
   }
@@ -1468,6 +1468,33 @@ function initNotchSystem() {
 }
 
 // Exact hello.html 2-Column Music Player Card with Real-time Seconds & Synced Lyrics
+function extractColorFromImg(imgEl) {
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = 16;
+    canvas.height = 16;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(imgEl, 0, 0, 16, 16);
+    const imgData = ctx.getImageData(0, 0, 16, 16).data;
+    let red = 0, green = 0, blue = 0, count = 0;
+    for (let i = 0; i < imgData.length; i += 4) {
+      const br = (imgData[i] + imgData[i+1] + imgData[i+2]) / 3;
+      if (br > 40 && br < 225) {
+        red += imgData[i];
+        green += imgData[i+1];
+        blue += imgData[i+2];
+        count++;
+      }
+    }
+    if (count > 0) {
+      const rgb = `rgb(${Math.round(red/count)}, ${Math.round(green/count)}, ${Math.round(blue/count)})`;
+      const rgba = `rgba(${Math.round(red/count)}, ${Math.round(green/count)}, ${Math.round(blue/count)}, 0.45)`;
+      document.documentElement.style.setProperty('--media-accent', rgb);
+      document.documentElement.style.setProperty('--media-accent-glow', rgba);
+    }
+  } catch (_) {}
+}
+
 function showNotchMusic(media = S.media) {
   const card = $('nvCard');
   if (!card) return;
@@ -1477,7 +1504,7 @@ function showNotchMusic(media = S.media) {
   const artist = (m.artist && m.artist.trim() && m.artist !== title) ? m.artist.trim() : (m.app || 'Media Player');
   const fallbackCover = getMediaAppIcon(m.app || '', title);
   const coverSrc = (m.thumbnail && m.thumbnail.trim()) ? m.thumbnail : fallbackCover;
-  const isPlaying = (m.status === 'playing' || (m.playing && m.status !== 'paused'));
+  const isPlaying = (m.status === 'playing' || m.status === 'Playing' || (m.playing && m.status !== 'paused' && m.status !== 'Paused'));
   if (m.duration) liveDur = Number(m.duration);
   if (m.position !== undefined) livePos = Number(m.position);
   const dur = liveDur || 180;
@@ -1486,28 +1513,95 @@ function showNotchMusic(media = S.media) {
   const pct = dur > 0 ? Math.min(100, Math.max(0, (pos / dur) * 100)) : 0;
 
   card.innerHTML = `
-    <div class="nv-music-layout">
-      <div class="nv-music-song">
-        <span class="nv-cover small">
-          <img src="${coverSrc}" class="nv-cover-img" id="notchMusicCover" alt="Album Art" />
-        </span>
-        <div class="nv-track">
-          <p id="notchMusicTitle" title="${esc(title)}">${esc(title)}</p>
-          <small id="notchMusicArtist" title="${esc(artist)}">${esc(artist)}</small>
-          <span class="nv-progress" id="notchMusicScrubber" title="Click to seek">
-            <i id="notchMusicFill" style="width: ${pct}%;"></i>
-          </span>
-          <div class="nv-times">
-            <small id="notchMusicElapsed">${formatSec(pos)}</small>
-            <small id="notchMusicRemaining">-${formatSec(remain)}</small>
+    <div class="music-content-wrap">
+      <!-- Top row: Album Art, Song Info, Dancing Waveform -->
+      <div class="music-top-row">
+        <div class="album-art" id="albumArt">
+          <img id="notchMusicCover" class="expanded-thumb-img" src="${coverSrc}" alt="Album Art" />
+          <div class="album-shine"></div>
+        </div>
+        <div class="music-info">
+          <div class="music-title" id="notchMusicTitle" title="${esc(title)}">${esc(title)}</div>
+          <div class="music-artist" id="notchMusicArtist" title="${esc(artist)}">${esc(artist)}</div>
+        </div>
+        <!-- iPhone Large Audio Equalizer Waveform -->
+        <div class="sound-wave-large ${isPlaying ? 'playing' : ''}" id="soundWaveLarge">
+          <span class="w-bar"></span>
+          <span class="w-bar"></span>
+          <span class="w-bar"></span>
+          <span class="w-bar"></span>
+          <span class="w-bar"></span>
+        </div>
+      </div>
+
+      <!-- Middle row: Scrubber Slider with timestamps -->
+      <div class="music-scrubber-row">
+        <span class="scrub-time" id="notchMusicElapsed">${formatSec(pos)}</span>
+        <div class="scrub-track" id="notchMusicScrubber" title="Click to seek">
+          <div class="scrub-fill" id="notchMusicFill" style="width: ${pct}%;">
+            <div class="scrub-knob"></div>
           </div>
-          <div class="nv-controls">
-            <svg viewBox="0 0 24 24" id="notchMusicPrev" title="Previous Track"><path d="M7 6v12M18 6l-8 6 8 6z"/></svg>
-            <svg viewBox="0 0 24 24" class="big" id="notchMusicPlayPause" title="Play / Pause">
-              ${isPlaying ? '<path d="M8 5h3v14H8zM13 5h3v14h-3z"/>' : '<path d="M8 5l11 7-11 7z"/>'}
+        </div>
+        <span class="scrub-time" id="notchMusicRemaining">-${formatSec(remain)}</span>
+      </div>
+
+      <!-- Bottom row: AirPlay, Playback Controls (10s Rewind, Prev, Play/Pause, 10s Forward, Next, Mute) -->
+      <div class="music-controls-row">
+        <div class="ctrl-secondary-icon airplay-icon" id="btnSoundSettings" title="Sound Output / Mixer Settings">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 22h12l-6-6zM21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4v-2H3V5h18v12h-4v2h4c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+          </svg>
+        </div>
+
+        <div class="music-main-btns">
+          <!-- Rewind 10s -->
+          <button class="ctrl-btn seek-btn" id="btnRewind10" title="Rewind 10s">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4.5 10A8 8 0 1 1 12 20a8 8 0 0 1-5.66-2.34" />
+              <polyline points="4.5 5 4.5 10 9.5 10" />
+              <text x="12" y="14.2" font-size="6.5" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle" font-family="'Inter', sans-serif">10</text>
             </svg>
-            <svg viewBox="0 0 24 24" id="notchMusicNext" title="Next Track"><path d="M17 6v12M6 6l8 6-8 6z"/></svg>
-          </div>
+          </button>
+
+          <!-- Previous Track -->
+          <button class="ctrl-btn skip-btn" id="notchMusicPrev" title="Previous Track">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+            </svg>
+          </button>
+
+          <!-- Play / Pause -->
+          <button class="ctrl-btn play-pause-btn" id="notchMusicPlayPause" title="Play / Pause">
+            <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor">
+              ${isPlaying ? '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>' : '<path d="M8 5.14v14l11-7-11-7z"/>'}
+            </svg>
+          </button>
+
+          <!-- Forward 10s -->
+          <button class="ctrl-btn seek-btn" id="btnForward10" title="Forward 10s">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19.5 10A8 8 0 1 0 12 20a8 8 0 0 0 5.66-2.34" />
+              <polyline points="19.5 5 19.5 10 14.5 10" />
+              <text x="12" y="14.2" font-size="6.5" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle" font-family="'Inter', sans-serif">10</text>
+            </svg>
+          </button>
+
+          <!-- Next Track -->
+          <button class="ctrl-btn skip-btn" id="notchMusicNext" title="Next Track">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Volume / Speaker Mute Toggle -->
+        <div class="ctrl-secondary-icon speaker-icon" id="btnVolumeToggle" title="Toggle Mute">
+          <svg viewBox="0 0 24 24" fill="currentColor" id="volIconOn">
+            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+          </svg>
+          <svg viewBox="0 0 24 24" fill="currentColor" id="volIconMuted" style="display:none;">
+            <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+          </svg>
         </div>
       </div>
     </div>
@@ -1515,38 +1609,80 @@ function showNotchMusic(media = S.media) {
   setShape('music-card');
   updateTopBarClock();
 
-  // Wire buttons
-  $('notchMusicPrev')?.addEventListener('click', async (e) => {
+  // Extract vibrant dominant color from image when loaded
+  const coverImg = $('notchMusicCover');
+  if (coverImg) {
+    coverImg.crossOrigin = 'Anonymous';
+    coverImg.onload = () => extractColorFromImg(coverImg);
+    if (coverImg.complete) extractColorFromImg(coverImg);
+  }
+
+  // Wire all Dynamic Island controls to persistent controller
+  $('notchMusicPrev')?.addEventListener('click', (e) => {
     e.stopPropagation();
-    await ipc.invoke('media-action', 'prev');
-    setTimeout(() => pollMedia(true), 150);
+    ipc.send('media-control', 'prev');
   });
-  $('notchMusicPlayPause')?.addEventListener('click', async (e) => {
+
+  $('notchMusicNext')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    ipc.send('media-control', 'next');
+  });
+
+  $('btnRewind10')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    ipc.send('media-control', 'rewind');
+    livePos = Math.max(0, livePos - 10);
+    renderProgress(livePos, liveDur);
+  });
+
+  $('btnForward10')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    ipc.send('media-control', 'forward');
+    livePos = Math.min(liveDur || 180, livePos + 10);
+    renderProgress(livePos, liveDur);
+  });
+
+  $('notchMusicPlayPause')?.addEventListener('click', (e) => {
     e.stopPropagation();
     isAudioPlaying = !isAudioPlaying;
     const icon = $('notchMusicPlayPause');
     if (icon) {
-      icon.innerHTML = isAudioPlaying
-        ? '<path d="M8 5h3v14H8zM13 5h3v14h-3z"/>'
-        : '<path d="M8 5l11 7-11 7z"/>';
+      icon.innerHTML = `<svg class="play-icon" viewBox="0 0 24 24" fill="currentColor">${isAudioPlaying ? '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>' : '<path d="M8 5.14v14l11-7-11-7z"/>'}</svg>`;
     }
-    await ipc.invoke('media-action', 'playpause');
-    setTimeout(() => pollMedia(true), 150);
+    const wave = $('soundWaveLarge');
+    if (wave) wave.classList.toggle('playing', isAudioPlaying);
+    shell.classList.toggle('playing', isAudioPlaying);
+    ipc.send('media-control', 'play');
   });
-  $('notchMusicNext')?.addEventListener('click', async (e) => {
+
+  $('btnVolumeToggle')?.addEventListener('click', (e) => {
     e.stopPropagation();
-    await ipc.invoke('media-action', 'next');
-    setTimeout(() => pollMedia(true), 150);
+    const onIcon = $('volIconOn');
+    const muteIcon = $('volIconMuted');
+    const isMutedNow = onIcon && onIcon.style.display !== 'none';
+    if (onIcon && muteIcon) {
+      onIcon.style.display = isMutedNow ? 'none' : 'block';
+      muteIcon.style.display = isMutedNow ? 'block' : 'none';
+    }
+    ipc.send('volume-toggle');
   });
-  $('notchMusicScrubber')?.addEventListener('click', async (e) => {
+
+  $('btnSoundSettings')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    ipc.send('open-sound-settings');
+  });
+
+  // Direct Interactive Scrubber seeking
+  $('notchMusicScrubber')?.addEventListener('click', (e) => {
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const seekPos = Math.round(ratio * (liveDur || 180));
     livePos = seekPos;
     renderProgress(livePos, liveDur);
-    await ipc.invoke('media-seek', seekPos);
+    ipc.send('media-seek', seekPos);
   });
+
   renderProgress(livePos, liveDur);
 }
 
@@ -4361,87 +4497,53 @@ function renderProgress(pos, dur) {
 
 function updateMusicUI(m) {
   if (!m) return;
-  const titleEl = $('musicTitle');
-  const appEl = $('musicApp');
-  const iconEl = $('musicAppIcon');
-  const iconPause = $('mIconPause');
-  const iconPlay = $('mIconPlay');
+  const isPlaying = (m.status === 'Playing' || m.status === 'playing');
+  isAudioPlaying = isPlaying;
+  shell.classList.toggle('playing', isPlaying);
 
-  const rawTitle = (m.title && m.title.trim()) || 'Audio Playing';
+  const rawTitle = (m.title && m.title.trim()) || '';
   const cleanTitle = cleanMediaTitle(rawTitle);
-  let app = m.app || '';
-  const titleLower = cleanTitle.toLowerCase();
+  const artist = (m.artist && m.artist.trim() && m.artist !== cleanTitle) ? m.artist.trim() : (m.app || 'Media Player');
+  const fallbackIcon = getMediaAppIcon(m.app || '', cleanTitle);
+  const thumbUrl = (m.thumbnail && m.thumbnail.trim()) ? m.thumbnail : fallbackIcon;
 
-  if (!app || app === 'Media' || app === 'Brave' || app === 'Chrome' || app === 'Edge') {
-    if (titleLower.includes('instagram') || titleLower.includes('insta')) {
-      app = 'Instagram';
-    } else if (titleLower.includes('youtube') || titleLower.includes('youtu.be')) {
-      app = 'YouTube';
-    } else if (titleLower.includes('facebook')) {
-      app = 'Facebook';
-    } else if (titleLower.includes('spotify')) {
-      app = 'Spotify';
-    } else if (titleLower.includes('soundcloud')) {
-      app = 'SoundCloud';
-    } else if (!app) {
-      app = m.artist || 'Media';
+  // Update expanded notch card elements if present
+  const notchTitle = $('notchMusicTitle');
+  if (notchTitle && cleanTitle) {
+    notchTitle.textContent = cleanTitle;
+    notchTitle.title = cleanTitle;
+  }
+  const notchArtist = $('notchMusicArtist');
+  if (notchArtist && artist) {
+    notchArtist.textContent = artist;
+    notchArtist.title = artist;
+  }
+  const notchCover = $('notchMusicCover');
+  if (notchCover && thumbUrl) {
+    if (notchCover.src !== thumbUrl) {
+      notchCover.crossOrigin = 'Anonymous';
+      notchCover.src = thumbUrl;
+      notchCover.onload = () => extractColorFromImg(notchCover);
     }
   }
+  const soundWave = $('soundWaveLarge');
+  if (soundWave) soundWave.classList.toggle('playing', isPlaying);
 
-  if (titleEl) {
-    titleEl.textContent = cleanTitle;
-    titleEl.title = cleanTitle;
-  }
-  if (appEl) {
-    const subText = (m.artist && m.artist.trim() && m.artist !== cleanTitle) ? m.artist.trim() : (m.app || app);
-    appEl.textContent = subText;
-    appEl.title = subText;
-  }
-
-  // Cover photo / icon selection
-  const fallbackIcon = getMediaAppIcon(m.app || app, cleanTitle);
-  if (iconEl) {
-    if (m.thumbnail && m.thumbnail.trim()) {
-      iconEl.src = m.thumbnail;
-      iconEl.onerror = () => { iconEl.onerror = null; iconEl.src = fallbackIcon; };
-    } else {
-      iconEl.src = fallbackIcon;
-    }
-  }
-
-  isAudioPlaying = (m.status === 'playing' || (m.playing && m.status !== 'paused'));
-  if (iconPause && iconPlay) {
-    iconPause.style.display = isAudioPlaying ? 'block' : 'none';
-    iconPlay.style.display = isAudioPlaying ? 'none' : 'block';
-  }
-
-  // Notch Card Play/Pause icon (hello.html SVG)
   const notchPlayPauseBtn = $('notchMusicPlayPause');
   if (notchPlayPauseBtn) {
-    notchPlayPauseBtn.innerHTML = isAudioPlaying
-      ? '<path d="M8 5h3v14H8zM13 5h3v14h-3z"/>'
-      : '<path d="M8 5l11 7-11 7z"/>';
+    notchPlayPauseBtn.innerHTML = `<svg class="play-icon" viewBox="0 0 24 24" fill="currentColor">${isPlaying ? '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>' : '<path d="M8 5.14v14l11-7-11-7z"/>'}</svg>`;
   }
 
-  // Update notch card title & artist & cover
-  const notchTitle = $('notchMusicTitle');
-  if (notchTitle && cleanTitle) notchTitle.textContent = cleanTitle;
-  const notchArtist = $('notchMusicArtist');
-  if (notchArtist && m.artist) notchArtist.textContent = m.artist;
-  const notchCover = $('notchMusicCover');
-  if (notchCover) {
-    if (m.thumbnail && m.thumbnail.trim()) {
-      notchCover.src = m.thumbnail;
-      notchCover.onerror = () => { notchCover.onerror = null; notchCover.src = fallbackIcon; };
-    } else {
-      notchCover.src = fallbackIcon;
-    }
+  // Update compact pill badge
+  const compactBadge = $('compactMusicPillBadge');
+  if (compactBadge) {
+    compactBadge.style.display = (isPlaying && currentShape === 'rest') ? 'inline-flex' : 'none';
   }
 
-  liveDur = Number(m.duration) || 0;
+  if (m.duration && Number(m.duration) > 0) liveDur = Number(m.duration);
   const incomingPos = Number(m.position) || 0;
   if (!isDraggingScrubber) {
-    if (isAudioPlaying && livePos > 0 && Math.abs(livePos - incomingPos) < 2.0) {
+    if (isPlaying && livePos > 0 && Math.abs(livePos - incomingPos) < 2.0) {
       livePos = livePos * 0.75 + incomingPos * 0.25;
     } else {
       livePos = incomingPos;
@@ -5624,5 +5726,19 @@ console.log('[RENDERER] renderer.js fully initialized!');
 ipc.on('notch-hover-wake', () => {
   if (isTuckedAway || currentShape === 'hidden') {
     untuck();
+  }
+});
+
+
+// Live Real-Time Media Update from Dynamic Island Service
+ipc.on('media-update', (_e, data) => {
+  if (!data) return;
+  S.media = data;
+  updateMusicUI(data);
+
+  if (data.status === 'Playing' && currentShape === 'rest' && !isTuckedAway) {
+    // If user just pressed play on media outside, show subtle visual cue
+    const compactBadge = $('compactMusicPillBadge');
+    if (compactBadge) compactBadge.style.display = 'inline-flex';
   }
 });

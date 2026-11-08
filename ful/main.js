@@ -10,6 +10,8 @@ const { app, BrowserWindow, screen, ipcMain, desktopCapturer, globalShortcut, cl
 const { execFile, spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const mediaController = require('./services/mediaController');
+const mediaService = require('./services/media');
 const os = require('os');
 const https = require('https');
 const apps = require('./apps');
@@ -2134,15 +2136,38 @@ ipcMain.handle('shot', async () => {
   if (!sources.length) return '';
   return sources[0].thumbnail.toPNG().toString('base64');
 });
-ipcMain.handle('media', async (_e, force) => nowPlaying(!!force));
-ipcMain.handle('media-seek', async (_e, position) => {
-  mediaCache = { at: 0, value: null };
-  const pos = Math.max(0, Number(position) || 0);
-  return await psJson(path.join(ROOT, 'media.ps1'), ['-Action', 'seek', '-Position', String(pos)]);
+ipcMain.handle('media', async () => {
+  return new Promise((resolve) => {
+    mediaService.poll((data) => resolve(data));
+  });
 });
+
+ipcMain.handle('media-seek', async (_e, position) => {
+  const pos = Math.max(0, Number(position) || 0);
+  mediaController.send('seek:' + pos);
+  return { ok: true };
+});
+
 ipcMain.handle('media-action', async (_e, action, position = 0) => {
-  mediaCache = { at: 0, value: null };
-  return await psJson(path.join(ROOT, 'media.ps1'), ['-Action', String(action), '-Position', String(position)]);
+  if (action === 'seek') {
+    mediaController.send('seek:' + position);
+  } else {
+    mediaController.send(action);
+  }
+  return { ok: true };
+});
+
+ipcMain.on('media-control', (_e, action) => {
+  mediaController.send(action);
+});
+
+ipcMain.on('volume-toggle', () => {
+  mediaController.send('mute');
+});
+
+ipcMain.on('open-sound-settings', () => {
+  const { exec } = require('child_process');
+  exec('explorer.exe ms-settings:sound');
 });
 ipcMain.handle('active-app', async () => {
   try {
@@ -2384,6 +2409,17 @@ if (!app.requestSingleInstanceLock()) {
     createWindow();
     createTray();
 
+    // Start Dynamic Island global media detection service
+    try {
+      mediaService.start((data) => {
+        if (win && !win.isDestroyed()) {
+          win.webContents.send('media-update', data);
+        }
+      });
+    } catch (e) {
+      console.warn('[MEDIA-SERVICE] Start error:', e);
+    }
+
     applyCfg();
     trackCursor();
     try {
@@ -2422,6 +2458,8 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   app.on('will-quit', () => {
+  try { mediaService.stop(); } catch(_) {}
+  try { mediaController.stop(); } catch(_) {}
     try { systemMonitor && systemMonitor.stop(); } catch { }
     try { globalShortcut.unregisterAll(); } catch { }
     try { stopWakeWordWorker(); } catch { }
