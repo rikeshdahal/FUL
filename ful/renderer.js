@@ -1377,9 +1377,9 @@ function showNotchOpenTab(mode = 'pointer') {
   const card = $('nvCard');
   if (!card) return;
   const modes = {
-    pointer: ['Command', 'Say what to do. Nixi does it on your PC.', 'Try Command'],
-    mic: ['Dictate', 'Hold Right Alt and talk. Nixi types where you are.', 'Try Dictate'],
-    pen: ['Write', 'Ask for a first draft, written on your PC.', 'Try Write']
+    pointer: ['Command', 'Say what to do. Nixi does it on your PC.', 'Try'],
+    mic: ['Dictate', 'Hold Right Alt and talk. Nixi types where you are.', 'Try'],
+    pen: ['Write', 'Ask for a first draft, written on your PC.', 'Try']
   };
   const [tTitle, tDesc, tBtn] = modes[mode] || modes.pointer;
   card.innerHTML = `

@@ -1200,7 +1200,7 @@
       padding-bottom: 4px;
     }
 
-    button {
+    button:not(.nv-btn):not(.ctrl-btn):not(.seek-btn):not(.skip-btn):not(.play-pause-btn):not(.chip-btn) {
       background: none;
       border: 0;
       color: inherit;
@@ -3590,7 +3590,20 @@
       width: 100%;
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
+      box-sizing: border-box;
+    }
+    .nv-open-mode .nv-cardface {
+      flex: none;
+      width: 70px;
+      height: 42px;
+      background: #18191E;
+      border-radius: 21px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.04), 0 4px 12px rgba(0, 0, 0, 0.25);
     }
     .nv-open-mode .nv-text {
       flex: 1;
@@ -3598,37 +3611,59 @@
     }
     .nv-open-mode .nv-text p {
       margin: 0;
-      font-size: 17px;
+      font-size: 15px;
       font-weight: 700;
       color: #FFFFFF;
+      line-height: 1.2;
     }
     .nv-open-mode .nv-text small {
       display: block;
       margin-top: 3px;
-      font-size: 12px;
+      font-size: 11.5px;
       color: #8E939C;
       white-space: normal;
+      line-height: 1.35;
+    }
+    .nv-buttons {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-shrink: 0;
     }
     .nv-btn {
-      height: 34px;
-      padding: 0 18px;
-      display: inline-flex;
-      align-items: center;
-      border-radius: 17px;
-      background: #2A2C31;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      border: 0;
-      color: #FFFFFF;
-      transition: transform .15s, filter .15s;
+      width: auto !important;
+      min-width: 58px !important;
+      height: 32px !important;
+      padding: 0 16px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      border-radius: 16px !important;
+      background: #2A2C31 !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      cursor: pointer !important;
+      border: 0 !important;
+      color: #FFFFFF !important;
+      white-space: nowrap !important;
+      flex-shrink: 0 !important;
+      opacity: 1 !important;
+      box-sizing: border-box !important;
+      line-height: 1 !important;
+      text-align: center !important;
+      transition: transform .15s ease, filter .15s ease !important;
     }
     .nv-btn:hover {
-      filter: brightness(1.2);
-      transform: scale(1.03);
+      filter: brightness(1.2) !important;
+      transform: scale(1.04) !important;
+    }
+    .nv-btn:active {
+      transform: scale(0.96) !important;
     }
     .nv-btn.nv-blue {
-      background: #3882F6;
+      background: #2563EB !important;
+      color: #FFFFFF !important;
+      box-shadow: 0 3px 10px rgba(37, 99, 235, 0.45) !important;
     }
 
     /* ================================================================
