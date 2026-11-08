@@ -72,8 +72,8 @@
     /* Notch Container & Hardware Concave SVG Shoulder Fillets (hello.html Continuous Bezier Spec) */
     .notch-container {
       position: relative;
-      width: 592px;
-      height: 240px;
+      width: 100%;
+      height: 100%;
       margin: 0 auto;
       display: flex;
       align-items: flex-start;
@@ -90,8 +90,8 @@
       position: absolute;
       left: 0;
       top: 0;
-      width: 592px;
-      height: 240px;
+      width: 100%;
+      height: 100%;
       overflow: visible;
       pointer-events: none;
       z-index: 0;
@@ -2798,9 +2798,9 @@
     /* Notch Sizing Modes (Continuous Top Bezier - zero top radius, background handled by SVG) */
     #shell.music-card,
     #shell.state-music {
-      width: 560px !important;
-      height: 196px !important;
-      min-height: 196px !important;
+      width: 380px !important;
+      height: 168px !important;
+      min-height: 168px !important;
       border-top-left-radius: 0 !important;
       border-top-right-radius: 0 !important;
       border-bottom-left-radius: 24px !important;
@@ -2811,9 +2811,9 @@
     }
     #shell.pomo-card,
     #shell.state-pomo {
-      width: 560px !important;
-      height: 196px !important;
-      min-height: 196px !important;
+      width: 380px !important;
+      height: 168px !important;
+      min-height: 168px !important;
       border-top-left-radius: 0 !important;
       border-top-right-radius: 0 !important;
       border-bottom-left-radius: 24px !important;
@@ -2823,9 +2823,9 @@
       overflow: hidden !important;
     }
     #shell.todo-card {
-      width: 560px !important;
-      height: 196px !important;
-      min-height: 196px !important;
+      width: 380px !important;
+      height: 168px !important;
+      min-height: 168px !important;
       border-top-left-radius: 0 !important;
       border-top-right-radius: 0 !important;
       border-bottom-left-radius: 24px !important;
@@ -2835,7 +2835,7 @@
       overflow: hidden !important;
     }
     #shell.open-tab {
-      width: 560px !important;
+      width: 380px !important;
       height: 168px !important;
       min-height: 168px !important;
       border-top-left-radius: 0 !important;
@@ -2892,14 +2892,14 @@
       height: 100%;
       display: flex;
       flex-direction: column;
-      padding: 10px 14px 14px;
+      padding: 6px 10px 10px;
       box-sizing: border-box;
       user-select: none;
     }
 
     /* Top Bar (.nv-head) */
     .nv-head {
-      height: 38px;
+      height: 34px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -2910,8 +2910,8 @@
       gap: 8px;
     }
     .nv-tabs b {
-      width: 32px;
-      height: 32px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
       background: #26282D;
       display: grid;
@@ -2923,8 +2923,8 @@
       background: #F5F6F8;
     }
     .nv-tabs b svg {
-      width: 16px;
-      height: 16px;
+      width: 14px;
+      height: 14px;
       stroke: #F5F6F8;
       stroke-width: 1.8;
       fill: none;
@@ -2950,7 +2950,7 @@
     }
 
     .nv-clock {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 500;
       color: #9CA3AF;
       font-variant-numeric: tabular-nums;
@@ -2959,7 +2959,7 @@
     .nv-small {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
     }
     .nv-small span {
       display: grid;
@@ -2973,8 +2973,8 @@
       transform: scale(1.1);
     }
     .nv-small svg {
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       stroke: #F5F6F8;
       stroke-width: 1.8;
       fill: none;
@@ -2984,8 +2984,8 @@
     .nv-card {
       flex: 1;
       background: #141518;
-      border-radius: 20px;
-      padding: 12px 18px;
+      border-radius: 18px;
+      padding: 10px 14px;
       display: flex;
       align-items: center;
       box-sizing: border-box;
@@ -3058,8 +3058,8 @@
     }
 
     .album-art {
-      width: 52px;
-      height: 52px;
+      width: 46px;
+      height: 46px;
       border-radius: 14px;
       background: linear-gradient(135deg, #1e1e24, #121216);
       position: relative;
@@ -3112,7 +3112,7 @@
     }
 
     .music-title {
-      font-size: 14.5px;
+      font-size: 13.5px;
       font-weight: 700;
       color: #FFFFFF;
       letter-spacing: -0.3px;
@@ -3123,7 +3123,7 @@
     }
 
     .music-artist {
-      font-size: 12.5px;
+      font-size: 11.5px;
       font-weight: 500;
       color: rgba(255, 255, 255, 0.6);
       white-space: nowrap;
@@ -3173,9 +3173,9 @@
     .music-scrubber-row {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       width: 100%;
-      margin: 8px 0 2px;
+      margin: 4px 0 2px;
     }
 
     .scrub-time {
@@ -3262,7 +3262,7 @@
     .music-main-btns {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 10px;
     }
 
     .ctrl-btn {
@@ -4014,7 +4014,7 @@
 
   <div id="notchContainer" class="notch-container">
     <!-- SVG Continuous Bezier Notch with Hardware Shoulder Fillets -->
-    <svg id="notchSvg" class="nv-shape" width="592" height="240" aria-hidden="true" stroke="none">
+    <svg id="notchSvg" class="nv-shape" width="100%" height="100%" aria-hidden="true" stroke="none">
       <path id="notchPath" fill="#000000" stroke="none"></path>
     </svg>
     <!-- Broad Hover Detection Zone for Smooth Tucked Away Expansion -->

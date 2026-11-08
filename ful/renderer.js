@@ -75,7 +75,9 @@ function updateNotchGeometry(dt) {
   const Q = Math.max(3, notchSpring.h);
   const B = Math.min(Q < 20 ? Q / 2 : Q <= 52 ? 22 : 24, Q / 2 + 4);
   const fl = Q < 15 ? 4 : NOTCH_FL;
-  const Ye = (NOTCH_TOT - R) / 2;
+  const notchContainer = $('notchContainer');
+  const containerW = (notchContainer && notchContainer.clientWidth > 0) ? notchContainer.clientWidth : (R + 48);
+  const Ye = (containerW - R) / 2;
 
   const notchPath = $('notchPath');
   if (notchPath) {
@@ -481,13 +483,13 @@ function setShape(shape) {
   } else if (shape === 'rest') {
     targetW = 240; targetH = 48;
   } else if (shape === 'music-card') {
-    targetW = 500; targetH = 176;
+    targetW = 380; targetH = 168;
   } else if (shape === 'pomo-card') {
-    targetW = 500; targetH = 176;
+    targetW = 380; targetH = 168;
   } else if (shape === 'todo-card') {
-    targetW = 500; targetH = 176;
+    targetW = 380; targetH = 168;
   } else if (shape === 'open-tab') {
-    targetW = 500; targetH = 176;
+    targetW = 380; targetH = 168;
   } else if (shape === 'timer-notch') {
     targetW = 240; targetH = 48;
   } else if (shape === 'dock' || shape === 'hover-dock') {
@@ -506,7 +508,7 @@ function setShape(shape) {
   } else if (shape === 'capsule') {
     targetW = 380; targetH = 48;
   } else if (shape === 'music') {
-    targetW = 500; targetH = 176;
+    targetW = 380; targetH = 168;
   } else if (shape === 'panel') {
     targetW = S.cfg.panelWidth || 460; targetH = S.cfg.panelHeight || 540;
   }
@@ -518,13 +520,13 @@ function setShape(shape) {
   } else if (shape === 'rest') {
     targetW = 240; targetH = 44;
   } else if (shape === 'music-card') {
-    targetW = 500; targetH = 176;
+    targetW = 380; targetH = 168;
   } else if (shape === 'pomo-card') {
-    targetW = 500; targetH = 176;
+    targetW = 380; targetH = 168;
   } else if (shape === 'todo-card') {
-    targetW = 500; targetH = 176;
+    targetW = 380; targetH = 168;
   } else if (shape === 'open-tab') {
-    targetW = 500; targetH = 176;
+    targetW = 380; targetH = 168;
   } else if (shape === 'timer-notch') {
     targetW = 240; targetH = 44;
   } else if (shape === 'dock' || shape === 'hover-dock') {
@@ -541,7 +543,7 @@ function setShape(shape) {
   } else if (shape === 'capsule') {
     targetW = 380; targetH = 44;
   } else if (shape === 'music') {
-    targetW = 500; targetH = 176;
+    targetW = 380; targetH = 168;
   } else if (shape === 'panel') {
     targetW = S.cfg.panelWidth || 460; targetH = S.cfg.panelHeight || 540;
   }

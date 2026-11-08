@@ -1549,8 +1549,8 @@ setInterval(() => {
       const centerX = area.x + area.width / 2;
       
       const isCard = (currentAppShape === 'music-card' || currentAppShape === 'pomo-card' || currentAppShape === 'todo-card' || currentAppShape === 'open-tab');
-      const maxH = (currentAppShape === 'hidden') ? 44 : (isCard ? 185 : 56);
-      const halfW = (currentAppShape === 'hidden') ? 140 : (isCard ? 265 : 140);
+      const maxH = (currentAppShape === 'hidden') ? 44 : (isCard ? 175 : 56);
+      const halfW = (currentAppShape === 'hidden') ? 140 : (isCard ? 205 : 140);
 
       const isHovering = (
         cursor.y >= area.y &&
