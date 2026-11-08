@@ -7,7 +7,10 @@
 'use strict';
 
 const { app, BrowserWindow, screen, ipcMain, desktopCapturer, globalShortcut, clipboard, shell, Tray, Menu, nativeImage, dialog, powerMonitor } = require('electron');
-const { execFile, spawn } = require('child_process');
+const { execFile, spawn, exec } = require('child_process');
+const si = require('systeminformation');
+const batteryService = require('./services/battery');
+const networkService = require('./services/network');
 const fs = require('fs');
 const path = require('path');
 const mediaController = require('./services/mediaController');
@@ -1590,6 +1593,37 @@ setInterval(() => {
     }
   }
 }, 50);
+// Quick utility actions launcher from Dynamic Island
+ipcMain.on('quick-action', (_event, action) => {
+  if (action === 'youtube') {
+    shell.openExternal('https://youtube.com');
+  } else if (action === 'calc') {
+    exec('calc.exe');
+  } else if (action === 'screenshot') {
+    exec('explorer.exe ms-screenclip:');
+  } else if (action === 'files') {
+    exec('explorer.exe');
+  } else if (action === 'lock') {
+    exec('rundll32.exe user32.dll,LockWorkStation');
+  } else if (action === 'sleep') {
+    exec('rundll32.exe powrprof.dll,SetSuspendState 0,1,0');
+  } else if (action === 'shutdown') {
+    exec('shutdown /s /t 0');
+  } else if (action === 'restart') {
+    exec('shutdown /r /t 0');
+  } else if (action === 'sound') {
+    exec('explorer.exe ms-settings:sound');
+  }
+});
+
+ipcMain.on('volume-toggle', () => {
+  mediaController.send('mute');
+});
+
+ipcMain.on('open-sound-settings', () => {
+  exec('explorer.exe ms-settings:sound');
+});
+
 ipcMain.on('window-move-delta', (_e, data, maybeDy) => moveWindowByDelta(data, maybeDy));
 ipcMain.on('window-drag-end', () => handleDragEnd());
 ipcMain.on('window-set-placement', (_e, placement) => {
@@ -2428,6 +2462,50 @@ if (!app.requestSingleInstanceLock()) {
       console.warn('[MEDIA-SERVICE] Start error:', e);
     }
 
+    // Start Dynamic Island Battery Service
+    try {
+      batteryService.start((data) => {
+        if (win && !win.isDestroyed()) {
+          win.webContents.send('battery-update', data);
+        }
+      });
+    } catch (e) {
+      console.warn('[MAIN] batteryService error:', e);
+    }
+
+    // Start Dynamic Island Network Monitor Service
+    try {
+      networkService.start((data) => {
+        if (win && !win.isDestroyed()) {
+          win.webContents.send('network-update', data);
+        }
+      });
+    } catch (e) {
+      console.warn('[MAIN] networkService error:', e);
+    }
+
+    // Start Dynamic Island Live System Stats (CPU + RAM)
+    let statsInterval = null;
+    async function pollStats() {
+      try {
+        const [cpu, mem] = await Promise.all([
+          si.currentLoad(),
+          si.mem(),
+        ]);
+        const data = {
+          cpu: Math.round(cpu.currentLoad),
+          ram: Math.round((mem.active / mem.total) * 100),
+          usedGb: (mem.active / (1024 ** 3)).toFixed(1),
+          totalGb: (mem.total / (1024 ** 3)).toFixed(1),
+        };
+        if (win && !win.isDestroyed()) {
+          win.webContents.send('stats-update', data);
+        }
+      } catch (e) {}
+    }
+    pollStats();
+    statsInterval = setInterval(pollStats, 2000);
+
     applyCfg();
     trackCursor();
     try {
@@ -2468,6 +2546,8 @@ if (!app.requestSingleInstanceLock()) {
   app.on('will-quit', () => {
   try { mediaService.stop(); } catch(_) {}
   try { mediaController.stop(); } catch(_) {}
+  try { batteryService.stop(); } catch(_) {}
+  try { networkService.stop(); } catch(_) {}
     try { systemMonitor && systemMonitor.stop(); } catch { }
     try { globalShortcut.unregisterAll(); } catch { }
     try { stopWakeWordWorker(); } catch { }

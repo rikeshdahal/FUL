@@ -5840,6 +5840,7 @@ initWindowDragging();
 initPanelResizing();
 initQuickPresets();
 initDeskPill();
+initDynamicIslandButtons();
 applyPlacementState();
 initScreenSafetyGuardian();
 initCompanionQuips();
@@ -5870,3 +5871,320 @@ ipc.on('media-update', (_e, data) => {
     if (compactBadge) compactBadge.style.display = 'inline-flex';
   }
 });
+
+
+/* ================================================================
+   DYNAMIC ISLAND ADVANCED FEATURES (Quick Actions Hub, Stats & Net)
+   ================================================================ */
+let latestBatteryData = null;
+let latestNetworkData = null;
+let latestStatsData = null;
+let currentNotchCard = null; // 'music' | 'quick' | 'stats' | 'pomo' | 'todo' | 'tab'
+
+// 1. Quick Actions Hub
+function showNotchQuickHub() {
+  currentNotchCard = 'quick';
+  const card = $('nvCard');
+  if (!card) return;
+
+  setShape('music-card'); // 380x168 card shape
+  $('notchWidget').style.display = 'block';
+
+  card.innerHTML = `
+    <div class="di-quick-card">
+      <div class="di-card-header">
+        <span class="di-card-title">⚡ Quick Actions Hub</span>
+        <span class="di-card-subtitle">Launch apps & power options</span>
+      </div>
+      <div class="di-quick-grid" id="diQuickGrid">
+        <button class="quick-tile" data-action="youtube" title="YouTube">
+          <div class="apple-app-icon yt-icon">
+            <svg viewBox="0 0 32 32" fill="none">
+              <rect x="5" y="8" width="22" height="16" rx="4.8" fill="#FF0000"/>
+              <polygon points="13.5,12 19.5,16 13.5,20" fill="#FFFFFF"/>
+            </svg>
+          </div>
+          <span class="di-quick-name">YouTube</span>
+        </button>
+
+        <button class="quick-tile" data-action="screenshot" title="Snip & Screenshot">
+          <div class="apple-app-icon snip-icon">
+            <svg viewBox="0 0 32 32" fill="none">
+              <circle cx="16" cy="16" r="12" fill="#242426" stroke="rgba(255, 255, 255, 0.16)" stroke-width="0.8"/>
+              <circle cx="16" cy="16" r="10" fill="#141416" stroke="#323236" stroke-width="0.8"/>
+              <circle cx="16" cy="16" r="7.5" fill="#0284c7"/>
+              <circle cx="21.5" cy="10.5" r="1" fill="#38bdf8"/>
+            </svg>
+          </div>
+          <span class="di-quick-name">Snip</span>
+        </button>
+
+        <button class="quick-tile" data-action="calc" title="Calculator">
+          <div class="apple-app-icon calc-icon">
+            <svg viewBox="0 0 32 32" fill="none">
+              <rect x="4.5" y="4.5" width="10.5" height="10.5" rx="3.6" fill="#48484a"/>
+              <line x1="9.75" y1="7.2" x2="9.75" y2="12.3" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round"/>
+              <line x1="7.2" y1="9.75" x2="12.3" y2="9.75" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round"/>
+              <rect x="17" y="4.5" width="10.5" height="10.5" rx="3.6" fill="#ff9f0a"/>
+              <line x1="19.7" y1="9.75" x2="24.8" y2="9.75" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round"/>
+              <rect x="4.5" y="17" width="10.5" height="10.5" rx="3.6" fill="#48484a"/>
+              <line x1="7.6" y1="20.1" x2="11.9" y2="24.4" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round"/>
+              <line x1="11.9" y1="20.1" x2="7.6" y2="24.4" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round"/>
+              <rect x="17" y="17" width="10.5" height="10.5" rx="3.6" fill="#ff9f0a"/>
+              <line x1="19.7" y1="21" x2="24.8" y2="21" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round"/>
+              <line x1="19.7" y1="23.5" x2="24.8" y2="23.5" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <span class="di-quick-name">Calc</span>
+        </button>
+
+        <button class="quick-tile" data-action="files" title="File Explorer">
+          <div class="apple-app-icon files-icon">
+            <svg viewBox="0 0 32 32" fill="none">
+              <path d="M5.5 10c0-.8.6-1.5 1.5-1.5h5c.6 0 1.2.3 1.5.8l.8 1.2c.3.5.9.8 1.5.8h9.7c.8 0 1.5.7 1.5 1.5v3H5.5v-5.8z" fill="#0284c7"/>
+              <rect x="4.5" y="12" width="23" height="13" rx="3.2" fill="#38bdf8"/>
+            </svg>
+          </div>
+          <span class="di-quick-name">Files</span>
+        </button>
+
+        <button class="quick-tile" data-action="lock" title="Lock PC">
+          <div class="apple-app-icon lock-icon">
+            <svg viewBox="0 0 32 32" fill="none">
+              <path d="M11 13V9.5a5 5 0 0 1 10 0V13" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+              <rect x="8" y="12.5" width="16" height="12" rx="3.5" fill="#ffffff"/>
+              <circle cx="16" cy="17.2" r="1.5" fill="#1d4ed8"/>
+            </svg>
+          </div>
+          <span class="di-quick-name">Lock</span>
+        </button>
+
+        <button class="quick-tile power-tile" id="diBtnPower" title="Power Options">
+          <div class="apple-app-icon power-icon">
+            <svg viewBox="0 0 32 32" fill="none">
+              <line x1="16" y1="7.5" x2="16" y2="15.5" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M10.2 11.2a7.8 7.8 0 1 0 11.6 0" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+            </svg>
+          </div>
+          <span class="di-quick-name">Power</span>
+        </button>
+      </div>
+
+      <!-- Power Confirmation Panel -->
+      <div class="power-confirm-panel" id="diPowerPanel" style="display: none;">
+        <div class="power-confirm-title">Power Options</div>
+        <div class="power-actions-row">
+          <button class="power-btn p-shutdown" data-action="shutdown">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z"/></svg>
+            Shut Down
+          </button>
+          <button class="power-btn p-sleep" data-action="sleep">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.3 2a10 10 0 0 0-1.9 19.8 10 10 0 0 0 11.5-11.5c-6 0-9.6-3.6-9.6-8.3z"/></svg>
+            Sleep
+          </button>
+          <button class="power-btn p-restart" data-action="restart">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+            Restart
+          </button>
+          <button class="power-btn p-cancel" id="diBtnPowerCancel">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Bind Quick Actions
+  card.querySelectorAll('.quick-tile[data-action]').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const action = btn.dataset.action;
+      ipc.send('quick-action', action);
+      feel('happy', 800);
+      playSound('click');
+    };
+  });
+
+  const pBtn = $('diBtnPower');
+  const pPanel = $('diPowerPanel');
+  const qGrid = $('diQuickGrid');
+  const pCancel = $('diBtnPowerCancel');
+
+  if (pBtn && pPanel && qGrid) {
+    pBtn.onclick = (e) => {
+      e.stopPropagation();
+      qGrid.style.display = 'none';
+      pPanel.style.display = 'flex';
+    };
+  }
+
+  if (pCancel && pPanel && qGrid) {
+    pCancel.onclick = (e) => {
+      e.stopPropagation();
+      pPanel.style.display = 'none';
+      qGrid.style.display = 'flex';
+    };
+  }
+
+  card.querySelectorAll('.power-btn[data-action]').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const act = btn.dataset.action;
+      ipc.send('quick-action', act);
+    };
+  });
+}
+
+// 2. System & Network Stats Card
+function showNotchStats() {
+  currentNotchCard = 'stats';
+  const card = $('nvCard');
+  if (!card) return;
+
+  setShape('music-card');
+  $('notchWidget').style.display = 'block';
+
+  const cpu = latestStatsData ? latestStatsData.cpu : 0;
+  const ram = latestStatsData ? latestStatsData.ram : 0;
+  const down = latestNetworkData ? latestNetworkData.download : '0.0 KB/s';
+  const up = latestNetworkData ? latestNetworkData.upload : '0.0 KB/s';
+  const batPercent = latestBatteryData ? latestBatteryData.percent : 100;
+  const batStatus = latestBatteryData ? (latestBatteryData.isCharging ? 'Charging' : (latestBatteryData.acConnected ? 'AC Connected' : 'On Battery')) : 'Connected';
+
+  card.innerHTML = `
+    <div class="di-stats-card">
+      <div class="di-stats-grid">
+        <div class="stat-item">
+          <div class="stat-header">
+            <span class="stat-label">CPU LOAD</span>
+            <span class="stat-value" id="diCpuVal">${cpu}%</span>
+          </div>
+          <div class="stat-bar"><div class="stat-fill cpu-fill" id="diCpuBar" style="width: ${cpu}%;"></div></div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-header">
+            <span class="stat-label">RAM USAGE</span>
+            <span class="stat-value" id="diRamVal">${ram}%</span>
+          </div>
+          <div class="stat-bar"><div class="stat-fill ram-fill" id="diRamBar" style="width: ${ram}%;"></div></div>
+        </div>
+      </div>
+
+      <div class="di-net-battery-row">
+        <div class="di-net-box">
+          <div class="net-item">
+            <div class="net-icon down-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <polyline points="19 12 12 19 5 12"></polyline>
+              </svg>
+            </div>
+            <div class="net-details">
+              <span class="net-label">DOWN</span>
+              <span class="net-speed" id="diNetDown">${down}</span>
+            </div>
+          </div>
+          <div class="net-item">
+            <div class="net-icon up-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="19" x2="12" y2="5"></line>
+                <polyline points="5 12 12 5 19 12"></polyline>
+              </svg>
+            </div>
+            <div class="net-details">
+              <span class="net-label">UP</span>
+              <span class="net-speed" id="diNetUp">${up}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="di-battery-box" id="diBatteryBox">
+          <div class="battery-icon-wrap">
+            <div class="battery-body">
+              <div class="battery-fill" id="diBatteryFill" style="width: ${batPercent}%; background: ${batPercent < 20 ? '#ff3b30' : '#34c759'};"></div>
+            </div>
+            <div class="battery-tip"></div>
+          </div>
+          <div class="battery-text-wrap">
+            <span class="battery-percent" id="diBatteryPercent">${batPercent}%</span>
+            <span class="battery-status" id="diBatteryStatus">${batStatus}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Live update responders for Dynamic Island stats
+ipc.on('stats-update', (_e, data) => {
+  latestStatsData = data;
+  const cpuVal = $('diCpuVal');
+  const cpuBar = $('diCpuBar');
+  const ramVal = $('diRamVal');
+  const ramBar = $('diRamBar');
+  if (cpuVal && cpuBar) {
+    cpuVal.textContent = data.cpu + '%';
+    cpuBar.style.width = data.cpu + '%';
+  }
+  if (ramVal && ramBar) {
+    ramVal.textContent = data.ram + '%';
+    ramBar.style.width = data.ram + '%';
+  }
+});
+
+ipc.on('network-update', (_e, data) => {
+  latestNetworkData = data;
+  const netDown = $('diNetDown');
+  const netUp = $('diNetUp');
+  if (netDown) netDown.textContent = data.download;
+  if (netUp) netUp.textContent = data.upload;
+
+  const netPill = $('netPillBadge');
+  const netDigits = $('netPillDigits');
+  if (netPill && netDigits) {
+    if (data.downloadRaw > 50000) {
+      netPill.style.display = 'inline-flex';
+      netDigits.textContent = data.download;
+    } else {
+      netPill.style.display = 'none';
+    }
+  }
+});
+
+ipc.on('battery-update', (_e, data) => {
+  latestBatteryData = data;
+  const bPercent = $('diBatteryPercent');
+  const bStatus = $('diBatteryStatus');
+  const bFill = $('diBatteryFill');
+  if (bPercent) bPercent.textContent = data.percent + '%';
+  if (bStatus) bStatus.textContent = data.isCharging ? '⚡ Charging' : (data.acConnected ? 'AC Connected' : 'On Battery');
+  if (bFill) {
+    bFill.style.width = data.percent + '%';
+    bFill.style.background = (data.percent < 20 && !data.isCharging) ? '#ff3b30' : '#34c759';
+  }
+
+  const bPill = $('batteryPillBadge');
+  const bPillDigits = $('batteryPillDigits');
+  if (bPill && bPillDigits) {
+    if (data.hasBattery && (data.isCharging || data.percent < 25)) {
+      bPill.style.display = 'inline-flex';
+      bPill.classList.toggle('charging', !!data.isCharging);
+      bPill.classList.toggle('low', data.percent < 20 && !data.isCharging);
+      bPillDigits.textContent = data.percent + '%';
+    } else {
+      bPill.style.display = 'none';
+    }
+  }
+});
+
+function initDynamicIslandButtons() {
+  const qBtn = $('nvQuickBtn');
+  const sBtn = $('nvStatsBtn');
+  if (qBtn) qBtn.onclick = () => showNotchQuickHub();
+  if (sBtn) sBtn.onclick = () => showNotchStats();
+
+  const mSound = $('mBtnSoundSettings');
+  const mMute = $('mBtnMute');
+  if (mSound) mSound.onclick = (e) => { e.stopPropagation(); ipc.send('quick-action', 'sound'); };
+  if (mMute) mMute.onclick = (e) => { e.stopPropagation(); ipc.send('volume-toggle'); };
+}
