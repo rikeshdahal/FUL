@@ -8,6 +8,8 @@ const https = require('https');
 const PS_SCRIPT_PATH = path.join(os.tmpdir(), 'dynamic_island_media.ps1');
 
 const PS_SCRIPT_CONTENT = [
+  '[Console]::OutputEncoding = [System.Text.Encoding]::UTF8',
+  '$OutputEncoding = [System.Text.Encoding]::UTF8',
   'Add-Type -AssemblyName System.Runtime.WindowsRuntime',
   '',
   '$asTaskGeneric = [System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object {',
@@ -52,7 +54,7 @@ const PS_SCRIPT_CONTENT = [
 ].join('\n');
 
 try {
-  fs.writeFileSync(PS_SCRIPT_PATH, PS_SCRIPT_CONTENT, 'utf8');
+  fs.writeFileSync(PS_SCRIPT_PATH, '\uFEFF' + PS_SCRIPT_CONTENT, 'utf8');
 } catch (e) {
   console.error('Failed to write media PS script:', e);
 }
@@ -64,10 +66,12 @@ const thumbCache = {};
 
 function fetchThumbnail(title, artist, cb) {
   if (!title) return cb(null);
-  const key = `${title}-${artist}`.trim();
+  const cleanT = String(title).replace(/\s*-\s*(Brave|Google Chrome|Microsoft Edge|Chrome|Edge)$/i, '').trim();
+  const cleanA = (artist && artist !== title) ? String(artist).trim() : '';
+  const key = `${cleanT}-${cleanA}`.trim();
   if (thumbCache[key] !== undefined) return cb(thumbCache[key]);
 
-  const query = encodeURIComponent(`${title} ${artist}`.trim());
+  const query = encodeURIComponent(`${cleanT} ${cleanA}`.trim());
   const url = `https://www.youtube.com/results?search_query=${query}`;
 
   const req = https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } }, (res) => {
@@ -109,7 +113,7 @@ function poll(callback) {
       '-ExecutionPolicy', 'Bypass',
       '-File', PS_SCRIPT_PATH,
     ],
-    { timeout: 3500 },
+    { timeout: 3500, encoding: 'utf8' },
     (err, stdout) => {
       isPolling = false;
       if (err) return; // Keep previous state on transient timeouts
@@ -210,3 +214,4 @@ function stop() {
 }
 
 module.exports = { start, stop, poll };
+

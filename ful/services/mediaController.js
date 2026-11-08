@@ -126,3 +126,4 @@ while ($line = [Console]::ReadLine()) {
 }
 
 module.exports = new MediaController();
+

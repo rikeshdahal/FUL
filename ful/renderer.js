@@ -1517,7 +1517,12 @@ function showNotchMusic(media = S.media) {
       <!-- Top row: Album Art, Song Info, Dancing Waveform -->
       <div class="music-top-row">
         <div class="album-art" id="albumArt">
-          <img id="notchMusicCover" class="expanded-thumb-img" src="${coverSrc}" alt="Album Art" />
+          <img id="notchMusicCover" class="expanded-thumb-img" src="${coverSrc || ''}" alt="" style="${coverSrc ? 'display:block' : 'display:none'}" />
+          <div class="album-art-placeholder" id="albumArtPlaceholder" style="${coverSrc ? 'display:none' : 'display:flex'}">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+            </svg>
+          </div>
           <div class="album-shine"></div>
         </div>
         <div class="music-info">
@@ -1609,12 +1614,28 @@ function showNotchMusic(media = S.media) {
   setShape('music-card');
   updateTopBarClock();
 
-  // Extract vibrant dominant color from image when loaded
+  // Extract vibrant dominant color from image when loaded, with graceful error fallback
   const coverImg = $('notchMusicCover');
+  const albumArtPlaceholder = $('albumArtPlaceholder');
   if (coverImg) {
     coverImg.crossOrigin = 'Anonymous';
-    coverImg.onload = () => extractColorFromImg(coverImg);
-    if (coverImg.complete) extractColorFromImg(coverImg);
+    coverImg.onload = () => {
+      coverImg.style.display = 'block';
+      if (albumArtPlaceholder) albumArtPlaceholder.style.display = 'none';
+      extractColorFromImg(coverImg);
+    };
+    coverImg.onerror = () => {
+      coverImg.style.display = 'none';
+      if (albumArtPlaceholder) albumArtPlaceholder.style.display = 'flex';
+    };
+    if (coverImg.complete) {
+      if (coverImg.naturalWidth > 0) {
+        extractColorFromImg(coverImg);
+      } else if (coverSrc) {
+        coverImg.style.display = 'none';
+        if (albumArtPlaceholder) albumArtPlaceholder.style.display = 'flex';
+      }
+    }
   }
 
   // Wire all Dynamic Island controls to persistent controller
@@ -4519,11 +4540,27 @@ function updateMusicUI(m) {
     notchArtist.title = artist;
   }
   const notchCover = $('notchMusicCover');
-  if (notchCover && thumbUrl) {
-    if (notchCover.src !== thumbUrl) {
-      notchCover.crossOrigin = 'Anonymous';
-      notchCover.src = thumbUrl;
-      notchCover.onload = () => extractColorFromImg(notchCover);
+  const albumArtPlaceholder = $('albumArtPlaceholder');
+  if (notchCover) {
+    if (thumbUrl) {
+      if (notchCover.src !== thumbUrl) {
+        notchCover.crossOrigin = 'Anonymous';
+        notchCover.src = thumbUrl;
+      }
+      notchCover.style.display = 'block';
+      if (albumArtPlaceholder) albumArtPlaceholder.style.display = 'none';
+      notchCover.onload = () => {
+        notchCover.style.display = 'block';
+        if (albumArtPlaceholder) albumArtPlaceholder.style.display = 'none';
+        extractColorFromImg(notchCover);
+      };
+      notchCover.onerror = () => {
+        notchCover.style.display = 'none';
+        if (albumArtPlaceholder) albumArtPlaceholder.style.display = 'flex';
+      };
+    } else {
+      notchCover.style.display = 'none';
+      if (albumArtPlaceholder) albumArtPlaceholder.style.display = 'flex';
     }
   }
   const soundWave = $('soundWaveLarge');
