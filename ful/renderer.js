@@ -477,7 +477,16 @@ function setShape(shape) {
 
   if (shape !== 'state-dictate' && shape !== 'dictate') stopDictateAppWatch();
 
+  const isCustomFloating = (S.cfg && S.cfg.placement === 'custom') || (shell && shell.classList.contains('floating-pill'));
+
   let targetW = 240, targetH = 48;
+  if (isCustomFloating && shape !== 'panel') {
+    if (shape === 'dock' || shape === 'hover-dock') {
+      targetW = 104; targetH = 96;
+    } else {
+      targetW = 104; targetH = 54;
+    }
+  }
   if (shape === 'hidden') {
     targetW = 184; targetH = 5;
   } else if (shape === 'rest') {
@@ -515,7 +524,13 @@ function setShape(shape) {
 
   targetNotchW = targetW;
   targetNotchH = targetH;
-  if (shape === 'hidden') {
+  if (isCustomFloating && shape !== 'panel') {
+    if (shape === 'dock' || shape === 'hover-dock') {
+      targetW = 104; targetH = 96;
+    } else {
+      targetW = 104; targetH = 54;
+    }
+  } else if (shape === 'hidden') {
     targetW = 184; targetH = 6;
   } else if (shape === 'rest') {
     targetW = 240; targetH = 44;
@@ -2216,6 +2231,7 @@ function renderSettings() {
       btn.classList.add('on');
       const plc = btn.dataset.placement;
       S.cfg.placement = plc;
+      applyPlacementState(plc);
       ipc.send('window-set-placement', plc);
       setStatus('Placement: ' + btn.textContent.trim());
       feel('happy', 800);
@@ -4129,6 +4145,7 @@ ipc.on('toast', (_e, t) => {
 
 ipc.on('cfg', (_e, c) => {
   S.cfg = { ...S.cfg, ...c };
+  applyPlacementState();
   applyTheme();
 });
 
@@ -4136,11 +4153,80 @@ ipc.on('data-updated', () => {
   updateTimers();
 });
 
+function applyPlacementState(pOverride) {
+  const p = pOverride || (S.cfg ? S.cfg.placement : 'top-center');
+  const isCustom = (p === 'custom');
+  if (shell) {
+    shell.classList.toggle('floating-pill', isCustom);
+  }
+  const notchContainer = $('notchContainer');
+  if (notchContainer) {
+    notchContainer.classList.toggle('floating-pill', isCustom);
+  }
+  const notchSvg = $('notchSvg');
+  if (notchSvg) {
+    notchSvg.style.display = isCustom ? 'none' : 'block';
+  }
+  const tuckHoverZone = $('tuckHoverZone');
+  if (tuckHoverZone) {
+    tuckHoverZone.style.display = isCustom ? 'none' : 'block';
+  }
+
+  // Update window sizing immediately if in custom mode
+  if (isCustom && currentShape !== 'panel') {
+    const w = 104;
+    const h = (currentShape === 'dock' || S.hovering) ? 96 : 54;
+    targetNotchW = w;
+    targetNotchH = h;
+    ipc.send('prepare-size', { w, h, shape: (currentShape === 'dock' || S.hovering) ? 'dock' : 'rest' });
+  }
+}
+
+function initDeskPill() {
+  const dpTabs = $('dpTabs');
+  const dpTip = $('dpTip');
+  if (!dpTabs) return;
+
+  dpTabs.addEventListener('pointerover', (e) => {
+    const btn = e.target.closest('.dp-tab');
+    if (btn && dpTip) {
+      dpTip.textContent = btn.dataset.t;
+      dpTip.classList.add('show');
+      feel('hover', 600);
+    }
+  });
+
+  dpTabs.addEventListener('pointerleave', () => {
+    if (dpTip) dpTip.classList.remove('show');
+  });
+
+  dpTabs.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const btn = e.target.closest('.dp-tab');
+    if (!btn) return;
+    const act = btn.dataset.t;
+    if (act === 'Command') {
+      feel('curious', 1200);
+      setShape('state-cursor');
+    } else if (act === 'Dictate') {
+      feel('listening', 2500);
+      if (S.capture) {
+        endCapture();
+      } else {
+        beginCapture('dict');
+      }
+    } else if (act === 'Write') {
+      feel('happy', 800);
+      openTab('chat');
+      setShape('panel');
+      openPanel();
+    }
+  });
+}
+
 ipc.on('placement-snapped', (_e, p) => {
   S.cfg.placement = p;
-  const isCustom = (p === 'custom');
-  $('shell')?.classList.toggle('floating-pill', isCustom);
-  $('notchContainer')?.classList.toggle('floating-pill', isCustom);
+  applyPlacementState(p);
   setStatus(p === 'top-center' ? 'Snapped to Notch' : `Docked: ${p}`);
   feel('happy', 800);
 });
@@ -5137,7 +5223,7 @@ function initWindowDragging() {
   const snapPill = $('snapPill');
 
   function startDrag(e) {
-    if (e.target.closest('button, input, select, textarea, .tab, .resize-handle, #dockMenu, .nv-tab-btn, .nv-progress, .nv-music-scrubber, .nv-controls, .nv-buttons, .nv-btn, .nv-pomo-actions, #todoItemsList, svg, img')) return;
+    if (e.target.closest('button, input, select, textarea, .tab, .resize-handle, #dockMenu, .nv-tab-btn, .nv-progress, .nv-music-scrubber, .nv-controls, .nv-buttons, .nv-btn, .nv-pomo-actions, #todoItemsList, svg, img, .dp-tab, #dpTabs, #dpTip')) return;
     isDragging = true;
     dragStartX = e.screenX;
     dragStartY = e.screenY;
@@ -5440,6 +5526,7 @@ function initQuickPresets() {
       item.onclick = () => {
         const dock = item.dataset.dock;
         S.cfg.placement = dock;
+        applyPlacementState(dock);
         ipc.send('window-set-placement', dock);
         dockMenu.classList.remove('open');
         setStatus('Placement: ' + item.textContent.trim());
@@ -5752,6 +5839,8 @@ startMeter();
 initWindowDragging();
 initPanelResizing();
 initQuickPresets();
+initDeskPill();
+applyPlacementState();
 initScreenSafetyGuardian();
 initCompanionQuips();
 initBatteryWatcher();

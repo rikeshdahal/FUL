@@ -258,23 +258,31 @@ function calculateWindowBounds(w, h) {
     }
     x = Math.round(area.x + (area.width - width) / 2);
     y = Math.round(area.y);
-  } else if (placement === 'custom' && cfg.customPos) {
-    width = Math.max(60, Math.min(Math.round(w) + PAD * 2, area.width));
-    height = Math.max(40, Math.min(Math.round(h) + PAD * 2, area.height));
-    if (win && !win.isDestroyed()) {
-      const cur = win.getBounds();
-      const centerX = cur.x + cur.width / 2;
-      x = Math.round(centerX - width / 2);
-      if (cur.y + cur.height > area.y + area.height * 0.65) {
-        y = Math.round(cur.y + cur.height - height);
+  } else if (placement === 'custom') {
+    const desiredW = (currentAppShape === 'panel') ? (cfg.panelWidth || 460) : (w || 104);
+    const desiredH = (currentAppShape === 'panel') ? (cfg.panelHeight || 520) : (h || 54);
+    width = Math.max(60, Math.min(Math.round(desiredW) + PAD * 2, area.width));
+    height = Math.max(40, Math.min(Math.round(desiredH) + PAD * 2, area.height));
+    if (cfg.customPos) {
+      if (win && !win.isDestroyed()) {
+        const cur = win.getBounds();
+        const centerX = cur.x + cur.width / 2;
+        x = Math.round(centerX - width / 2);
+        if (cur.y + cur.height > area.y + area.height * 0.65) {
+          y = Math.round(cur.y + cur.height - height);
+        } else {
+          y = Math.round(cur.y);
+        }
       } else {
-        y = Math.round(cur.y);
+        x = Math.round(cfg.customPos.x);
+        y = Math.round(cfg.customPos.y);
       }
     } else {
-      x = Math.round(cfg.customPos.x);
-      y = Math.round(cfg.customPos.y);
+      x = Math.round(area.x + area.width * 0.72 - width / 2);
+      y = Math.round(area.y + 120);
+      cfg.customPos = { x, y };
+      saveCfg();
     }
-  } else {
     width = Math.max(60, Math.min(Math.round(w) + PAD * 2, area.width));
     height = Math.max(40, Math.min(Math.round(h) + PAD * 2, area.height));
     x = Math.round(area.x + (area.width - width) / 2);
